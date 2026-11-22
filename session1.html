@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Case Files</title>
+<title>What Should the Owner Do?</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap" rel="stylesheet">
@@ -225,7 +225,7 @@ const STAR = '<svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"
 function star(title, text, n) { return `<div class="milestone"><div class="stars">${STAR.repeat(n)}</div><div><b>${title}</b><br>${text}</div></div>`; }
 function notesText() {
   const A = S.a, s = (k) => (A[k + "Sure"] == null ? "" : " (" + A[k + "Sure"] + "% sure)");
-  return ["The Case Files, Session 1: " + S.group, "", "CASE 1: the Google ads", "What we saw along the row: " + (A.c1see || ""), "First advice: " + (A.c1first || "") + s("c1first"), "What we wanted to know: " + (A.c1want || ""),
+  return ["What Should the Owner Do? Session 1: " + S.group, "", "CASE 1: the Google ads", "What we saw along the row: " + (A.c1see || ""), "First advice: " + (A.c1first || "") + s("c1first"), "What we wanted to know: " + (A.c1want || ""),
     "Inside each row: " + (A.c1rows || ""), "Later advice: " + (A.c1later || "") + s("c1later"), "Based on: " + (A.c1why || ""), "", "CASE 2: the neighbours", "What we saw in the ten regulars: " + (A.c2see || ""),
     "First advice: " + (A.c2first || "") + s("c2first"), "What we wanted to know: " + (A.c2want || ""), "All 25 club members: " + (A.c2all || ""), "What decides who becomes a regular: " + (A.c2rule || ""), "Later advice: " + (A.c2later || "") + s("c2later")].join("\n");
 }
@@ -237,7 +237,7 @@ const C1 = ["Double the ad budget", "Do not double the ad budget"];
 const C2 = ["Stop the flyers in the neighbourhood", "Keep the flyers in the neighbourhood"];
 const view = {
   intro: () => ({ where: "Start", html: `
-    <h1>The Case Files</h1>
+    <h1>What Should the Owner Do?</h1>
     <p>Two restaurant owners want your advice. Work as a group of four or five. Everyone can follow on their own device, but <b>one device writes and sends</b> the group's answers. Talk first, then write.</p>
     <div class="card stack">
       <h2>Is this the device that writes for your group?</h2>
@@ -404,7 +404,7 @@ function render(scroll) {
   const bar = looking ? `<div class="lookbar"><b>Looking back: read only</b><span>${S.look > 1 ? '<button class="go secondary" data-look="prev">Earlier screen</button>' : ""}${S.look < lookMax() ? '<button class="go secondary" data-look="next">Later screen</button>' : ""}<button class="go" data-look="close">Return to where we were</button></span></div>` : "";
   const back = !looking && S.role && id !== "end" && lookMax() >= 1 ? '<p><button class="go secondary" data-look="open">Look back at earlier screens</button></p>' : "";
   app.innerHTML = "";
-  app.appendChild($(`<header class="top"><div class="brand">The Case Files</div><div class="where">Session 1 · ${v.where}${who}${preview ? " · facilitator preview" : ""}</div></header><div class="track" aria-hidden="true">${track}</div>${preview ? teacherKey() : ""}${bar}<section class="stack" id="screen">${v.html}</section>${bar}${back}${preview && id !== "intro" && !looking ? '<p class="small">Facilitator preview: <button class="go secondary" data-skip>Skip to the next screen</button></p>' : ""}`));
+  app.appendChild($(`<header class="top"><div class="brand">What Should the Owner Do?</div><div class="where">Session 1 · ${v.where}${who}${preview ? " · facilitator preview" : ""}</div></header><div class="track" aria-hidden="true">${track}</div>${preview ? teacherKey() : ""}${bar}<section class="stack" id="screen">${v.html}</section>${bar}${back}${preview && id !== "intro" && !looking ? '<p class="small">Facilitator preview: <button class="go secondary" data-skip>Skip to the next screen</button></p>' : ""}`));
   if (looking) app.querySelectorAll("#screen .go, #screen .hint, #screen details").forEach((el) => el.remove());
   if (follower() && !S.pick && !looking) { const b = app.querySelector("[data-next]"); if (b) b.textContent = GATED.includes(SCREENS[S.at + 1]) ? "Continue to the checkpoint" : "Continue"; }
   refresh();
