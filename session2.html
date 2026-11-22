@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Lunch Survey</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: one narrow working column, one step on screen at a time; the cards sit in a ruled "table top" panel. */
+:root {
+  --bg: #F3F5F8; --surface: #FFFFFF; --ink: #18222F; --muted: #5B6878; --line: #D5DBE3;
+  --accent: #1F4E79; --accent-ink: #FFFFFF; --hot: #B5402A; --soft: #E6ECF3; --note: #FFF6DA; --note-line: #E3C96B;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #11161D; --surface: #1A222C; --ink: #E8EDF3; --muted: #9BA8B8; --line: #334050;
+    --accent: #7FB2E0; --accent-ink: #0E1620; --hot: #EE8A72; --soft: #232E3B; --note: #2E2A18; --note-line: #7A6A2A;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #11161D; --surface: #1A222C; --ink: #E8EDF3; --muted: #9BA8B8; --line: #334050;
+  --accent: #7FB2E0; --accent-ink: #0E1620; --hot: #EE8A72; --soft: #232E3B; --note: #2E2A18; --note-line: #7A6A2A;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.5; }
+main { max-width: 860px; margin: 0 auto; padding: 20px 16px 64px; display: flex; flex-direction: column; gap: 18px; }
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+.brand { font-family: var(--display); font-weight: 700; font-size: 20px; color: var(--accent); }
+.where { color: var(--muted); font-size: 15px; }
+.track { display: flex; gap: 4px; }
+.track span { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
+.track span.done { background: var(--accent); }
+.track span.now { background: var(--hot); }
+h1 { font-family: var(--display); font-size: 30px; line-height: 1.15; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-size: 21px; margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 68ch; }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+.quote { background: var(--note); border: 1px solid var(--note-line); border-radius: 10px; padding: 14px 16px; }
+.quote .who { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+.envelope { border: 2px dashed var(--hot); border-radius: 10px; padding: 16px; background: var(--surface); }
+.envelope .tag { font-family: var(--display); color: var(--hot); font-weight: 700; margin-bottom: 6px; }
+.step { font-weight: 700; }
+.mins { color: var(--muted); font-weight: 400; font-size: 15px; }
+label { font-weight: 700; display: block; margin-bottom: 6px; }
+textarea { width: 100%; min-height: 64px; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px; resize: vertical; }
+input[type=text] { width: 100%; max-width: 360px; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+textarea:focus-visible, button:focus-visible, input:focus-visible, a.go:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.choices { display: flex; flex-wrap: wrap; gap: 10px; }
+.choice { font: inherit; padding: 12px 16px; border-radius: 8px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; flex: 1 1 220px; text-align: left; }
+.choice[aria-pressed="true"] { border-color: var(--accent); background: var(--soft); font-weight: 700; }
+.sure { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sure input[type=range] { flex: 1 1 220px; accent-color: var(--accent); }
+.sure output { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 4.5ch; }
+a.go { display: inline-block; }
+.go { font: inherit; font-weight: 700; padding: 13px 18px; border-radius: 8px; border: 0; background: var(--accent); color: var(--accent-ink); cursor: pointer; align-self: flex-start; }
+.go[disabled] { background: var(--line); color: var(--muted); cursor: not-allowed; }
+.go.secondary { background: var(--surface); color: var(--accent); border: 2px solid var(--accent); }
+.hint { color: var(--muted); font-size: 15px; }
+.table-top { background: var(--soft); border-radius: 10px; padding: 14px; overflow-x: auto; }
+.rowlabel { font-size: 14px; font-weight: 700; color: var(--muted); margin: 0 0 6px; }
+.rowlabel.hot { color: var(--hot); }
+.weeks { display: flex; gap: 4px; align-items: flex-end; min-width: max-content; }
+.week { width: 44px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 2px; text-align: center; font-size: 12.5px; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.week b { display: block; font-family: var(--display); font-size: 17px; color: var(--accent); }
+.week.hot { border-color: var(--hot); } .week.hot b { color: var(--hot); }
+.week .bar { height: 70px; display: flex; align-items: flex-end; justify-content: center; margin: 4px 0; }
+.week .bar i { display: block; width: 18px; background: var(--accent); border-radius: 3px 3px 0 0; }
+.week.hot .bar i { background: var(--hot); }
+.week small { display: block; color: var(--muted); font-size: 11px; }
+.piles { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(118px, 1fr); gap: 8px; min-width: max-content; }
+.pile { display: flex; flex-direction: column; gap: 6px; }
+.pile h3 { margin: 0; font-size: 14px; color: var(--muted); text-align: center; }
+.guest { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 13px; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.guest b { font-size: 16px; }
+.guest.reg { border-color: var(--hot); border-width: 2px; }
+.guest .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 9px; background: var(--hot); color: var(--surface); margin-left: 4px; }
+.guest.other { color: var(--muted); }
+.pile .foot { font-size: 14px; text-align: center; font-weight: 700; padding-top: 4px; border-top: 2px solid var(--line); font-variant-numeric: tabular-nums; }
+.pile .foot span { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
+.loose { display: flex; flex-wrap: wrap; gap: 6px; }
+.loose .guest { width: 118px; }
+.stats { display: flex; gap: 12px; flex-wrap: wrap; }
+.stat { flex: 1 1 200px; background: var(--soft); border-radius: 8px; padding: 12px; }
+.stat b { font-family: var(--display); font-size: 30px; display: block; font-variant-numeric: tabular-nums; }
+table.recap { width: 100%; border-collapse: collapse; font-size: 16px; }
+table.recap th, table.recap td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+table.recap th { color: var(--muted); font-size: 14px; }
+.recap-wrap { overflow-x: auto; }
+.milestone { display: flex; align-items: center; gap: 14px; background: var(--note); border: 1px solid var(--note-line); border-radius: 10px; padding: 12px 16px; }
+.milestone .stars { color: #E0A100; display: flex; flex: none; }
+.research { background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; font-size: 15px; }
+.research b:first-child { display: block; font-family: var(--display); font-size: 16px; color: var(--accent); margin-bottom: 2px; }
+.lookbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; background: var(--note); border: 1px solid var(--note-line); border-radius: 10px; padding: 10px 14px; }
+.lookbar span { display: flex; flex-wrap: wrap; gap: 8px; }
+.lookbar .go { padding: 9px 14px; }
+.sendbox { border: 3px solid var(--hot); border-radius: 10px; padding: 18px; background: var(--surface); }
+.sendsteps { margin: 0; padding-left: 0; list-style: none; counter-reset: s; display: flex; flex-direction: column; gap: 8px; }
+.sendsteps li { counter-increment: s; position: relative; padding: 10px 12px 10px 48px; border-radius: 8px; background: var(--soft); }
+.sendsteps li::before { content: counter(s); position: absolute; left: 12px; top: 9px; width: 26px; height: 26px; border-radius: 50%; background: var(--muted); color: var(--surface); font-weight: 700; text-align: center; line-height: 26px; }
+.sendsteps li.now { background: var(--note); outline: 2px solid var(--hot); }
+.sendsteps li.now::before { background: var(--hot); }
+.sendsteps li.done::before { content: "\2713"; background: var(--accent); color: var(--accent-ink); }
+.locked { border-left: 0; background: var(--soft); border-radius: 8px; padding: 10px 12px; font-size: 15px; }
+.locked b { color: var(--muted); font-size: 13px; display: block; }
+details { font-size: 15px; color: var(--muted); }
+details button { font: inherit; }
+.small { font-size: 14px; color: var(--muted); }
+@media (max-width: 480px) { h1 { font-size: 25px; } body { font-size: 16px; } }
+@media (prefers-reduced-motion: no-preference) { .week, .guest { transition: border-color .2s; } }
+
+.sq p { margin-bottom: 6px; }
+.sq + .sq { margin-top: 16px; }
+.opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.opt { font: inherit; padding: 9px 13px; border-radius: 8px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.opts.seven .opt { min-width: 44px; text-align: center; }
+.opt[aria-pressed="true"] { border-color: var(--accent); background: var(--soft); font-weight: 700; }
+.opt.ghost { cursor: default; font-size: 14px; padding: 5px 9px; border-width: 1px; }
+.forms { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.formcard { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; font-size: 15px; }
+.formcard h3 { margin: 0 0 8px; font-family: var(--display); color: var(--accent); }
+.ccgrid { display: grid; grid-template-columns: minmax(0, 1fr) 84px 84px; gap: 10px 10px; align-items: center; }
+.ccgrid label { margin: 0; font-weight: 700; } .ccgrid label small { display: block; font-weight: 400; color: var(--muted); }
+.ccgrid input { width: 100%; text-align: center; } .ccgrid b { text-align: center; font-size: 14px; }
+.cmp p { margin-bottom: 4px; }
+.barrow { display: grid; grid-template-columns: 44px minmax(0, 1fr) 48px 80px; gap: 8px; align-items: center; font-size: 14px; font-variant-numeric: tabular-nums; }
+.track2 { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; height: 18px; overflow: hidden; }
+.track2 i { display: block; height: 100%; background: var(--accent); } .track2 i.hotbar { background: var(--hot); }
+.barrow small { color: var(--muted); }
+.receipts { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; min-width: 520px; }
+.rc { font: inherit; font-size: 14px; font-variant-numeric: tabular-nums; padding: 5px 2px 6px; border-radius: 5px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; text-align: center; line-height: 1.15; }
+.rc small { display: block; font-size: 10px; color: var(--muted); }
+.rc.on { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 700; } .rc.on small { color: var(--accent-ink); }
+.rc.drawn { border-color: var(--hot); background: var(--note); font-weight: 700; }
+.rc[disabled] { cursor: default; opacity: 1; }
+.nline { padding: 8px 4px 0; }
+.nline .axis { position: relative; height: 34px; border-bottom: 2px solid var(--muted); }
+.nline .dot { position: absolute; bottom: 4px; width: 16px; height: 16px; border-radius: 50%; transform: translateX(-50%); }
+.nline .dot.lot { background: var(--hot); opacity: .8; } .nline .dot.eye { background: var(--accent); border-radius: 3px; }
+.nline .truth { position: absolute; bottom: -2px; width: 3px; height: 34px; background: var(--ink); transform: translateX(-50%); }
+.nline .ticks { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); padding: 2px 6.25% 0 8.33%; font-variant-numeric: tabular-nums; }
+.key { display: inline-block; width: 12px; height: 12px; vertical-align: -1px; } .key.eye { background: var(--accent); border-radius: 2px; } .key.lot { background: var(--hot); border-radius: 50%; } .key.tr { background: var(--ink); width: 3px; }
+details.slip { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; color: var(--ink); }
+.standlist { margin: 4px 0 0; padding-left: 18px; } .do { font-weight: 700; color: var(--hot); }
+.tchead { margin: 6px 0 0; font-size: 17px; }
+.tcsteps { display: grid; gap: 8px; }
+.tcstep { display: grid; grid-template-columns: 30px minmax(0, 1fr) 70px; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line, #d9d4c8); border-radius: 10px; background: var(--surface); }
+.tcstep label { margin: 0; font-weight: 400; font-size: 15px; display: grid; gap: 2px; }
+.tcnum { width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: var(--surface); display: grid; place-items: center; font-weight: 700; font-size: 14px; }
+.tcstep input { width: 100%; text-align: center; font-size: 20px; padding: 8px 4px; }
+.tcgrid { display: grid; grid-template-columns: minmax(0, 1fr) 76px 76px; gap: 10px; align-items: center; }
+.tcgrid label { margin: 0; font-weight: 700; font-size: 15px; } .tcgrid b { text-align: center; font-size: 14px; }
+.tcgrid input { width: 100%; text-align: center; font-size: 20px; padding: 8px 4px; }
+.bigcode { font-family: var(--display); font-size: 40px; letter-spacing: 2px; font-weight: 700; margin: 0; }
+.keytable th, .keytable td { padding: 6px 6px; font-size: 14px; } .keytable td:first-child { width: 22%; }
+details.slip summary { font-weight: 700; cursor: pointer; }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+const AMOUNTS = [125, 380, 100, 120, 140, 140, 135, 130, 100, 410, 125, 480, 110, 120, 260, 130, 110, 270, 115, 250, 135, 600, 440, 640, 145, 95, 260, 140, 115, 125, 115, 135, 100, 200, 135, 140, 130, 95, 115, 520, 140, 105, 130, 100, 100, 220, 135, 130, 140, 190, 110, 130, 115, 95, 135, 130, 125, 270, 125, 145, 140, 280, 120, 210, 140, 135, 280, 135, 200, 210, 260, 130, 135, 100, 290, 120, 290, 145, 140, 115, 130, 190, 100, 145, 120, 125, 100, 145, 125, 560, 135, 290, 125, 260, 270, 100, 220, 120, 270, 120];
+const TRUE_MEAN = AMOUNTS.reduce((a, b) => a + b, 0) / AMOUNTS.length;
+const LUNCHES = 25000;
+const KEY = "casefiles-s2-v1";
+/* Paste the pre-filled Microsoft Forms link here (dummy answers Q1 ... Q28). Empty = offer "Copy our case file" instead. */
+const FORM_URL = "https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=ZXoUKW1T-UO4AuChtc-dv4SG9gvTFfxJkQXWBLPPwb1URTJLTFNKUTI1MlhFQTNGSFdaVVZLNDkxUi4u&rad24921ec80a48fc934be31801ff376d=Q1&r592f42b31b5d46cea13042e9f2ef8808=Q2&r1c16d9e0e0ec497b8b7fe7068b8f6560=Q3&r15aaa74a65de45688ee8fc73308305ef=Q4&r33da5116e2ea46edae0226c2b90c921f=Q5&rdcf97c9e88554398931d07dc7d04c9b0=Q6&r56d11a9bf8174e6bad70e39a279a232e=Q7&rb181761f7cf74a05a7615f36ad1c8420=Q8&r9daab44681744fa2973ddd310388339b=Q9&rc678423f49584b128b3b5482bcc37436=Q10&ra4a20cb7f90a4e2d94739da0fd2f1c6b=Q11&rc7cf8c6183da4206ae7ba9dc567dabaa=Q12&r809b4c962ee24a32bc5406299c91c262=Q13&r93a783cfb20b47c49cd06a157419c739=Q14&r5bbe3f2dcde0450e95b102234379a0f9=Q15&r6e9788b6617f40808c0fbe2d941ca402=Q16&rd6c6ff63cc77447f9c55a69e0e447341=Q17&r650ca7118aaf4aa8833cae060ef38fb0=Q18&rc46f4c25bc454c72a280f97974f1e297=Q19&r8b258130b6fa484a836844352bf5f3ed=Q20&r976cacbc2b85496082d6bf23360f37ff=Q21&rb2232907ef744be7899ec32df542d747=Q22&rb3da839e95b746bea383409fed541d93=Q23&r93ad76f129a646719418fd6714a0ae6a=Q24&r992121a51dca4bc381034187fc90eb0f=Q25&re00e1665593d48a08029a2aed7450185=Q26&re290dd3442674fb89179df36505654c2=Q27&r6da5cf2539e14ce58fbfe050ab6d1666=Q28";
+const LAB_WORD = "lunch";
+const SCREENS = ["intro", "p1a", "p1b", "p1c", "p2a", "p2b", "p2c", "end"];
+const GATED = ["p1c", "p2b", "p2c"];
+const ENV = { p1c: "envelope 1", p2b: "envelope 2", p2c: "envelope 3" };
+/* Teacher key: row = last digit of the group code, column = envelope. All passwords are keywords of quantitative research. */
+const WORDS = [["variable", "sample", "mean"], ["hypothesis", "population", "median"], ["validity", "survey", "variance"], ["reliability", "scale", "correlation"], ["causality", "experiment", "regression"],
+  ["measurement", "random", "outlier"], ["replication", "bias", "histogram"], ["indicator", "census", "scatter"], ["theory", "interval", "ratio"], ["deduction", "nominal", "ordinal"]];
+const norm = (s) => String(s).toLowerCase().replace(/[^a-z]/g, "");
+const blank = () => ({ at: 0, a: {}, ui: {}, role: null, group: "", salt: "", sent: null, t: {}, pick: null, tries: {}, look: null, confirmed: false,
+  form: Math.random() < 0.5 ? 1 : 2, sv: {}, handed: false, lab: false, eye: [], draws: [], cc: {}, tc: {} });
+let S = blank();
+try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
+let preview = location.hash === "#facilitator";
+window.addEventListener("hashchange", () => { preview = location.hash === "#facilitator"; render(false); });
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+const $ = (h) => { const t = document.createElement("template"); t.innerHTML = h.trim(); return t.content; };
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const filled = (k) => (S.a[k] || "").trim().length >= 3;
+const follower = () => S.role === "follow";
+const password = (screen) => WORDS[Number(String(S.salt).slice(-1)) || 0][GATED.indexOf(screen)];
+function gate(screen) { let h = 7; for (const c of S.salt + ":" + screen) h = (h * 31 + c.charCodeAt(0)) % 9000; return String(1000 + h); }
+function stamp(id) { if (!S.t[id]) { S.t[id] = Date.now(); } }
+const minutes = (from, to) => (S.t[from] && S.t[to] ? Math.max(1, Math.round((S.t[to] - S.t[from]) / 60000)) : "");
+const seconds = (from, to) => (S.t[from] && S.t[to] ? Math.max(1, Math.round((S.t[to] - S.t[from]) / 1000)) : "");
+function checkCode(list) { let h = 5381; for (const c of list.join("|")) h = (h * 33 + c.charCodeAt(0)) % 2147483647; return h.toString(36).toUpperCase(); }
+const clean = (v) => (v == null ? "" : String(v)).replace(/\s+/g, " ").replace(/"/g, "'").trim();
+const mean = (list) => (list.length ? list.reduce((a, b) => a + b, 0) / list.length : 0);
+const eyeMean = () => Math.round(mean(S.eye.map((i) => AMOUNTS[i])));
+const kr = (n) => Math.round(n) + " kr";
+const sek = (n) => "SEK " + String(Math.round(Math.abs(n) / 1000) * 1000).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+const CC = ["n1", "n2", "a1", "a2", "b1", "b2", "c1", "c2"];
+const ccOk = () => validCounts(S.cc);
+const share = (q, f) => Math.round(100 * Number(S.cc[q + f]) / Number(S.cc["n" + f]));
+const ALPHA = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"; /* no 0, 1, I, L, O: they are easy to confuse */
+const QS = ["a", "b", "c"];
+function validCounts(c) {
+  const num = (k) => (/^\d{1,2}$/.test(String(c[k] == null ? "" : c[k]).trim()) ? Number(c[k]) : NaN);
+  const n1 = num("n1"), n2 = num("n2");
+  if (!(n1 >= 1) || !(n2 >= 1)) return false;
+  return QS.every((q) => num(q + "1") <= n1 && num(q + "2") <= n2);
+}
+function encodeCounts(c) {
+  const n1 = BigInt(c.n1), n2 = BigInt(c.n2);
+  let v = 0n;
+  for (const [k, n] of [["a1", n1], ["b1", n1], ["c1", n1], ["a2", n2], ["b2", n2], ["c2", n2]]) v = v * (n + 1n) + BigInt(c[k]);
+  v = v * 10000n + n1 * 100n + n2;
+  let s = ""; const B = BigInt(ALPHA.length);
+  do { s = ALPHA[Number(v % B)] + s; v /= B; } while (v > 0n);
+  while (s.length < 5) s = ALPHA[0] + s;
+  let sum = 0; for (let i = 0; i < s.length; i++) sum = (sum * 7 + ALPHA.indexOf(s[i]) + 3) % ALPHA.length;
+  return s + ALPHA[sum];
+}
+function decodeCounts(text) {
+  const s = String(text).toUpperCase().replace(/[^0-9A-Z]/g, "");
+  if (s.length < 4 || [...s].some((ch) => ALPHA.indexOf(ch) < 0)) return null;
+  const body = s.slice(0, -1); let sum = 0;
+  for (let i = 0; i < body.length; i++) sum = (sum * 7 + ALPHA.indexOf(body[i]) + 3) % ALPHA.length;
+  if (ALPHA[sum] !== s[s.length - 1]) return null;
+  let v = 0n; const B = BigInt(ALPHA.length); for (const ch of body) v = v * B + BigInt(ALPHA.indexOf(ch));
+  const n2 = v % 100n, n1 = (v / 100n) % 100n; v /= 10000n;
+  if (n1 < 1n || n2 < 1n) return null;
+  const out = { n1: Number(n1), n2: Number(n2) };
+  for (const [k, n] of [["c2", n2], ["b2", n2], ["a2", n2], ["c1", n1], ["b1", n1], ["a1", n1]]) { out[k] = Number(v % (n + 1n)); v /= (n + 1n); }
+  return v === 0n && validCounts(out) && encodeCounts(out) === s ? out : null;
+}
+const showCode = (code) => code.replace(/(.{3})(?=.)/g, "$1-");
+const TEXT = [2, 8, 9, 15, 16]; /* positions of the free-text answers */
+const LINK_BUDGET = 6000;
+const FIELDS = () => {
+  const cc = ccOk() ? `LS-1 ${S.cc.n1}, LS-2 ${S.cc.n2}; prices ${S.cc.a1}/${S.cc.a2}; screen time ${S.cc.b1}/${S.cc.b2}; satisfaction ${S.cc.c1}/${S.cc.c2}` : "";
+  const f = [S.group, S.salt, S.a.p1diff, S.a.predA, S.a.predB, S.a.predC, S.a.predSure, cc, S.a.p1see, S.a.p1advice,
+    S.eye.map((i) => i + 1).join(" "), S.eye.length === 10 ? eyeMean() : "", S.a.close, S.a.closeSure, S.draws.map((d) => d.mean).join(" "), S.a.p2see, S.a.p2compare, S.a.method, S.a.methodSure,
+    minutes("p1a", "p2a"), minutes("p2a", "end"), seconds("p1a", "fetch-p1c"), seconds("p2a", "fetch-p2b"), seconds("fetch-p1c", "opened-p1c"), seconds("fetch-p2b", "opened-p2b"), seconds("fetch-p2c", "opened-p2c"),
+    (S.tries.p1c || 0) + (S.tries.p2b || 0) + (S.tries.p2c || 0)].map(clean);
+  const size = () => f.reduce((n, v) => n + encodeURIComponent(v).length, 0);
+  for (let guard = 0; FORM_URL && FORM_URL.length + size() > LINK_BUDGET && guard < 400; guard++) {
+    const k = TEXT.reduce((best, p) => (f[p].length > f[best].length ? p : best), TEXT[0]);
+    if (f[k].length < 40) break;
+    f[k] = f[k].slice(0, Math.max(30, f[k].length - 12)).trim() + "...";
+  }
+  f.push(checkCode(f));
+  return f;
+};
+function formLink() {
+  if (!FORM_URL) return "";
+  const f = FIELDS(), [base, query] = FORM_URL.split("?");
+  const parts = (query || "").split("&").map((p) => {
+    const i = p.indexOf("="); if (i < 0) return p;
+    const m = decodeURIComponent(p.slice(i + 1)).match(/^("?)Q(\d+)("?)$/);
+    return m && f[m[2] - 1] !== undefined ? p.slice(0, i + 1) + encodeURIComponent(m[1] + f[m[2] - 1] + m[3]) : p;
+  });
+  return base + "?" + parts.join("&");
+}
+
+/* ---------- the lunch survey (start of the lecture) ---------- */
+const SCALE_LOW = ["Up to ½ hour", "½ to 1 hour", "1 to 1½ hours", "1½ to 2 hours", "2 to 2½ hours", "More than 2½ hours"];
+const SCALE_HIGH = ["Up to 2½ hours", "2½ to 3 hours", "3 to 3½ hours", "3½ to 4 hours", "4 to 4½ hours", "More than 4½ hours"];
+const Q_WORST = "Think of the worst lunch you have bought this term. How bad was it? Choose a number from 1 (terrible) to 7 (fine).";
+const Q_OVERALL = "Overall, how satisfied are you with the lunch options near campus? Choose a number from 1 (not at all) to 7 (very).";
+function surveyItems(form) {
+  const A = form === 1;
+  return [
+    { k: "price", q: A ? "Most students say that lunch prices near campus are far too high. Do you agree?" : "How do you find lunch prices near campus?", o: A ? ["Yes", "No"] : ["Too high", "Not too high"] },
+    { k: "screen", q: "On a normal weekday, how much time do you spend on social media and streaming?", o: A ? SCALE_LOW : SCALE_HIGH },
+    { k: A ? "worst" : "overall", q: A ? Q_WORST : Q_OVERALL, o: [1, 2, 3, 4, 5, 6, 7] },
+    { k: A ? "overall" : "worst", q: A ? Q_OVERALL : Q_WORST, o: [1, 2, 3, 4, 5, 6, 7] },
+    { k: "regular", q: "Do you eat lunch out regularly?", o: ["Yes", "No"], extra: true },
+    { k: "foodservice", q: "How satisfied are you with the food and the service at the place where you last bought lunch? Choose a number from 1 (not at all) to 7 (very).", o: [1, 2, 3, 4, 5, 6, 7] },
+  ];
+}
+const surveyDone = () => surveyItems(S.form).every((it) => S.sv[it.k] != null && S.sv[it.k] !== "") && /^\d{1,2}$/.test(String(S.sv.times == null ? "" : S.sv.times));
+function formView(form, live) {
+  return surveyItems(form).map((it, n) => `<div class="sq"><p><b>${n + 1}.</b> ${it.q}</p><div class="opts${it.o.length === 7 ? " seven" : ""}">${it.o.map((o) => live
+    ? `<button type="button" class="opt" data-sv="${it.k}" data-val="${esc(o)}" aria-pressed="${String(S.sv[it.k]) === String(o)}">${esc(o)}</button>` : `<span class="opt ghost">${esc(o)}</span>`).join("")}</div>
+    ${it.extra ? (live ? `<p style="margin-top:8px"><label for="times" style="display:inline;font-weight:400">In your answer, "regularly" means at least </label><input id="times" type="text" inputmode="numeric" maxlength="2" style="width:64px;display:inline-block" value="${esc(S.sv.times == null ? "" : S.sv.times)}"> times a month.</p>` : `<p class="small">In your answer, "regularly" means at least ___ times a month.</p>`) : ""}</div>`).join("");
+}
+function slipView(count) {
+  if (!S.handed) return `<p class="small">This device has no survey slip. If you answered on another device, look at that one.</p>`;
+  const rows = surveyItems(S.form).map((it, n) => `<tr><td>${n + 1}. ${it.q}</td><td><b>${esc(S.sv[it.k])}</b>${it.extra ? "<br>at least " + esc(S.sv.times) + " times a month" : ""}</td></tr>`).join("");
+  const A = S.form === 1, yes = (b) => (b ? '<span class="do">stand up</span>' : "stay seated");
+  const stand = count ? `<div class="locked"><b>For the class count: what you do when your teacher calls form LS-${S.form}</b>
+    <ul class="standlist"><li>Lunch prices: ${yes(S.sv.price === (A ? "Yes" : "Too high"))}</li><li>Screen time: ${yes(A ? S.sv.screen === SCALE_LOW[5] : S.sv.screen !== SCALE_HIGH[0])}</li><li>Overall satisfaction: ${yes(Number(S.sv.overall) <= 4)}</li></ul></div>` : "";
+  return `${stand}<div class="recap-wrap"><table class="recap"><tbody>${rows}</tbody></table></div><p class="small" style="text-align:right">LS-${S.form}</p>`;
+}
+
+/* ---------- building blocks ---------- */
+let RO = false;
+function textQ(key, label, hint) {
+  if (RO && !follower()) return `<div class="locked"><b>${label}</b>${esc(S.a[key] || "")}</div>`;
+  if (follower()) return `<div class="locked"><b>For your group to discuss</b>${label} Your scribe writes the group's answer.</div>`;
+  return `<div><label for="${key}">${label}</label><textarea id="${key}" data-key="${key}" maxlength="200" placeholder="${hint || "Write a sentence or two"}">${esc(S.a[key])}</textarea></div>`;
+}
+function choiceQ(key, label, options) {
+  if (RO && !follower()) return `<div class="locked"><b>${label}</b>${esc(S.a[key] || "")}</div>`;
+  if (follower()) return `<div class="locked"><b>For your group to decide</b>${label} ${options.map(esc).join(" / ")}. Your scribe enters the group's choice.</div>`;
+  return `<div><label>${label}</label><div class="choices" role="group" aria-label="${esc(label)}">${options.map((o) => `<button type="button" class="choice" data-choice="${key}" data-val="${esc(o)}" aria-pressed="${S.a[key] === o}">${esc(o)}</button>`).join("")}</div></div>`;
+}
+function sureQ(key, label) {
+  if (RO && !follower()) return `<div class="locked"><b>${label}</b>${S.a[key] == null ? "" : S.a[key] + "% sure"}</div>`;
+  if (follower()) return `<div class="locked"><b>For your group to decide</b>${label} Your scribe enters it.</div>`;
+  return `<div><label for="${key}">${label}</label><div class="sure"><input id="${key}" type="range" min="0" max="100" step="5" value="${S.a[key] == null ? 50 : S.a[key]}" data-sure="${key}"><output id="${key}-out">${S.a[key] == null ? "move the slider" : S.a[key] + "%"}</output></div></div>`;
+}
+const STAR = '<svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path fill="currentColor" d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>';
+function star(title, text, n) { return `<div class="milestone"><div class="stars">${STAR.repeat(n)}</div><div><b>${title}</b><br>${text}</div></div>`; }
+function lockedLine(title, text) { return `<div class="locked"><b>${title}</b>${esc(text == null ? "" : text)}</div>`; }
+const PRED = ["Higher on form LS-1", "About the same", "Higher on form LS-2"];
+const ROWS = [["a", "predA", "Lunch prices: the share who said the prices are too high", "LS-1: answered Yes. LS-2: answered Too high."],
+  ["b", "predB", "Screen time: the share who said more than 2½ hours", "LS-1: the last box. LS-2: any box except the first."],
+  ["c", "predC", "Overall satisfaction with the lunch options: the share who answered 4 or lower", "The same on both forms."]];
+function bothForms() {
+  return `<div class="forms"><div class="formcard"><h3>Form LS-1</h3>${formView(1, false)}</div><div class="formcard"><h3>Form LS-2</h3>${formView(2, false)}</div></div>`;
+}
+function barsFor(c, withPrediction) {
+  const pct = (q, f) => Math.round(100 * Number(c[q + f]) / Number(c["n" + f]));
+  return `<div class="table-top stack"><p class="rowlabel">Our class: ${c.n1} students had form LS-1 and ${c.n2} had form LS-2.</p>${ROWS.map(([q, pk, label]) => `<div class="cmp"><p><b>${label}</b></p>
+    ${[1, 2].map((f) => `<div class="barrow"><span>LS-${f}</span><div class="track2"><i class="${f === 1 ? "hotbar" : ""}" style="width:${pct(q, f)}%"></i></div><b>${pct(q, f)}%</b><small>${c[q + f]} of ${c["n" + f]}</small></div>`).join("")}
+    ${withPrediction && !follower() && S.a[pk] ? `<p class="small">Your prediction: ${esc(S.a[pk])}</p>` : ""}</div>`).join("")}</div>`;
+}
+function countBars() { return ccOk() ? barsFor(S.cc, true) : ""; }
+function receiptGrid(mode) { /* mode: "pick" (scribe chooses), "show" (read only), "draw" (latest lottery draw highlighted) */
+  const last = S.draws.length ? S.draws[S.draws.length - 1].idx : [];
+  return `<div class="table-top"><p class="rowlabel">Last Tuesday's 100 lunch receipts, in kronor.${mode === "draw" ? " Framed in red: the latest lottery draw." : mode === "pick" ? " Tap to choose; tap again to undo." : ""}</p><div class="receipts">${AMOUNTS.map((amt, i) => {
+    const on = mode === "draw" ? last.includes(i) : S.eye.includes(i);
+    return `<button type="button" class="rc${on ? (mode === "draw" ? " drawn" : " on") : ""}" ${mode === "pick" ? `data-rc="${i}"` : "disabled"}><small>${i + 1}</small>${amt}</button>`;
+  }).join("")}</div></div>`;
+}
+function numberLine(showTruth) {
+  const lo = 80, hi = 320, pos = (v) => Math.max(0, Math.min(100, (v - lo) / (hi - lo) * 100));
+  const marks = S.draws.map((d) => `<i class="dot lot" style="left:${pos(d.mean)}%" title="${d.mean}"></i>`).join("") + (S.eye.length === 10 && !follower() ? `<i class="dot eye" style="left:${pos(eyeMean())}%"></i>` : "")
+    + (showTruth ? `<i class="truth" style="left:${pos(TRUE_MEAN)}%"></i>` : "");
+  return `<div class="nline"><div class="axis">${marks}</div><div class="ticks"><span>100 kr</span><span>150</span><span>200</span><span>250</span><span>300 kr</span></div>
+    <p class="small"><i class="key eye"></i> by eye &nbsp; <i class="key lot"></i> lottery draws${showTruth ? ' &nbsp; <i class="key tr"></i> all 100 receipts' : ""}</p></div>`;
+}
+function budget(est, label) {
+  const diff = (est - TRUE_MEAN) * LUNCHES;
+  return `<div class="stat">${label}: <b>${kr(est)}</b>${Math.abs(est - TRUE_MEAN) < 2 ? "Within 2 kr of the average of all 100 receipts" : `${kr(Math.abs(est - TRUE_MEAN))} ${est > TRUE_MEAN ? "above" : "below"} the average of all 100. Over ${LUNCHES.toLocaleString("en")} lunches, the yearly budget would be about ${sek(diff)} too ${est > TRUE_MEAN ? "high" : "low"}`}.</div>`;
+}
+function notesText() {
+  const A = S.a;
+  return ["The Lunch Survey, Session 2: " + S.group, "", "PART 1: the two forms", "Differences we found: " + (A.p1diff || ""), "Our predictions: prices " + (A.predA || "") + "; screen time " + (A.predB || "") + "; satisfaction " + (A.predC || "") + " (" + (A.predSure == null ? "" : A.predSure) + "% sure)",
+    ccOk() ? `Class count: prices ${share("a", 1)}% on LS-1 and ${share("a", 2)}% on LS-2; screen time ${share("b", 1)}% and ${share("b", 2)}%; satisfaction ${share("c", 1)}% and ${share("c", 2)}%` : "", "What we saw: " + (A.p1see || ""), "Our advice to the owner: " + (A.p1advice || ""), "",
+    "PART 2: ten receipts", "By eye: " + (S.eye.length === 10 ? eyeMean() + " kr" : ""), "How close we thought it was: " + (A.close || "") + " (" + (A.closeSure == null ? "" : A.closeSure) + "% sure)", "Lottery averages: " + S.draws.map((d) => d.mean + " kr").join(", "), "All 100 receipts: " + Math.round(TRUE_MEAN) + " kr",
+    "What we saw: " + (A.p2see || ""), "The two methods: " + (A.p2compare || ""), "Our advice: " + (A.method || "") + " (" + (A.methodSure == null ? "" : A.methodSure) + "% sure)"].join("\n");
+}
+
+/* ---------- screens ---------- */
+const METHODS = ["Pick ten typical receipts by eye", "Draw ten receipts by lottery", "Draw more than ten receipts by lottery"];
+const CLOSE = ["Within 10 kr", "Within 30 kr", "More than 30 kr away"];
+const NOTICE = `<div class="research"><b>For research on teaching only</b>This page records your group's answers and some timings, such as how long a step took. They are used only to study and improve this teaching activity. They do <b>not</b> measure your performance, they are not graded, and there are no right or wrong speeds. Take the time your group needs.</div>`;
+const view = {
+  survey: () => ({ where: "Lunch survey", html: `
+    <h1>Lunch survey</h1>
+    <p>Two minutes, anonymous. Answer on your own. <b>You will need your answers later today.</b></p>
+    <div class="card stack">${formView(S.form, true)}</div>
+    <button class="go" data-hand disabled>Hand in my answers</button>
+    <p class="small" style="text-align:right">LS-${S.form}</p>` }),
+  receipt: () => ({ where: "Lunch survey", html: `
+    <h1>Thank you</h1>
+    <p>Your answers are kept on this device. <b>Leave this page open, or take a screenshot of it now:</b> you will need your answers later today.</p>
+    <div class="card stack"><h2>My survey slip</h2>${slipView(false)}</div>
+    <div class="card stack"><h2>Later today: the lab</h2><div><label for="labword">Your teacher will give the class a word to open the lab</label><input id="labword" type="text" maxlength="16" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="the lab word"></div>
+      <button class="go secondary" data-lab disabled>Open the lab</button><p class="small" id="labmsg" role="status"></p></div>` }),
+  intro: () => ({ where: "Start", html: `
+    <h1>The Lunch Survey</h1>
+    <p>Work as a group of four or five. Everyone follows on their own device, because you each need your own survey slip. <b>One device writes and sends</b> the group's answers. Talk first, then write.</p>
+    <div class="card stack">
+      <h2>Is this the device that writes for your group?</h2>
+      <div><label for="group">Yes: type your group's name</label><input id="group" type="text" maxlength="40" value="${esc(S.group)}" placeholder="For example: Group C" autocomplete="off"></div>
+      <button class="go" data-start="scribe" disabled>Start our group's case file</button>
+      <p class="hint">There are sealed envelopes. Once your group has written its answer, it is locked, and one of you fetches the password for the next envelope from a teacher. One case file per group is accepted.</p>
+    </div>
+    <div class="card stack">
+      <h2>No: I am following along</h2>
+      <div><label for="join">Type the group code shown on your scribe's screen</label><input id="join" type="text" inputmode="numeric" maxlength="3" placeholder="3 digits" autocomplete="off"></div>
+      <button class="go secondary" data-start="follow" disabled>Follow my group</button>
+    </div>
+    ${NOTICE}`, ready: () => true }),
+
+  p1a: () => ({ where: "Part 1, step 1", html: `
+    <h1>Part 1. You were the experiment</h1>
+    <p>The lunch survey you filled in at the start of today's lecture came in <b>two forms</b>: LS-1 and LS-2. Half of the class got each. Your own slip, under "My survey slip" below, shows which one you had.</p>
+    ${bothForms()}
+    <p class="step">Step 1. Compare the two forms. Find every difference between them. There are three.</p>
+    ${textQ("p1diff", "Which three differences did you find?")}
+    <button class="go" data-next disabled>Continue</button>
+    <details><summary>Wrong group name or group code?</summary><p style="margin:10px 0">You can start again from the role screen. Your survey slip is kept.</p><button class="go secondary" data-rerole>Start again</button></details>`,
+    ready: () => filled("p1diff") }),
+
+  p1b: () => ({ where: "Part 1, step 2", html: `
+    <h2>Part 1. Your predictions</h2>
+    <p>Your teacher is going to count how the class answered on each form. Before that, predict what the count will show.</p>
+    <p class="step">Step 2. For each line, on which form do you expect the higher share of the class?</p>
+    ${ROWS.map(([q, pk, label, how]) => choiceQ(pk, label, PRED)).join("")}
+    ${sureQ("predSure", "How sure are you about your three predictions, from 0 to 100%?")}
+    <button class="go" data-next disabled>Lock our predictions and fetch envelope 1</button>
+    ${follower() ? "" : '<p class="hint">After this you cannot change what you wrote in steps 1 and 2.</p>'}
+    <details><summary>Show the two forms again</summary>${bothForms()}</details>`,
+    ready: () => S.a.predA && S.a.predB && S.a.predC && S.a.predSure != null }),
+
+  p1c: () => ({ where: "Part 1, steps 3 to 5", html: `
+    <h2>Part 1. Envelope 1</h2>
+    <div class="envelope stack"><div class="tag">Envelope 1: the class count</div>
+      <p>Your teacher now counts the class, one form at a time. Open "My survey slip" below: it tells you when to stand up.</p>
+      <p>When the count is done, your teacher gives the whole class one code.</p></div>
+    <p class="step">Step 3. When the count is done, your teacher shows a <b>class code</b>. Type it here to see how the class answered.</p>
+    ${RO ? "" : ccOk() ? "" : `<div class="card stack"><label for="classcode">Class code from your teacher</label><input id="classcode" type="text" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="for example 7KQ-M2X-9PA">
+      <button class="go" data-classcode disabled>Show the class count</button><p class="small" id="ccmsg" role="status"></p></div>`}
+    <div id="ccbars">${countBars()}</div>
+    <p class="step">Step 4. Look at the shares on the two forms.</p>
+    ${textQ("p1see", "What do you see? If the two forms differ, what do you think produced the difference? If they do not, what could explain that?")}
+    <p class="step">Step 5. A restaurant owner near campus wants to print form LS-1 and hand it to 500 of her guests next week.</p>
+    ${textQ("p1advice", "What do you advise her?")}
+    <button class="go" data-next disabled>Lock our answers and start Part 2</button>`,
+    ready: () => ccOk() && filled("p1see") && filled("p1advice") }),
+
+  p2a: () => ({ where: "Part 2, steps 1 and 2", html: `
+    ${star("Part 1 is closed", "First milestone reached. One more part to go.", 1)}
+    <h1>Part 2. Ten receipts</h1>
+    <div class="quote"><div class="who">The restaurant owner writes to you</div>"I need the <b>average lunch bill</b> for next year's budget. I serve about 25,000 lunches a year. Here are last Tuesday's 100 receipts. Adding up all of them takes too long, so please <b>pick ten typical receipts</b> and give me their average."</div>
+    ${receiptGrid(follower() || RO ? "show" : "pick")}
+    <p class="step">Step 1. Choose ten receipts that look typical to your group.</p>
+    ${follower() ? `<div class="locked"><b>Your scribe taps the ten receipts</b>Decide together which ones are typical.</div>` : `<div class="stat" id="eyeout">${S.eye.length === 10 ? `Your ten receipts add up to an average of <b>${kr(eyeMean())}</b>` : `Chosen: <b>${S.eye.length} of 10</b>`}</div>`}
+    <p class="step">Step 2. Think about the average of all 100 receipts.</p>
+    ${choiceQ("close", "How close do you think your average is to the average of all 100 receipts?", CLOSE)}
+    ${sureQ("closeSure", "How sure are you, from 0 to 100%?")}
+    <button class="go" data-next disabled>Lock our estimate and fetch envelope 2</button>
+    ${follower() ? "" : '<p class="hint">After this you cannot change your ten receipts or your answer.</p>'}`,
+    ready: () => S.eye.length === 10 && S.a.close && S.a.closeSure != null }),
+
+  p2b: () => ({ where: "Part 2, step 3", html: `
+    <h2>Part 2. Envelope 2</h2>
+    <div class="envelope stack"><div class="tag">Envelope 2: the lottery</div>
+      <p>There is a second way to choose ten receipts: let chance decide. In a lottery, every receipt has the same chance of being drawn, and nobody's eye is involved.</p>
+      <p>Draw ten receipts by lottery, five times. Each draw gives a new average.</p></div>
+    ${receiptGrid("draw")}
+    ${follower() ? `<div class="locked"><b>Your scribe draws</b>Watch the five lottery averages on your scribe's screen.</div>` : `<div class="stack"><div class="choices">${RO || S.draws.length >= 5 ? "" : `<button class="go" data-draw>Draw ten receipts by lottery (${S.draws.length + 1} of 5)</button>`}</div>
+      <div class="stat">Your by-eye average: <b>${kr(eyeMean())}</b>Lottery averages so far: ${S.draws.length ? S.draws.map((d) => d.mean + " kr").join(", ") : "none yet"}</div>${numberLine(false)}</div>`}
+    <p class="step">Step 3. Look at your five lottery averages next to your by-eye average.</p>
+    ${textQ("p2see", "What do you see?")}
+    <button class="go" data-next disabled>Lock our answer and fetch envelope 3</button>`,
+    ready: () => S.draws.length >= 5 && filled("p2see") }),
+
+  p2c: () => ({ where: "Part 2, steps 4 and 5", html: `
+    <h2>Part 2. Envelope 3</h2>
+    <div class="envelope stack"><div class="tag">Envelope 3: all 100 receipts, added up</div>
+      <div class="stats"><div class="stat">Average of all 100 receipts<b>${kr(TRUE_MEAN)}</b></div><div class="stat">Half of the receipts are at most<b>135 kr</b></div><div class="stat">Receipts of 380 kr or more<b>8 of 100</b></div></div>
+      <p>Most lunches cost between 100 and 150 kr. A few receipts are for whole tables and are much larger.</p></div>
+    ${follower() ? "" : `${numberLine(true)}<div class="stats">${budget(eyeMean(), "Your by-eye average")}${S.draws.length ? budget(S.draws[0].mean, "Your first lottery average") : ""}</div>`}
+    <p class="step">Step 4. Compare the two ways of choosing ten receipts, in your group and with the averages on the board.</p>
+    ${textQ("p2compare", "What do you think of each method?")}
+    <p class="step">Step 5. The owner still needs her average, and still has no time to add up all receipts every week.</p>
+    ${choiceQ("method", "What do you advise her to do?", METHODS)}
+    ${sureQ("methodSure", "How sure are you, from 0 to 100%?")}
+    <button class="go" data-next disabled>Lock our advice and finish</button>`,
+    ready: () => filled("p2compare") && S.a.method && S.a.methodSure != null }),
+
+  pickup: () => {
+    const nxt = S.pick;
+    if (follower()) return { where: "Checkpoint", html: `
+    <h1>Fetch ${ENV[nxt]}</h1>
+    <p>Your group's answers are locked on your scribe's device. One of you fetches the password from a teacher. Only your scribe's device can type it.</p>
+    <div class="card stack"><label for="gate">When ${ENV[nxt]} is open, your scribe's screen shows a screen code. Type it here.</label><input id="gate" type="text" inputmode="numeric" maxlength="4" placeholder="4 digits" autocomplete="off">
+      <button class="go" data-gate disabled>Open ${ENV[nxt]}</button><p class="small" id="gatemsg" role="status"></p></div>` };
+    const ours = nxt === "p1c" ? `<p>Our prediction for lunch prices: <b>${esc(S.a.predA)}</b>, ${S.a.predSure}% sure.</p>` : nxt === "p2b" ? `<p>Our by-eye average: <b>${kr(eyeMean())}</b>.</p>` : `<p>Our first lottery average: <b>${S.draws.length ? kr(S.draws[0].mean) : ""}</b>.</p>`;
+    const tell = nxt === "p1c" ? "tells the teacher what your group predicted for lunch prices and how sure you are" : nxt === "p2b" ? "tells the teacher your by-eye average" : "tells the teacher your first lottery average";
+    return { where: "Checkpoint", html: `
+    <h1>Fetch ${ENV[nxt]}</h1>
+    <p>Your answers so far are locked. The next envelope opens with a password that only a teacher has.</p>
+    <div class="envelope stack"><div class="tag">Take this to a teacher</div>
+      <p style="font-size:22px;font-family:var(--display)">Group code <b>${esc(S.salt)}</b> · ${ENV[nxt]}</p>
+      ${ours}
+      <p><b>One</b> of you walks to a teacher, says the group code and the envelope, and ${tell}. The teacher gives you a password: one word. Remember it and bring it back.</p></div>
+    <div class="card stack"><label for="pw">Password for ${ENV[nxt]}</label><input id="pw" type="text" maxlength="24" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="one word">
+      <button class="go" data-open disabled>Open ${ENV[nxt]}</button><p class="small" id="pwmsg" role="status"></p></div>` };
+  },
+
+  end: () => {
+    const prompts = `<div class="card stack"><h2>Bring to the discussion</h2>
+      <p>Part 1: nobody changed their opinion about lunch between the two forms. If the shares differ in our class, what do you think changed them? If they do not differ, what could explain that?</p>
+      <p>Part 2: would choosing 20 typical receipts by eye, in place of 10, have brought your average closer? Would drawing 20 by lottery?</p></div>`;
+    if (follower()) return { where: "The end", html: `${star("Both parts are closed", "Second milestone reached. Well done.", 2)}<h1>Both parts are closed</h1><p>Your scribe sends the group's case file and can share the group's notes with you. Keep this screen open for the discussion.</p>${prompts}
+      <details><summary>Leave this group and start again</summary><p style="margin:10px 0">This clears the lab on this device only. Your survey slip is kept.</p><button class="go secondary" data-rerole>Start again</button></details>` };
+    const link = formLink();
+    const steps = (now) => `<ol class="sendsteps"><li class="${now === 1 ? "now" : "done"}"><b>On this page:</b> click the button "Send our case file to the teacher". A form opens with your answers filled in.</li>
+      <li class="${now === 2 ? "now" : now > 2 ? "done" : ""}"><b>In the form:</b> scroll to the bottom and press <b>Submit</b> (in Swedish: <b>Skicka</b>). Your case file is <b>not sent</b> until you have pressed it and see the thank-you message.</li></ol>`;
+    const send = S.confirmed
+      ? `<div class="card stack"><h2>Case file sent</h2>${steps(3)}<p>Thank you. Only one case file per group is accepted.</p></div>`
+      : S.sent
+      ? `<div class="sendbox stack"><h2>One more click: press Submit in the form</h2>${steps(2)}<p>The form opened in a new tab at ${esc(S.sent)}. Go to that tab now.</p>
+          <div class="choices"><button class="go" data-confirm>We pressed Submit and saw the thank-you message</button>${link ? `<a class="go secondary" style="text-decoration:none" href="${esc(link)}" target="_blank" rel="noopener">Open the form again</a>` : ""}</div></div>`
+      : link ? `<div class="sendbox stack"><h2>Send your case file: two clicks</h2><p>Check the summary with your group first. You can send only once.</p>${steps(1)}<a class="go" style="text-decoration:none" href="${esc(link)}" target="_blank" rel="noopener" data-sent>Send our case file to the teacher</a>
+          <p class="small">The last questions in the form (timings and a check code) are filled in by this page. They are for research on teaching only and do not measure your performance. Please leave them as they are.</p></div>`
+      : `<div class="card stack"><h2>Hand in your case file</h2><p>Copy your case file and paste it where your teacher tells you.</p><button class="go" data-copy>Copy our case file</button><p class="small" id="copied" role="status"></p></div>`;
+    return { where: "Your case file", html: `
+    ${star("Both parts are closed", "Second milestone reached. Well done.", 2)}
+    <h1>Your case file</h1>
+    <p>${esc(S.group)}: keep this screen open. Your teacher will ask what each group found.</p>
+    <div class="card recap-wrap"><table class="recap"><thead><tr><th></th><th>Before the envelope</th><th>After the envelope</th></tr></thead><tbody>
+      <tr><td><b>Part 1: lunch prices</b></td><td>We predicted: ${esc(S.a.predA)}<br><span class="small">${S.a.predSure}% sure about our three predictions</span></td><td>${ccOk() ? `${share("a", 1)}% said too high on LS-1, ${share("a", 2)}% on LS-2` : ""}</td></tr>
+      <tr><td><b>Part 2: the average bill</b></td><td>By eye: ${kr(eyeMean())}<br><span class="small">We thought: ${esc(S.a.close)} (${S.a.closeSure}% sure)</span></td><td>All 100 receipts: ${kr(TRUE_MEAN)}<br><span class="small">Our lottery draws: ${S.draws.map((d) => d.mean).join(", ")} kr</span></td></tr></tbody></table></div>
+    ${send}
+    ${prompts}
+    ${countBars()}
+    ${numberLine(true)}
+    <div class="card stack"><h2>Share your notes with the whole group</h2><p>Copy the group's notes and paste them into your group's chat, so that everyone has what you wrote.</p><button class="go secondary" data-notes>Copy our notes</button><p class="small" id="notesmsg" role="status"></p></div>
+    <details><summary>Your notes</summary><div class="stack" style="margin-top:10px">
+      ${lockedLine("Part 1, the differences you found", S.a.p1diff)}${lockedLine("Part 1, what you saw in the class count", S.a.p1see)}${lockedLine("Part 1, your advice to the owner", S.a.p1advice)}
+      ${lockedLine("Part 2, what you saw in the lottery draws", S.a.p2see)}${lockedLine("Part 2, the two methods", S.a.p2compare)}${lockedLine("Part 2, your advice", (S.a.method || "") + " (" + S.a.methodSure + "% sure)")}</div></details>
+    <details><summary>Start again with an empty case file</summary><p style="margin:10px 0">This deletes everything your group has written on this device. Your survey slip is kept.</p><button class="go secondary" data-rerole>Delete and start again</button></details>` };
+  },
+};
+
+/* ---------- render and events ---------- */
+const app = document.getElementById("app");
+const teacherKey = () => `<div class="card stack"><h2>Teacher key</h2>
+  <p><b>Word that opens the lab for the whole class:</b> <span style="font-size:20px;font-family:var(--display)">${LAB_WORD}</span>. Say it or write it on the board when the lab starts, not before.</p>
+  <p>At a checkpoint a student tells you the group code and the envelope. Ask first. Envelope 1: "What did your group predict for lunch prices, and how sure are you?" Envelope 2: "What is your by-eye average?" Envelope 3: "What is your first lottery average?" Write the answers on the board. Then find the row for the <b>last digit</b> of the group code.</p>
+  <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>Code ends in</th><th>Envelope 1</th><th>Envelope 2</th><th>Envelope 3</th></tr></thead><tbody>${WORDS.map((w, k) => `<tr><td><b>${k}</b></td><td>${w[0]}</td><td>${w[1]}</td><td>${w[2]}</td></tr>`).join("")}</tbody></table></div>
+  <details open><summary>The class count: say, count, type</summary><div class="stack" style="margin-top:10px">
+    <p><b>When:</b> after every group has fetched the key word for envelope 1. From then on each student's slip shows when to stand. It takes about 3 minutes.</p>
+    <p><b>How:</b> eight steps, first form LS-1, then form LS-2. In each step: <b>say</b> the sentence, <b>count</b> the students who are standing, <b>type</b> the number. Students with the other form stay seated.</p>
+    ${[1, 2].map((f) => `<h3 class="tchead">Form LS-${f}</h3><div class="tcsteps">${[
+      ["n", `"Everyone with form LS-${f}, stand up."`, `all students with form LS-${f}`],
+      ["a", f === 1 ? `"Lunch prices. Stay standing if you answered Yes. The others sit down."` : `"Lunch prices. Stay standing if you answered Too high. The others sit down."`, "those still standing"],
+      ["b", f === 1 ? `"Everyone sit down. Screen time. Stand up if you ticked the last box, more than 2½ hours."` : `"Everyone sit down. Screen time. Stand up if you ticked any box except the first."`, "those standing"],
+      ["c", `"Everyone sit down. Satisfaction. Stand up if you chose 4 or lower for the lunch options overall."`, "those standing, then say \"Thank you, sit down.\""],
+    ].map(([q, say, count], i) => `<div class="tcstep"><span class="tcnum">${(f - 1) * 4 + i + 1}</span><label for="tc-${q}${f}"><span class="tcsay"><b>Say:</b> ${say}</span><span class="tccount"><b>Count:</b> ${count}</span></label><input id="tc-${q}${f}" data-tc="${q}${f}" type="text" inputmode="numeric" maxlength="2" autocomplete="off" value="${esc(S.tc[q + f] == null ? "" : S.tc[q + f])}" aria-label="Step ${(f - 1) * 4 + i + 1}, form LS-${f}"></div>`).join("")}</div>`).join("")}
+    <div id="tcout">${tcOut()}</div>
+    <p><b>Then:</b> when all eight numbers are in, the class code appears here. Check that the total matches the room, then write the code on the board or show this screen. Each group types the code and sees the class result.</p>
+    <p class="small">A student who is unsure follows the slip: "My survey slip" on their screen says stand up or stay seated for each of the three questions.</p>
+    <p><button class="go secondary" data-tcclear>Clear the counts</button></p></div></details>
+  <details><summary>The two survey forms</summary>${bothForms()}</details></div>`;
+function tcOut() {
+  const c = S.tc, val = (k) => String(c[k] == null ? "" : c[k]).trim(), msgs = [];
+  for (const k of CC) if (val(k) !== "" && !/^\d{1,2}$/.test(val(k))) msgs.push("Use whole numbers only.");
+  for (const f of [1, 2]) for (const [q, name] of [["a", "lunch prices"], ["b", "screen time"], ["c", "satisfaction"]])
+    if (/^\d+$/.test(val(q + f)) && /^\d+$/.test(val("n" + f)) && Number(val(q + f)) > Number(val("n" + f))) msgs.push(`Form LS-${f}: ${name} (${val(q + f)}) cannot be more than the students with this form (${val("n" + f)}).`);
+  for (const f of [1, 2]) if (val("n" + f) === "0") msgs.push(`Form LS-${f}: the number of students cannot be 0.`);
+  if (msgs.length) return `<p class="small" style="color:var(--hot);font-weight:700">${[...new Set(msgs)].join("<br>")}</p>`;
+  const missing = CC.filter((k) => val(k) === "").length;
+  if (missing) return `<p class="small">${8 - missing} of 8 numbers typed.</p>`;
+  if (!validCounts(c)) return "";
+  const code = encodeCounts(c), back = decodeCounts(code);
+  if (!back || CC.some((k) => Number(back[k]) !== Number(c[k]))) return `<p class="small" style="color:var(--hot)">These counts cannot be turned into a code. Check them.</p>`;
+  return `<div class="envelope stack"><div class="tag">Class code: show or read this to the whole class</div><p class="bigcode">${showCode(code)}</p>
+    <p class="small">Total counted: ${Number(c.n1) + Number(c.n2)} students. If that does not match the room, correct the numbers above; the code changes with them. The dashes are only for reading: students can type the code with or without them.</p></div>${barsFor(c, false)}`;
+}
+const lookMax = () => (S.pick ? S.at : S.at - 1);
+function current() { return !S.handed && !S.lab ? "survey" : !S.lab ? "receipt" : S.look != null ? SCREENS[S.look] : S.pick ? "pickup" : SCREENS[S.at]; }
+function render(scroll) {
+  const looking = S.lab && S.look != null, id = current();
+  if (!looking && S.lab) { stamp(S.pick ? "fetch-" + S.pick : id); save(); }
+  RO = looking; const v = view[id](); RO = false;
+  if (S.role === "scribe" && GATED.includes(id)) v.html = `<div class="locked"><b>For teammates following on their own device</b>Screen code for ${ENV[id]}: <span style="font-size:18px;font-weight:700;color:var(--ink)">${gate(id)}</span></div>` + v.html;
+  const track = S.lab ? SCREENS.slice(1).map((s, i) => `<span class="${i + 1 < S.at ? "done" : i + 1 === S.at ? "now" : ""}"></span>`).join("") : "";
+  const who = S.role === "scribe" ? ` · ${esc(S.group)} · group code <b>${S.salt}</b>` : S.role === "follow" ? ` · following group ${esc(S.salt)}` : "";
+  const bar = looking ? `<div class="lookbar"><b>Looking back: read only</b><span>${S.look > 1 ? '<button class="go secondary" data-look="prev">Earlier screen</button>' : ""}${S.look < lookMax() ? '<button class="go secondary" data-look="next">Later screen</button>' : ""}<button class="go" data-look="close">Return to where we were</button></span></div>` : "";
+  const back = !looking && S.lab && S.role && id !== "end" && lookMax() >= 1 ? '<p><button class="go secondary" data-look="open">Look back at earlier screens</button></p>' : "";
+  const slip = S.lab && S.role && id !== "intro" ? `<details class="slip"${id === "p1c" && !looking ? " open" : ""}><summary>My survey slip</summary><div class="stack" style="margin-top:10px">${slipView(S.at >= 3 || id === "p1c")}</div></details>` : "";
+  app.innerHTML = "";
+  app.appendChild($(`<header class="top"><div class="brand">${S.lab ? "The Lunch Survey" : "Lunch survey"}</div><div class="where">Session 2 · ${v.where}${who}${preview ? " · facilitator preview" : ""}</div></header>${S.lab ? `<div class="track" aria-hidden="true">${track}</div>` : ""}${preview ? teacherKey() : ""}${bar}<section class="stack" id="screen">${v.html}</section>${bar}${slip}${back}${preview && S.lab && id !== "intro" && !looking ? '<p class="small">Facilitator preview: <button class="go secondary" data-skip>Skip to the next screen</button></p>' : ""}${preview && !S.lab ? '<p class="small">Facilitator preview: <button class="go secondary" data-lab-skip>Go to the lab without the survey</button></p>' : ""}`));
+  if (looking) { app.querySelectorAll("#screen .go, #screen .hint, #screen details").forEach((el) => el.remove()); app.querySelectorAll("#screen input, #screen textarea, #screen button").forEach((el) => { el.disabled = true; }); }
+  if (follower() && !S.pick && !looking) { const b = app.querySelector("[data-next]"); if (b) b.textContent = GATED.includes(SCREENS[S.at + 1]) ? "Continue to the checkpoint" : "Continue"; }
+  refresh();
+  if (scroll) window.scrollTo(0, 0);
+}
+function refresh() {
+  const id = current(), b = app.querySelector("[data-next]");
+  if (b && S.look == null && !S.pick) b.disabled = follower() ? false : !view[id]().ready();
+  const g = app.querySelector("#group"), sb = app.querySelector('[data-start="scribe"]'); if (g && sb) sb.disabled = g.value.trim().length < 2;
+  const j = app.querySelector("#join"), fb = app.querySelector('[data-start="follow"]'); if (j && fb) fb.disabled = !/^\d{3}$/.test(j.value.trim());
+  const pw = app.querySelector("#pw"), ob = app.querySelector("[data-open]"); if (pw && ob) ob.disabled = pw.value.trim().length < 3;
+  const ga = app.querySelector("#gate"), gb = app.querySelector("[data-gate]"); if (ga && gb) gb.disabled = !/^\d{4}$/.test(ga.value.trim());
+  const hb = app.querySelector("[data-hand]"); if (hb) hb.disabled = !surveyDone();
+  const cl = app.querySelector("#classcode"), cb = app.querySelector("[data-classcode]"); if (cl && cb) cb.disabled = cl.value.replace(/[^0-9a-zA-Z]/g, "").length < 4;
+  const lw = app.querySelector("#labword"), lb = app.querySelector("[data-lab]"); if (lw && lb) lb.disabled = lw.value.trim().length < 3;
+}
+function go() {
+  if (S.at >= SCREENS.length - 1) return;
+  const nxt = SCREENS[S.at + 1];
+  if (GATED.includes(nxt) && S.pick !== nxt && !preview) { S.pick = nxt; save(); render(true); return; }
+  S.pick = null; S.at++; save(); render(true);
+}
+function setSure(t) { S.a[t.dataset.sure] = Number(t.value); document.getElementById(t.dataset.sure + "-out").textContent = t.value + "%"; save(); refresh(); }
+app.addEventListener("input", (e) => {
+  const t = e.target;
+  if (t.dataset.key) { S.a[t.dataset.key] = t.value; save(); }
+  if (t.dataset.sure) { setSure(t); return; }
+  if (t.id === "times") { S.sv.times = t.value.trim(); save(); }
+  if (t.dataset.tc) { S.tc[t.dataset.tc] = t.value.trim(); save(); const out = app.querySelector("#tcout"); if (out) out.innerHTML = tcOut(); return; }
+  refresh();
+});
+app.addEventListener("change", (e) => { if (e.target.dataset && e.target.dataset.sure) setSure(e.target); });
+app.addEventListener("pointerup", (e) => { if (e.target.dataset && e.target.dataset.sure) setSure(e.target); });
+app.addEventListener("keydown", (e) => { if (e.key !== "Enter") return; const b = e.target.id === "pw" ? app.querySelector("[data-open]") : e.target.id === "gate" ? app.querySelector("[data-gate]") : e.target.id === "labword" ? app.querySelector("[data-lab]") : e.target.id === "classcode" ? app.querySelector("[data-classcode]") : null; if (b && !b.disabled) b.click(); });
+function resetLab() { const keep = { form: S.form, sv: S.sv, handed: S.handed, lab: true, tc: S.tc }; S = Object.assign(blank(), keep); save(); render(true); }
+app.addEventListener("click", (e) => {
+  const t = e.target.closest("button, a[data-sent]"); if (!t) return;
+  if (t.dataset.look) {
+    const m = lookMax();
+    if (t.dataset.look === "open") S.look = m; else if (t.dataset.look === "prev") S.look = Math.max(1, S.look - 1); else if (t.dataset.look === "next") S.look = Math.min(m, S.look + 1); else S.look = null;
+    save(); render(true); return;
+  }
+  if (t.dataset.sv) { const v = t.dataset.val; S.sv[t.dataset.sv] = /^\d$/.test(v) ? Number(v) : v; save(); app.querySelectorAll(`[data-sv="${t.dataset.sv}"]`).forEach((b) => b.setAttribute("aria-pressed", String(b === t))); refresh(); return; }
+  if (t.hasAttribute("data-classcode")) {
+    const got = decodeCounts(app.querySelector("#classcode").value);
+    if (got) { S.cc = got; stamp("count"); save(); render(false); }
+    else app.querySelector("#ccmsg").textContent = "That is not the class code. Check each character with your teacher; the code has no 0, 1, I, L or O.";
+    return;
+  }
+  if (t.hasAttribute("data-tcclear")) { S.tc = {}; save(); render(false); return; }
+  if (t.hasAttribute("data-hand")) { if (surveyDone()) { S.handed = true; save(); render(true); } return; }
+  if (t.hasAttribute("data-lab")) { if (norm(app.querySelector("#labword").value) === LAB_WORD) { S.lab = true; save(); render(true); } else app.querySelector("#labmsg").textContent = "That is not the word. Wait for your teacher to give it."; return; }
+  if (t.hasAttribute("data-lab-skip")) { S.lab = true; save(); render(true); return; }
+  if (t.dataset.choice) { S.a[t.dataset.choice] = t.dataset.val; save(); app.querySelectorAll(`[data-choice="${t.dataset.choice}"]`).forEach((b) => b.setAttribute("aria-pressed", String(b === t))); refresh(); return; }
+  if (t.dataset.rc != null) {
+    const i = Number(t.dataset.rc), k = S.eye.indexOf(i);
+    if (k >= 0) S.eye.splice(k, 1); else if (S.eye.length < 10) S.eye.push(i);
+    save(); t.classList.toggle("on", S.eye.includes(i));
+    const out = app.querySelector("#eyeout"); if (out) out.innerHTML = S.eye.length === 10 ? `Your ten receipts add up to an average of <b>${kr(eyeMean())}</b>` : `Chosen: <b>${S.eye.length} of 10</b>`;
+    refresh(); return;
+  }
+  if (t.hasAttribute("data-draw")) {
+    if (S.draws.length < 5) { const pool = AMOUNTS.map((x, i) => i); for (let k = pool.length - 1; k > 0; k--) { const r = Math.floor(Math.random() * (k + 1)); [pool[k], pool[r]] = [pool[r], pool[k]]; }
+      const idx = pool.slice(0, 10).sort((x, y) => x - y); S.draws.push({ idx, mean: Math.round(mean(idx.map((i) => AMOUNTS[i]))) }); save(); render(false); }
+    return;
+  }
+  if (t.dataset.start === "scribe") { S.role = "scribe"; S.group = app.querySelector("#group").value.trim(); S.salt = String(100 + Math.floor(Math.random() * 900)); go(); return; }
+  if (t.dataset.start === "follow") { S.role = "follow"; S.salt = app.querySelector("#join").value.trim(); go(); return; }
+  if (t.hasAttribute("data-open")) {
+    if (norm(app.querySelector("#pw").value) === password(S.pick)) { stamp("opened-" + S.pick); go(); }
+    else { S.tries[S.pick] = (S.tries[S.pick] || 0) + 1; save(); app.querySelector("#pwmsg").textContent = "That password does not open this envelope. Check the group code and the envelope with your teacher."; }
+    return;
+  }
+  if (t.hasAttribute("data-gate")) {
+    if (app.querySelector("#gate").value.trim() === gate(S.pick)) go();
+    else app.querySelector("#gatemsg").textContent = "That code does not open this envelope. Check the screen code on your scribe's screen.";
+    return;
+  }
+  if (t.hasAttribute("data-notes")) { const text = notesText(), msg = app.querySelector("#notesmsg"); try { navigator.clipboard.writeText(text).then(() => { msg.textContent = "Copied. Paste it into your group's chat."; }, () => { msg.textContent = text; }); } catch (err) { msg.textContent = text; } return; }
+  if (t.hasAttribute("data-next")) { go(); return; }
+  if (t.hasAttribute("data-skip")) { S.pick = null; if (S.at < SCREENS.length - 1) S.at++; save(); render(true); return; }
+  if (t.hasAttribute("data-confirm")) { S.confirmed = true; save(); render(false); return; }
+  if (t.hasAttribute("data-sent")) { S.sent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); save(); setTimeout(() => render(false), 300); return; }
+  if (t.hasAttribute("data-copy")) { const text = FIELDS().join("\t"); const done = () => { app.querySelector("#copied").textContent = "Copied. Paste it where your teacher tells you."; }; try { navigator.clipboard.writeText(text).then(done, () => { app.querySelector("#copied").textContent = text; }); } catch (err) { app.querySelector("#copied").textContent = text; } return; }
+  if (t.hasAttribute("data-rerole")) { resetLab(); }
+});
+render(false);
+
+</script>
+</body>
+</html>

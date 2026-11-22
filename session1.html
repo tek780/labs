@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Case Files</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: one narrow working column, one step on screen at a time; the cards sit in a ruled "table top" panel. */
+:root {
+  --bg: #F3F5F8; --surface: #FFFFFF; --ink: #18222F; --muted: #5B6878; --line: #D5DBE3;
+  --accent: #1F4E79; --accent-ink: #FFFFFF; --hot: #B5402A; --soft: #E6ECF3; --note: #FFF6DA; --note-line: #E3C96B;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #11161D; --surface: #1A222C; --ink: #E8EDF3; --muted: #9BA8B8; --line: #334050;
+    --accent: #7FB2E0; --accent-ink: #0E1620; --hot: #EE8A72; --soft: #232E3B; --note: #2E2A18; --note-line: #7A6A2A;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #11161D; --surface: #1A222C; --ink: #E8EDF3; --muted: #9BA8B8; --line: #334050;
+  --accent: #7FB2E0; --accent-ink: #0E1620; --hot: #EE8A72; --soft: #232E3B; --note: #2E2A18; --note-line: #7A6A2A;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.5; }
+main { max-width: 860px; margin: 0 auto; padding: 20px 16px 64px; display: flex; flex-direction: column; gap: 18px; }
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+.brand { font-family: var(--display); font-weight: 700; font-size: 20px; color: var(--accent); }
+.where { color: var(--muted); font-size: 15px; }
+.track { display: flex; gap: 4px; }
+.track span { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
+.track span.done { background: var(--accent); }
+.track span.now { background: var(--hot); }
+h1 { font-family: var(--display); font-size: 30px; line-height: 1.15; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-size: 21px; margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 68ch; }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+.quote { background: var(--note); border: 1px solid var(--note-line); border-radius: 10px; padding: 14px 16px; }
+.quote .who { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+.envelope { border: 2px dashed var(--hot); border-radius: 10px; padding: 16px; background: var(--surface); }
+.envelope .tag { font-family: var(--display); color: var(--hot); font-weight: 700; margin-bottom: 6px; }
+.step { font-weight: 700; }
+.mins { color: var(--muted); font-weight: 400; font-size: 15px; }
+label { font-weight: 700; display: block; margin-bottom: 6px; }
+textarea { width: 100%; min-height: 64px; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px; resize: vertical; }
+input[type=text] { width: 100%; max-width: 360px; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+textarea:focus-visible, button:focus-visible, input:focus-visible, a.go:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.choices { display: flex; flex-wrap: wrap; gap: 10px; }
+.choice { font: inherit; padding: 12px 16px; border-radius: 8px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; flex: 1 1 220px; text-align: left; }
+.choice[aria-pressed="true"] { border-color: var(--accent); background: var(--soft); font-weight: 700; }
+.sure { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sure input[type=range] { flex: 1 1 220px; accent-color: var(--accent); }
+.sure output { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 4.5ch; }
+a.go { display: inline-block; }
+.go { font: inherit; font-weight: 700; padding: 13px 18px; border-radius: 8px; border: 0; background: var(--accent); color: var(--accent-ink); cursor: pointer; align-self: flex-start; }
+.go[disabled] { background: var(--line); color: var(--muted); cursor: not-allowed; }
+.go.secondary { background: var(--surface); color: var(--accent); border: 2px solid var(--accent); }
+.hint { color: var(--muted); font-size: 15px; }
+.table-top { background: var(--soft); border-radius: 10px; padding: 14px; overflow-x: auto; }
+.rowlabel { font-size: 14px; font-weight: 700; color: var(--muted); margin: 0 0 6px; }
+.rowlabel.hot { color: var(--hot); }
+.weeks { display: flex; gap: 4px; align-items: flex-end; min-width: max-content; }
+.week { width: 44px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 2px; text-align: center; font-size: 12.5px; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.week b { display: block; font-family: var(--display); font-size: 17px; color: var(--accent); }
+.week.hot { border-color: var(--hot); } .week.hot b { color: var(--hot); }
+.week .bar { height: 70px; display: flex; align-items: flex-end; justify-content: center; margin: 4px 0; }
+.week .bar i { display: block; width: 18px; background: var(--accent); border-radius: 3px 3px 0 0; }
+.week.hot .bar i { background: var(--hot); }
+.week small { display: block; color: var(--muted); font-size: 11px; }
+.piles { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(118px, 1fr); gap: 8px; min-width: max-content; }
+.pile { display: flex; flex-direction: column; gap: 6px; }
+.pile h3 { margin: 0; font-size: 14px; color: var(--muted); text-align: center; }
+.guest { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 13px; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.guest b { font-size: 16px; }
+.guest.reg { border-color: var(--hot); border-width: 2px; }
+.guest .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 9px; background: var(--hot); color: var(--surface); margin-left: 4px; }
+.guest.other { color: var(--muted); }
+.pile .foot { font-size: 14px; text-align: center; font-weight: 700; padding-top: 4px; border-top: 2px solid var(--line); font-variant-numeric: tabular-nums; }
+.pile .foot span { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
+.loose { display: flex; flex-wrap: wrap; gap: 6px; }
+.loose .guest { width: 118px; }
+.stats { display: flex; gap: 12px; flex-wrap: wrap; }
+.stat { flex: 1 1 200px; background: var(--soft); border-radius: 8px; padding: 12px; }
+.stat b { font-family: var(--display); font-size: 30px; display: block; font-variant-numeric: tabular-nums; }
+table.recap { width: 100%; border-collapse: collapse; font-size: 16px; }
+table.recap th, table.recap td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+table.recap th { color: var(--muted); font-size: 14px; }
+.recap-wrap { overflow-x: auto; }
+.milestone { display: flex; align-items: center; gap: 14px; background: var(--note); border: 1px solid var(--note-line); border-radius: 10px; padding: 12px 16px; }
+.milestone .stars { color: #E0A100; display: flex; flex: none; }
+.research { background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; font-size: 15px; }
+.research b:first-child { display: block; font-family: var(--display); font-size: 16px; color: var(--accent); margin-bottom: 2px; }
+.lookbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; background: var(--note); border: 1px solid var(--note-line); border-radius: 10px; padding: 10px 14px; }
+.lookbar span { display: flex; flex-wrap: wrap; gap: 8px; }
+.lookbar .go { padding: 9px 14px; }
+.sendbox { border: 3px solid var(--hot); border-radius: 10px; padding: 18px; background: var(--surface); }
+.sendsteps { margin: 0; padding-left: 0; list-style: none; counter-reset: s; display: flex; flex-direction: column; gap: 8px; }
+.sendsteps li { counter-increment: s; position: relative; padding: 10px 12px 10px 48px; border-radius: 8px; background: var(--soft); }
+.sendsteps li::before { content: counter(s); position: absolute; left: 12px; top: 9px; width: 26px; height: 26px; border-radius: 50%; background: var(--muted); color: var(--surface); font-weight: 700; text-align: center; line-height: 26px; }
+.sendsteps li.now { background: var(--note); outline: 2px solid var(--hot); }
+.sendsteps li.now::before { background: var(--hot); }
+.sendsteps li.done::before { content: "\2713"; background: var(--accent); color: var(--accent-ink); }
+.keytable th, .keytable td { padding: 6px 6px; font-size: 14px; } .keytable td:first-child { width: 22%; }
+.locked { border-left: 0; background: var(--soft); border-radius: 8px; padding: 10px 12px; font-size: 15px; }
+.locked b { color: var(--muted); font-size: 13px; display: block; }
+details { font-size: 15px; color: var(--muted); }
+details button { font: inherit; }
+.small { font-size: 14px; color: var(--muted); }
+@media (max-width: 480px) { h1 { font-size: 25px; } body { font-size: 16px; } }
+@media (prefers-reduced-motion: no-preference) { .week, .guest { transition: border-color .2s; } }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+const WEEKS = [{"L": "A", "ad": 2.8, "sales": 440, "peak": false}, {"L": "B", "ad": 3.4, "sales": 500, "peak": false}, {"L": "C", "ad": 4.0, "sales": 480, "peak": false}, {"L": "D", "ad": 2.4, "sales": 420, "peak": false}, {"L": "E", "ad": 8.8, "sales": 940, "peak": true}, {"L": "F", "ad": 3.6, "sales": 450, "peak": false}, {"L": "G", "ad": 7.6, "sales": 930, "peak": true}, {"L": "H", "ad": 3.0, "sales": 490, "peak": false}, {"L": "I", "ad": 10.0, "sales": 880, "peak": true}, {"L": "J", "ad": 7.0, "sales": 880, "peak": true}, {"L": "K", "ad": 2.0, "sales": 470, "peak": false}, {"L": "L", "ad": 9.4, "sales": 860, "peak": true}, {"L": "M", "ad": 3.2, "sales": 410, "peak": false}, {"L": "N", "ad": 3.8, "sales": 430, "peak": false}, {"L": "O", "ad": 8.2, "sales": 850, "peak": true}, {"L": "P", "ad": 2.6, "sales": 510, "peak": false}];
+const GUESTS = [{"km": 2.5, "like": 55, "reg": false, "band": 2, "id": "01"}, {"km": 4.4, "like": 65, "reg": false, "band": 4, "id": "02"}, {"km": 4.2, "like": 75, "reg": false, "band": 4, "id": "03"}, {"km": 0.6, "like": 60, "reg": true, "band": 0, "id": "04"}, {"km": 3.3, "like": 50, "reg": false, "band": 3, "id": "05"}, {"km": 1.5, "like": 50, "reg": false, "band": 1, "id": "06"}, {"km": 0.8, "like": 85, "reg": true, "band": 0, "id": "07"}, {"km": 2.3, "like": 80, "reg": true, "band": 2, "id": "08"}, {"km": 0.3, "like": 50, "reg": false, "band": 0, "id": "09"}, {"km": 1.1, "like": 65, "reg": true, "band": 1, "id": "10"}, {"km": 0.4, "like": 80, "reg": true, "band": 0, "id": "11"}, {"km": 0.9, "like": 75, "reg": true, "band": 0, "id": "12"}, {"km": 2.9, "like": 75, "reg": false, "band": 2, "id": "13"}, {"km": 1.9, "like": 60, "reg": false, "band": 1, "id": "14"}, {"km": 2.7, "like": 90, "reg": true, "band": 2, "id": "15"}, {"km": 3.4, "like": 90, "reg": true, "band": 3, "id": "16"}, {"km": 4.7, "like": 85, "reg": false, "band": 4, "id": "17"}, {"km": 1.7, "like": 90, "reg": true, "band": 1, "id": "18"}, {"km": 1.3, "like": 85, "reg": true, "band": 1, "id": "19"}, {"km": 3.6, "like": 60, "reg": false, "band": 3, "id": "20"}, {"km": 3.9, "like": 85, "reg": false, "band": 3, "id": "21"}, {"km": 4.9, "like": 70, "reg": false, "band": 4, "id": "22"}, {"km": 4.6, "like": 55, "reg": false, "band": 4, "id": "23"}, {"km": 3.1, "like": 65, "reg": false, "band": 3, "id": "24"}, {"km": 2.1, "like": 50, "reg": false, "band": 2, "id": "25"}];
+const BANDS = ["under 1 km", "1-2 km", "2-3 km", "3-4 km", "4-5 km"];
+const KEY = "casefiles-s1-v3";
+/* Paste the pre-filled Microsoft Forms link here (dummy answers Q1 ... Q20). Empty = offer "Copy our case file" instead. */
+const FORM_URL = "https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=ZXoUKW1T-UO4AuChtc-dv4SG9gvTFfxJkQXWBLPPwb1UQkIxS0EzRjczRUsxWTIwNEpLRTJVTlVLWC4u&r10cd1eaa10b14f08b318a362bf06914a=Q1&r543d082a51c34deb89878a3d0f5e5c2a=Q2&r4529444dd39d46b2872d8cc183a61590=Q3&r2b2eb9e2a68846f4b0809d69dfd89431=Q4&r557b7c2ff2bc4b3abd4b150bfa98f1f9=Q5&ra4859b5ac8614b38af5fbf00bb25a117=Q6&r15c3c349afc74eccba7f6a7f70b27077=Q7&rd2488199b1aa4a7d8016e79804c10c37=Q8&r2db6ea31f5d1454ea0b4604064f2907b=Q9&r60ed736aaf1e428e82f4d166cfb2ae97=Q10&r6b3e1629d7e84c1ab2b6817148e514d8=Q11&rc6d74fdf14a64e199451c66fde6bd1cd=Q12&r0600be7bc27a41d79a7fdd427621bf45=Q13&rbbe903f07b4c4b5ba3b15469b8489ed8=Q14&rfc4acfda51574fb0a343519691da05e6=Q15&rbda34bbfc3ca4195b798a969c6c21f74=Q16&r97b660017e0143ec90ae837cfe29f80f=Q17&rde0369aaa198479fa061b581f1171aee=Q18&rbd7c406861ef435a9a632f24a8b6fba6=Q19&re331fcbcca99471c99d9253be312e112=Q20&rc6f7db9903714c06b35b93230d42b304=Q21&r6e78317d7f0b4016ab621163ce46604f=Q22&rd7e0af34969943c98e7bf78050a95fb4=Q23&r32ee661a17a242838ee08c30a3340521=Q24&r05cded9581c44862b1cbfa540eb4e6e1=Q25&r77a14c88d7674e12894c7cdc13992bde=Q26&r18d25b3126d045a6acac9e7da0d6e9f9=Q27";
+const GATED = ["c1c", "c1d", "c2c"];
+const ENV = { c1c: "envelope 1A", c1d: "envelope 1B", c2c: "envelope 2" };
+/* Teacher key: row = last digit of the group code, column = envelope. All passwords are keywords of quantitative research. */
+const WORDS = [["variable", "sample", "mean"], ["hypothesis", "population", "median"], ["validity", "survey", "variance"], ["reliability", "scale", "correlation"], ["causality", "experiment", "regression"],
+  ["measurement", "random", "outlier"], ["replication", "bias", "histogram"], ["indicator", "census", "scatter"], ["theory", "interval", "ratio"], ["deduction", "nominal", "ordinal"]];
+const norm = (s) => String(s).toLowerCase().replace(/[^a-z]/g, "");
+const SCREENS = ["intro", "c1a", "c1b", "c1c", "c1d", "c2a", "c2b", "c2c", "end"];
+let S = { at: 0, a: {}, ui: {}, role: null, group: "", salt: "", sent: null, t: {}, pick: null, tries: {}, sw: {}, look: null, confirmed: false };
+try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
+let preview = location.hash === "#facilitator";
+window.addEventListener("hashchange", () => { preview = location.hash === "#facilitator"; render(false); });
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+const $ = (h) => { const t = document.createElement("template"); t.innerHTML = h.trim(); return t.content; };
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const filled = (k) => (S.a[k] || "").trim().length >= 3;
+const follower = () => S.role === "follow";
+const password = (screen) => WORDS[Number(String(S.salt).slice(-1)) || 0][GATED.indexOf(screen)];
+function gate(screen) { let h = 7; for (const c of S.salt + ":" + screen) h = (h * 31 + c.charCodeAt(0)) % 9000; return String(1000 + h); }
+function stamp(id) { if (!S.t[id]) { S.t[id] = Date.now(); } }
+const minutes = (from, to) => (S.t[from] && S.t[to] ? Math.max(1, Math.round((S.t[to] - S.t[from]) / 60000)) : "");
+const seconds = (from, to) => (S.t[from] && S.t[to] ? Math.max(1, Math.round((S.t[to] - S.t[from]) / 1000)) : "");
+function checkCode(list) { let h = 5381; for (const c of list.join("|")) h = (h * 33 + c.charCodeAt(0)) % 2147483647; return h.toString(36).toUpperCase(); }
+const clean = (v) => (v == null ? "" : String(v)).replace(/\s+/g, " ").replace(/"/g, "'").trim();
+const TEXT = [2, 5, 6, 9, 10, 13, 14, 15]; /* positions of the free-text answers */
+const LINK_BUDGET = 6000; /* characters; long answers are shortened to stay under it */
+const FIELDS = () => {
+  const f = [S.group, S.salt, S.a.c1see, S.a.c1first, S.a.c1firstSure, S.a.c1want, S.a.c1rows, S.a.c1later, S.a.c1laterSure, S.a.c1why,
+    S.a.c2see, S.a.c2first, S.a.c2firstSure, S.a.c2want, S.a.c2all, S.a.c2rule, S.a.c2later, S.a.c2laterSure, minutes("c1a", "c2a"), minutes("c2a", "end"),
+    seconds("c1a", "fetch-c1c"), seconds("c2a", "fetch-c2c"), seconds("fetch-c1c", "opened-c1c"), seconds("fetch-c1d", "opened-c1d"), seconds("fetch-c2c", "opened-c2c"),
+    (S.tries.c1c || 0) + (S.tries.c1d || 0) + (S.tries.c2c || 0)].map(clean);
+  const size = () => f.reduce((n, v) => n + encodeURIComponent(v).length, 0);
+  for (let guard = 0; FORM_URL && FORM_URL.length + size() > LINK_BUDGET && guard < 400; guard++) {
+    const k = TEXT.reduce((best, p) => (f[p].length > f[best].length ? p : best), TEXT[0]);
+    if (f[k].length < 40) break;
+    f[k] = f[k].slice(0, Math.max(30, f[k].length - 12)).trim() + "...";
+  }
+  f.push(checkCode(f));
+  return f;
+};
+function formLink() {
+  if (!FORM_URL) return "";
+  const f = FIELDS(), [base, query] = FORM_URL.split("?");
+  const parts = (query || "").split("&").map((p) => {
+    const i = p.indexOf("="); if (i < 0) return p;
+    const m = decodeURIComponent(p.slice(i + 1)).match(/^("?)Q(\d+)("?)$/);
+    return m && f[m[2] - 1] !== undefined ? p.slice(0, i + 1) + encodeURIComponent(m[1] + f[m[2] - 1] + m[3]) : p;
+  });
+  return base + "?" + parts.join("&");
+}
+
+/* ---------- building blocks ---------- */
+function weekCard(w, showSeason) {
+  const hot = showSeason && w.peak;
+  return `<div class="week${hot ? " hot" : ""}"><b>${w.L}</b><small>ads</small>${w.ad.toFixed(1)}<div class="bar"><i style="height:${Math.round(w.sales / 1000 * 70)}px"></i></div><small>sales</small>${w.sales}</div>`;
+}
+function weeksView(mode) {
+  const byAd = (x, y) => x.ad - y.ad;
+  if (mode === "loose") return `<div class="table-top"><p class="rowlabel">16 week cards, in no order. Ads and sales in kSEK (thousand kronor).</p><div class="weeks">${WEEKS.map((w) => weekCard(w)).join("")}</div></div>`;
+  if (mode === "row") return `<div class="table-top"><p class="rowlabel">One row, from the lowest ad spend on the left to the highest on the right. Ads and sales in kSEK.</p><div class="weeks">${WEEKS.slice().sort(byAd).map((w) => weekCard(w)).join("")}</div></div>`;
+  const hot = WEEKS.filter((w) => w.peak).sort(byAd), cold = WEEKS.filter((w) => !w.peak).sort(byAd);
+  return `<div class="table-top"><p class="rowlabel hot">The six julbord weeks, lowest ad spend on the left</p><div class="weeks">${hot.map((w) => weekCard(w, true)).join("")}</div>
+    <p class="rowlabel" style="margin-top:14px">The ten ordinary weeks, lowest ad spend on the left</p><div class="weeks">${cold.map((w) => weekCard(w, true)).join("")}</div></div>`;
+}
+function guestCard(g, mark) {
+  return `<div class="guest${mark && g.reg ? " reg" : ""}${mark && !g.reg ? " other" : ""}">Guest ${g.id}${mark && g.reg ? '<span class="pill">regular</span>' : ""}<br>lives ${g.km.toFixed(1)} km away<br>liked <b>${g.like}%</b></div>`;
+}
+function pilesView(all, showAvg) {
+  const bands = all ? [0, 1, 2, 3, 4] : [0, 1, 2, 3];
+  const cols = bands.map((b) => {
+    const gs = GUESTS.filter((g) => g.band === b && (all || g.reg)).sort((x, y) => y.like - x.like);
+    const avg = Math.round(gs.reduce((t, g) => t + g.like, 0) / gs.length);
+    const regs = gs.filter((g) => g.reg).length;
+    const foot = showAvg ? `<div class="foot">average ${avg}%<span>${gs.length} card${gs.length === 1 ? "" : "s"}${all ? ", " + regs + " regular" + (regs === 1 ? "" : "s") : ""}</span></div>` : `<div class="foot"><span>${gs.length} card${gs.length === 1 ? "" : "s"}</span></div>`;
+    return `<div class="pile"><h3>lives ${BANDS[b]}</h3>${gs.map((g) => guestCard(g, all)).join("")}${foot}</div>`;
+  });
+  return `<div class="table-top"><p class="rowlabel">${all ? "All 25 club members" : "The ten regulars"}: piles by distance, nearest on the left. In each pile the highest share of dishes liked is at the top.</p><div class="piles">${cols.join("")}</div></div>`;
+}
+function looseGuests() {
+  return `<div class="table-top"><p class="rowlabel">10 guest cards: the ten regulars, in no order.</p><div class="loose">${GUESTS.filter((g) => g.reg).map((g) => guestCard(g)).join("")}</div></div>`;
+}
+let RO = false; /* true while an earlier screen is shown read-only */
+function textQ(key, label, hint) {
+  if (RO && !follower()) return `<div class="locked"><b>${label}</b>${esc(S.a[key] || "")}</div>`;
+  if (follower()) return `<div class="locked"><b>For your group to discuss</b>${label} Your scribe writes the group's answer.</div>`;
+  return `<div><label for="${key}">${label}</label><textarea id="${key}" data-key="${key}" maxlength="200" placeholder="${hint || "Write a sentence or two"}">${esc(S.a[key])}</textarea></div>`;
+}
+function adviceQ(key, label, options) {
+  if (RO && !follower()) return `<div class="locked"><b>${label}</b>${esc(S.a[key] || "")}${S.a[key + "Sure"] == null ? "" : " (" + S.a[key + "Sure"] + "% sure)"}</div>`;
+  if (follower()) return `<div class="locked"><b>For your group to decide</b>${label} ${options.map(esc).join(" / ")}. And how sure are you, from 0 to 100%? Your scribe enters the group's decision.</div>`;
+  const v = S.a[key];
+  return `<div class="stack"><div><label>${label}</label><div class="choices" role="group" aria-label="${label}">${options.map((o, i) => `<button type="button" class="choice" data-choice="${key}" data-val="${esc(o)}" aria-pressed="${v === o}">${esc(o)}</button>`).join("")}</div></div>
+    <div><label for="${key}-sure">How sure are you, from 0 to 100%?</label><div class="sure"><input id="${key}-sure" type="range" min="0" max="100" step="5" value="${S.a[key + "Sure"] == null ? 50 : S.a[key + "Sure"]}" data-sure="${key}"><output id="${key}-out">${S.a[key + "Sure"] == null ? "move the slider" : S.a[key + "Sure"] + "%"}</output></div></div></div>`;
+}
+const adviceDone = (key) => !!S.a[key] && S.a[key + "Sure"] != null;
+const STAR = '<svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path fill="currentColor" d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>';
+function star(title, text, n) { return `<div class="milestone"><div class="stars">${STAR.repeat(n)}</div><div><b>${title}</b><br>${text}</div></div>`; }
+function notesText() {
+  const A = S.a, s = (k) => (A[k + "Sure"] == null ? "" : " (" + A[k + "Sure"] + "% sure)");
+  return ["The Case Files, Session 1: " + S.group, "", "CASE 1: the Google ads", "What we saw along the row: " + (A.c1see || ""), "First advice: " + (A.c1first || "") + s("c1first"), "What we wanted to know: " + (A.c1want || ""),
+    "Inside each row: " + (A.c1rows || ""), "Later advice: " + (A.c1later || "") + s("c1later"), "Based on: " + (A.c1why || ""), "", "CASE 2: the neighbours", "What we saw in the ten regulars: " + (A.c2see || ""),
+    "First advice: " + (A.c2first || "") + s("c2first"), "What we wanted to know: " + (A.c2want || ""), "All 25 club members: " + (A.c2all || ""), "What decides who becomes a regular: " + (A.c2rule || ""), "Later advice: " + (A.c2later || "") + s("c2later")].join("\n");
+}
+function lockedLine(title, text) { return `<div class="locked"><b>${title}</b>${esc(text)}</div>`; }
+function adviceLine(title, key) { if (follower() || !S.a[key]) return ""; return lockedLine(title, `${S.a[key]} (${S.a[key + "Sure"]}% sure)`); }
+
+/* ---------- screens ---------- */
+const C1 = ["Double the ad budget", "Do not double the ad budget"];
+const C2 = ["Stop the flyers in the neighbourhood", "Keep the flyers in the neighbourhood"];
+const view = {
+  intro: () => ({ where: "Start", html: `
+    <h1>The Case Files</h1>
+    <p>Two restaurant owners want your advice. Work as a group of four or five. Everyone can follow on their own device, but <b>one device writes and sends</b> the group's answers. Talk first, then write.</p>
+    <div class="card stack">
+      <h2>Is this the device that writes for your group?</h2>
+      <div><label for="group">Yes: type your group's name</label><input id="group" type="text" maxlength="40" value="${esc(S.group)}" placeholder="For example: Group C" autocomplete="off"></div>
+      <button class="go" data-start="scribe" disabled>Start our group's case file</button>
+      <p class="hint">Each case has sealed envelopes. Once your group has written its advice, it is locked, and one of you fetches the password for the next envelope from a teacher. One case file per group is accepted.</p>
+    </div>
+    <div class="card stack">
+      <h2>No: I am following along</h2>
+      <div><label for="join">Type the group code shown on your scribe's screen</label><input id="join" type="text" inputmode="numeric" maxlength="3" placeholder="3 digits" autocomplete="off"></div>
+      <button class="go secondary" data-start="follow" disabled>Follow my group</button>
+    </div>
+    <div class="research"><b>For research on teaching only</b>This page records your group's answers and some timings, such as how long a step took. They are used only to study and improve this teaching activity. They do <b>not</b> measure your performance, they are not graded, and there are no right or wrong speeds. Take the time your group needs.</div>`, ready: () => true }),
+
+  c1a: () => ({ where: "Case 1, step 1", html: `
+    <h1>Case 1. Do the Google ads fill the tables?</h1>
+    <p>A restaurant in central Gothenburg pays for Google ads: when someone googles "restaurant Gothenburg", the restaurant appears at the very top of the results, marked "Sponsored". The restaurant pays Google for every click. The owner has pulled 16 weeks of data.</p>
+    <div class="quote"><div class="who">The owner writes to you</div>"Look at the numbers. In the weeks when we spend more on Google ads, we sell far more. I want to <b>double the ad budget</b> next year. Can you confirm that the data support this?"</div>
+    ${weeksView(S.ui.c1sorted ? "row" : "loose")}
+    ${S.ui.c1sorted ? `<p class="step">Step 1. Look at the sales along the row.</p>${textQ("c1see", "What do you see?")}<button class="go" data-next disabled>Continue</button>`
+      : `<p class="step">Step 1. Lay the 16 cards in one row, from the lowest ad spend on the left to the highest on the right.</p><button class="go" data-ui="c1sorted">Lay the cards in a row</button>`}
+    <details><summary>Wrong group name or group code?</summary><p style="margin:10px 0">You can start again from the first screen. This clears this device only.</p><button class="go secondary" data-reset>Start again</button></details>`,
+    ready: () => S.ui.c1sorted && filled("c1see") }),
+
+  c1b: () => ({ where: "Case 1, steps 2 and 3", html: `
+    <h2>Case 1. Your advice</h2>
+    ${weeksView("row")}
+    <p class="step">Step 2. Decide as a group.</p>
+    ${adviceQ("c1first", "Should the owner double the ad budget?", C1)}
+    <p class="step">Step 3.</p>
+    ${textQ("c1want", "What would you want to know about these 16 weeks that is not on the cards? Write one thing.")}
+    <button class="go" data-next disabled>Lock our advice and fetch envelope 1A</button>
+    ${follower() ? "" : '<p class="hint">After this you cannot change what you wrote in steps 1 to 3.</p>'}`,
+    ready: () => adviceDone("c1first") && filled("c1want") }),
+
+  c1c: () => ({ where: "Case 1, step 4", html: `
+    <h2>Case 1. Envelope 1A</h2>
+    <div class="envelope stack"><div class="tag">Envelope 1A: from the restaurant's calendar</div>
+      <p>Weeks <b>E, G, I, J, L and O</b> were the six weeks before Christmas: the julbord season, when companies book their Christmas dinners.</p>
+      <p>The other ten weeks were ordinary autumn weeks. Every year, the owner raises the ad budget for the julbord season.</p></div>
+    <p>The six julbord cards have been moved up, so that you now have two rows.</p>
+    ${weeksView("rows")}
+    <p class="step">Step 4. Look inside each row on its own.</p>
+    ${textQ("c1rows", "Inside a row, do the weeks with more ad spend have higher sales? Write what you see.")}
+    <button class="go" data-next disabled>Lock our answer and fetch envelope 1B</button>`,
+    ready: () => filled("c1rows") }),
+
+  c1d: () => ({ where: "Case 1, step 5", html: `
+    <h2>Case 1. Envelope 1B</h2>
+    <div class="envelope stack"><div class="tag">Envelope 1B: memo on the switch-off test</div>
+      <p>Last spring the owner ran a test over eight ordinary weeks. A lottery picked four of the eight weeks in which the Google ads were <b>switched off</b>. In the other four weeks the ads ran as usual.</p>
+      <div class="stats"><div class="stat">Average weekly sales, the 4 weeks <b>with</b> ads<b>462 kSEK</b></div><div class="stat">Average weekly sales, the 4 weeks <b>without</b> ads<b>458 kSEK</b></div></div>
+      <p>In the weeks without ads, guests still found the restaurant in the ordinary Google results, which cost nothing.</p></div>
+    ${adviceLine("Your first advice", "c1first")}
+    <p class="step">Step 5. Read the memo together.</p>
+    ${adviceQ("c1later", "What is your advice to the owner now?", C1)}
+    ${textQ("c1why", "In one sentence, what is your advice based on?")}
+    <button class="go" data-next disabled>Lock our advice and start Case 2</button>`,
+    ready: () => adviceDone("c1later") && filled("c1why") }),
+
+  c2a: () => ({ where: "Case 2, step 1", html: `
+    ${star("Case 1 is closed", "First milestone reached. One more case to go.", 1)}
+    <h1>Case 2. Do the neighbours dislike our food?</h1>
+    <p>Another restaurant owner opened a year ago. At the opening party, 25 people joined her guest club. Each of them tasted the 20 dishes on the menu, ticked the ones they <b>liked</b>, and gave their address. One year later, ten of the 25 are <b>regulars</b>: they have eaten there ten times or more.</p>
+    <div class="quote"><div class="who">The owner writes to you</div>"I looked at my ten regulars. The further away they live, the <b>more of our dishes they like</b>. The regulars from around the corner like far fewer. So the neighbourhood does not care much for our food. I will <b>stop the flyers in the neighbourhood</b> and advertise across town instead. Do you agree?"</div>
+    ${S.ui.c2sorted ? pilesView(false, true) : looseGuests()}
+    ${S.ui.c2sorted ? `<p class="step">Step 1. Read the averages from left to right.</p>${textQ("c2see", "What do you see?")}<button class="go" data-next disabled>Continue</button>`
+      : `<p class="step">Step 1. Sort the ten cards into piles by distance, from the nearest on the left to the furthest on the right, and work out the average share of dishes liked in each pile.</p><button class="go" data-ui="c2sorted">Sort into piles and work out the averages</button>`}`,
+    ready: () => S.ui.c2sorted && filled("c2see") }),
+
+  c2b: () => ({ where: "Case 2, steps 2 and 3", html: `
+    <h2>Case 2. Your advice</h2>
+    ${pilesView(false, true)}
+    <p class="step">Step 2. What do you think of the owner's numbers and of her plan?</p>
+    ${adviceQ("c2first", "What should the owner do?", C2)}
+    <p class="step">Step 3.</p>
+    ${textQ("c2want", "What else would you want to know before she decides? Write one thing.")}
+    <button class="go" data-next disabled>Lock our advice and fetch envelope 2</button>
+    ${follower() ? "" : '<p class="hint">After this you cannot change what you wrote in steps 1 to 3.</p>'}`,
+    ready: () => adviceDone("c2first") && filled("c2want") }),
+
+  c2c: () => ({ where: "Case 2, steps 4 and 5", html: `
+    <h2>Case 2. Envelope 2</h2>
+    <div class="envelope stack"><div class="tag">Envelope 2: the other 15 club members</div>
+      <p>These 15 cards are the club members from the opening party who did <b>not</b> become regulars. They have been added to your piles, so you now see all 25 club members.</p></div>
+    ${pilesView(true, true)}
+    ${adviceLine("Your first advice", "c2first")}
+    <p class="step">Step 4. Read the averages of all 25 from left to right.</p>
+    ${textQ("c2all", "What do you see now?")}
+    <p class="step">Step 5. Look at where the ten regulars sit in the columns.</p>
+    ${textQ("c2rule", "What do you think decides who becomes a regular?")}
+    ${adviceQ("c2later", "What is your advice to the owner now?", C2)}
+    <button class="go" data-next disabled>Lock our advice and finish</button>`,
+    ready: () => filled("c2all") && filled("c2rule") && adviceDone("c2later") }),
+
+  pickup: () => {
+    const nxt = S.pick, said = { c1c: "c1first", c1d: null, c2c: "c2first" }[nxt];
+    if (follower()) return { where: "Checkpoint", html: `
+    <h1>Fetch ${ENV[nxt]}</h1>
+    <p>Your group's answers are locked on your scribe's device. One of you fetches the password from a teacher. Only your scribe's device can type it.</p>
+    <div class="card stack"><label for="gate">When ${ENV[nxt]} is open, your scribe's screen shows a screen code. Type it here.</label><input id="gate" type="text" inputmode="numeric" maxlength="4" placeholder="4 digits" autocomplete="off">
+      <button class="go" data-gate disabled>Open ${ENV[nxt]}</button><p class="small" id="gatemsg" role="status"></p></div>`, ready: () => true };
+    const ours = said && S.a[said] ? `<p>Our advice: <b>${esc(S.a[said])}</b>, ${S.a[said + "Sure"]}% sure.</p>` : nxt === "c1d" && S.a.c1rows ? `<p>Inside each row we saw: <b>${esc(S.a.c1rows)}</b></p>` : "";
+    const tell = nxt === "c1d" ? "tells the teacher what your group saw inside each row" : "tells the teacher what your group advised and how sure you are";
+    return { where: "Checkpoint", html: `
+    <h1>Fetch ${ENV[nxt]}</h1>
+    <p>Your answers so far are locked. The next envelope opens with a password that only a teacher has.</p>
+    <div class="envelope stack"><div class="tag">Take this to a teacher</div>
+      <p style="font-size:22px;font-family:var(--display)">Group code <b>${esc(S.salt)}</b> · ${ENV[nxt]}</p>
+      ${ours}
+      <p><b>One</b> of you walks to a teacher, says the group code and the envelope, and ${tell}. The teacher gives you a password: one word. Remember it and bring it back.</p></div>
+    <div class="card stack"><label for="pw">Password for ${ENV[nxt]}</label><input id="pw" type="text" maxlength="24" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="one word">
+      <button class="go" data-open disabled>Open ${ENV[nxt]}</button><p class="small" id="pwmsg" role="status"></p></div>`, ready: () => true };
+  },
+
+  end: () => {
+    const row = (name, f, l) => `<tr><td><b>${name}</b></td><td>${esc(S.a[f] || "not answered")}<br><span class="small">${S.a[f + "Sure"] == null ? "" : S.a[f + "Sure"] + "% sure"}</span></td><td>${esc(S.a[l] || "not answered")}<br><span class="small">${S.a[l + "Sure"] == null ? "" : S.a[l + "Sure"] + "% sure"}</span></td></tr>`;
+    const prompts = `<div class="card stack"><h2>Bring to the discussion</h2>
+      <p>Look at your first advice and your later advice in each case. If they differ, what do you think made you change? If they are the same, what made you sure from the start?</p>
+      <p>In Case 2, each pile shows how many of its five club members became regulars. If the owner asked you where her flyers should go, what would you say?</p></div>`;
+    if (follower()) return { where: "The end", html: `${star("Both cases are closed", "Second milestone reached. Well done.", 2)}<h1>Both cases are closed</h1><p>Your scribe sends the group's case file and can share the group's notes with you. Keep this screen open for the discussion.</p>${prompts}${pilesView(true, true)}
+      <details><summary>Leave this group and start again</summary><p style="margin:10px 0">This clears this device only.</p><button class="go secondary" data-reset>Start again</button></details>`, ready: () => true };
+    const link = formLink();
+    const steps = (now) => `<ol class="sendsteps"><li class="${now === 1 ? "now" : "done"}"><b>On this page:</b> click the button "Send our case file to the teacher". A form opens with your answers filled in.</li>
+      <li class="${now === 2 ? "now" : now > 2 ? "done" : ""}"><b>In the form:</b> scroll to the bottom and press <b>Submit</b> (in Swedish: <b>Skicka</b>). Your case file is <b>not sent</b> until you have pressed it and see the thank-you message.</li></ol>`;
+    const send = S.confirmed
+      ? `<div class="card stack"><h2>Case file sent</h2>${steps(3)}<p>Thank you. Only one case file per group is accepted.</p></div>`
+      : S.sent
+      ? `<div class="sendbox stack"><h2>One more click: press Submit in the form</h2>${steps(2)}<p>The form opened in a new tab at ${esc(S.sent)}. Go to that tab now.</p>
+          <div class="choices"><button class="go" data-confirm>We pressed Submit and saw the thank-you message</button>${link ? `<a class="go secondary" style="text-decoration:none" href="${esc(link)}" target="_blank" rel="noopener">Open the form again</a>` : ""}</div></div>`
+      : link ? `<div class="sendbox stack"><h2>Send your case file: two clicks</h2><p>Check the table with your group first. You can send only once.</p>${steps(1)}<a class="go" style="text-decoration:none" href="${esc(link)}" target="_blank" rel="noopener" data-sent>Send our case file to the teacher</a>
+          <p class="small">The last questions in the form (timings and a check code) are filled in by this page. They are for research on teaching only and do not measure your performance. Please leave them as they are.</p></div>`
+      : `<div class="card stack"><h2>Hand in your case file</h2><p>Copy your case file and paste it where your teacher tells you.</p><button class="go" data-copy>Copy our case file</button><p class="small" id="copied" role="status"></p></div>`;
+    return { where: "Your case file", html: `
+    ${star("Both cases are closed", "Second milestone reached. Well done.", 2)}
+    <h1>Your case file</h1>
+    <p>${esc(S.group)}: keep this screen open. Your teacher will ask what each group advised.</p>
+    <div class="card recap-wrap"><table class="recap"><thead><tr><th></th><th>First advice</th><th>Later advice</th></tr></thead><tbody>
+      ${row("Case 1: the ads", "c1first", "c1later")}${row("Case 2: the neighbours", "c2first", "c2later")}</tbody></table></div>
+    ${send}
+    ${prompts}
+    ${pilesView(true, true)}
+    <div class="card stack"><h2>Share your notes with the whole group</h2><p>Copy the group's notes and paste them into your group's chat, so that everyone has what you wrote.</p><button class="go secondary" data-notes>Copy our notes</button><p class="small" id="notesmsg" role="status"></p></div>
+    <details><summary>Your notes</summary><div class="stack" style="margin-top:10px">
+      ${lockedLine("Case 1, what you saw along the row", S.a.c1see)}${lockedLine("Case 1, what you wanted to know", S.a.c1want)}${lockedLine("Case 1, inside each row", S.a.c1rows)}${lockedLine("Case 1, your later advice is based on", S.a.c1why)}
+      ${lockedLine("Case 2, what you saw in the ten regulars", S.a.c2see)}${lockedLine("Case 2, what you wanted to know", S.a.c2want)}${lockedLine("Case 2, all 25 members", S.a.c2all)}${lockedLine("Case 2, what decides who becomes a regular", S.a.c2rule)}</div></details>
+    <details><summary>Start again with an empty case file</summary><p style="margin:10px 0">This deletes everything your group has written on this device.</p><button class="go secondary" data-reset>Delete and start again</button></details>`, ready: () => true };
+  },
+};
+
+/* ---------- render and events ---------- */
+const app = document.getElementById("app");
+const teacherKey = () => `<div class="card stack"><h2>Teacher key</h2><p>A student tells you the group code and the envelope. Ask first. For envelope 1A and envelope 2: "What did your group advise, and how sure are you?" For envelope 1B: "What did you see inside each row?" Then find the row for the <b>last digit</b> of the group code and give the password for that envelope.</p>
+      <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>Code ends in</th><th>Envelope 1A</th><th>Envelope 1B</th><th>Envelope 2</th></tr></thead><tbody>${WORDS.map((w, k) => `<tr><td><b>${k}</b></td><td>${w[0]}</td><td>${w[1]}</td><td>${w[2]}</td></tr>`).join("")}</tbody></table></div></div>`;
+const lookMax = () => (S.pick ? S.at : S.at - 1); /* the latest screen that is already behind the group */
+function render(scroll) {
+  const looking = S.look != null;
+  const id = looking ? SCREENS[S.look] : S.pick ? "pickup" : SCREENS[S.at];
+  if (!looking) { stamp(S.pick ? "fetch-" + S.pick : id); save(); }
+  RO = looking; const v = view[id](); RO = false;
+  if (S.role === "scribe" && GATED.includes(id)) v.html = `<div class="locked"><b>For teammates following on their own device</b>Screen code for ${ENV[id]}: <span style="font-size:18px;font-weight:700;color:var(--ink)">${gate(id)}</span></div>` + v.html;
+  const track = SCREENS.slice(1).map((s, i) => `<span class="${i + 1 < S.at ? "done" : i + 1 === S.at ? "now" : ""}"></span>`).join("");
+  const who = S.role === "scribe" ? ` · ${esc(S.group)} · group code <b>${S.salt}</b>` : S.role === "follow" ? ` · following group ${esc(S.salt)}` : "";
+  const bar = looking ? `<div class="lookbar"><b>Looking back: read only</b><span>${S.look > 1 ? '<button class="go secondary" data-look="prev">Earlier screen</button>' : ""}${S.look < lookMax() ? '<button class="go secondary" data-look="next">Later screen</button>' : ""}<button class="go" data-look="close">Return to where we were</button></span></div>` : "";
+  const back = !looking && S.role && id !== "end" && lookMax() >= 1 ? '<p><button class="go secondary" data-look="open">Look back at earlier screens</button></p>' : "";
+  app.innerHTML = "";
+  app.appendChild($(`<header class="top"><div class="brand">The Case Files</div><div class="where">Session 1 · ${v.where}${who}${preview ? " · facilitator preview" : ""}</div></header><div class="track" aria-hidden="true">${track}</div>${preview ? teacherKey() : ""}${bar}<section class="stack" id="screen">${v.html}</section>${bar}${back}${preview && id !== "intro" && !looking ? '<p class="small">Facilitator preview: <button class="go secondary" data-skip>Skip to the next screen</button></p>' : ""}`));
+  if (looking) app.querySelectorAll("#screen .go, #screen .hint, #screen details").forEach((el) => el.remove());
+  if (follower() && !S.pick && !looking) { const b = app.querySelector("[data-next]"); if (b) b.textContent = GATED.includes(SCREENS[S.at + 1]) ? "Continue to the checkpoint" : "Continue"; }
+  refresh();
+  if (scroll) window.scrollTo(0, 0);
+}
+function refresh() {
+  const b = app.querySelector("[data-next]");
+  if (b && !S.pick) b.disabled = follower() ? false : !view[SCREENS[S.at]]().ready();
+  const g = app.querySelector("#group"), sb = app.querySelector('[data-start="scribe"]'); if (g && sb) sb.disabled = g.value.trim().length < 2;
+  const j = app.querySelector("#join"), fb = app.querySelector('[data-start="follow"]'); if (j && fb) fb.disabled = !/^\d{3}$/.test(j.value.trim());
+  const pw = app.querySelector("#pw"), ob = app.querySelector("[data-open]"); if (pw && ob) ob.disabled = pw.value.trim().length < 3;
+  const ga = app.querySelector("#gate"), gb = app.querySelector("[data-gate]"); if (ga && gb) gb.disabled = !/^\d{4}$/.test(ga.value.trim());
+}
+function go() {
+  if (S.at >= SCREENS.length - 1) return;
+  const nxt = SCREENS[S.at + 1];
+  if (GATED.includes(nxt) && S.pick !== nxt && !preview) { S.pick = nxt; save(); render(true); return; }
+  S.pick = null; S.at++; save(); render(true);
+}
+app.addEventListener("input", (e) => {
+  const t = e.target;
+  if (t.dataset.key) { S.a[t.dataset.key] = t.value; save(); }
+  if (t.dataset.sure) { S.a[t.dataset.sure + "Sure"] = Number(t.value); document.getElementById(t.dataset.sure + "-out").textContent = t.value + "%"; save(); }
+  refresh();
+});
+app.addEventListener("change", (e) => { const t = e.target; if (t.dataset && t.dataset.sure) { S.a[t.dataset.sure + "Sure"] = Number(t.value); document.getElementById(t.dataset.sure + "-out").textContent = t.value + "%"; save(); refresh(); } });
+app.addEventListener("pointerup", (e) => { const t = e.target; if (t.dataset && t.dataset.sure) { S.a[t.dataset.sure + "Sure"] = Number(t.value); document.getElementById(t.dataset.sure + "-out").textContent = t.value + "%"; save(); refresh(); } });
+app.addEventListener("keydown", (e) => { if (e.key !== "Enter") return; const b = e.target.id === "pw" ? app.querySelector("[data-open]") : e.target.id === "gate" ? app.querySelector("[data-gate]") : null; if (b && !b.disabled) b.click(); });
+app.addEventListener("click", (e) => {
+  const t = e.target.closest("button, a[data-sent]"); if (!t) return;
+  if (t.dataset.look) {
+    const m = lookMax();
+    if (t.dataset.look === "open") S.look = m; else if (t.dataset.look === "prev") S.look = Math.max(1, S.look - 1); else if (t.dataset.look === "next") S.look = Math.min(m, S.look + 1); else S.look = null;
+    save(); render(true); return;
+  }
+  if (t.dataset.choice) { if (S.a[t.dataset.choice] && S.a[t.dataset.choice] !== t.dataset.val) S.sw[t.dataset.choice] = (S.sw[t.dataset.choice] || 0) + 1; S.a[t.dataset.choice] = t.dataset.val; save(); app.querySelectorAll(`[data-choice="${t.dataset.choice}"]`).forEach((b) => b.setAttribute("aria-pressed", String(b === t))); refresh(); return; }
+  if (t.dataset.ui) { S.ui[t.dataset.ui] = true; save(); render(false); return; }
+  if (t.dataset.start === "scribe") { S.role = "scribe"; S.group = app.querySelector("#group").value.trim(); S.salt = String(100 + Math.floor(Math.random() * 900)); go(); return; }
+  if (t.dataset.start === "follow") { S.role = "follow"; S.salt = app.querySelector("#join").value.trim(); go(); return; }
+  if (t.hasAttribute("data-open")) {
+    if (norm(app.querySelector("#pw").value) === password(S.pick)) { stamp("opened-" + S.pick); go(); }
+    else { S.tries[S.pick] = (S.tries[S.pick] || 0) + 1; save(); const typed = app.querySelector("#pw").value; render(false); app.querySelector("#pw").value = typed; refresh(); app.querySelector("#pwmsg").textContent = "That password does not open this envelope. Check the group code and the envelope with your teacher."; }
+    return;
+  }
+  if (t.hasAttribute("data-gate")) {
+    if (app.querySelector("#gate").value.trim() === gate(S.pick)) go();
+    else app.querySelector("#gatemsg").textContent = "That code does not open this envelope. Check the screen code on your scribe's screen.";
+    return;
+  }
+  if (t.hasAttribute("data-notes")) { const text = notesText(), msg = app.querySelector("#notesmsg"); try { navigator.clipboard.writeText(text).then(() => { msg.textContent = "Copied. Paste it into your group's chat."; }, () => { msg.textContent = text; }); } catch (err) { msg.textContent = text; } return; }
+  if (t.hasAttribute("data-next")) { go(); return; }
+  if (t.hasAttribute("data-skip")) { S.pick = null; if (S.at < SCREENS.length - 1) S.at++; save(); render(true); return; }
+  if (t.hasAttribute("data-confirm")) { S.confirmed = true; save(); render(false); return; }
+  if (t.hasAttribute("data-sent")) { S.sent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); save(); setTimeout(() => render(false), 300); return; }
+  if (t.hasAttribute("data-copy")) { const text = FIELDS().join("\t"); const done = () => { app.querySelector("#copied").textContent = "Copied. Paste it where your teacher tells you."; }; try { navigator.clipboard.writeText(text).then(done, () => { app.querySelector("#copied").textContent = text; }); } catch (err) { app.querySelector("#copied").textContent = text; } return; }
+  if (t.hasAttribute("data-reset")) { S = { at: 0, a: {}, ui: {}, role: null, group: "", salt: "", sent: null, t: {}, pick: null, tries: {}, sw: {}, look: null, confirmed: false }; try { localStorage.removeItem(KEY); } catch (err) {} render(true); }
+});
+render(false);
+</script>
+</body>
+</html>
