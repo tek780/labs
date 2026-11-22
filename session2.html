@@ -155,6 +155,9 @@ details.slip { background: var(--surface); border: 1px solid var(--line); border
 .tcstep label { margin: 0; font-weight: 400; font-size: 15px; display: grid; gap: 2px; }
 .tcnum { width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: var(--surface); display: grid; place-items: center; font-weight: 700; font-size: 14px; }
 .tcstep input { width: 100%; text-align: center; font-size: 20px; padding: 8px 4px; }
+.proj h1 { font-size: 34px; } .proj .rowlabel { font-size: 22px; } .proj .cmp p { font-size: 22px; }
+.proj .barrow { grid-template-columns: 70px minmax(0, 1fr) 80px 120px; font-size: 24px; gap: 12px; margin: 6px 0; } .proj .track2 { height: 30px; } .proj .track2 i { height: 100%; }
+.proj .projword { font-size: 30px; text-align: center; margin-top: 10px; } .proj .projword b { font-family: var(--display); font-size: 40px; letter-spacing: 1px; }
 .tcgrid { display: grid; grid-template-columns: minmax(0, 1fr) 76px 76px; gap: 10px; align-items: center; }
 .tcgrid label { margin: 0; font-weight: 700; font-size: 15px; } .tcgrid b { text-align: center; font-size: 14px; }
 .tcgrid input { width: 100%; text-align: center; font-size: 20px; padding: 8px 4px; }
@@ -173,6 +176,7 @@ const KEY = "casefiles-s2-v1";
 /* Paste the pre-filled Microsoft Forms link here (dummy answers Q1 ... Q28). Empty = offer "Copy our case file" instead. */
 const FORM_URL = "https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=ZXoUKW1T-UO4AuChtc-dv4SG9gvTFfxJkQXWBLPPwb1URTJLTFNKUTI1MlhFQTNGSFdaVVZLNDkxUi4u&rad24921ec80a48fc934be31801ff376d=Q1&r592f42b31b5d46cea13042e9f2ef8808=Q2&r1c16d9e0e0ec497b8b7fe7068b8f6560=Q3&r15aaa74a65de45688ee8fc73308305ef=Q4&r33da5116e2ea46edae0226c2b90c921f=Q5&rdcf97c9e88554398931d07dc7d04c9b0=Q6&r56d11a9bf8174e6bad70e39a279a232e=Q7&rb181761f7cf74a05a7615f36ad1c8420=Q8&r9daab44681744fa2973ddd310388339b=Q9&rc678423f49584b128b3b5482bcc37436=Q10&ra4a20cb7f90a4e2d94739da0fd2f1c6b=Q11&rc7cf8c6183da4206ae7ba9dc567dabaa=Q12&r809b4c962ee24a32bc5406299c91c262=Q13&r93a783cfb20b47c49cd06a157419c739=Q14&r5bbe3f2dcde0450e95b102234379a0f9=Q15&r6e9788b6617f40808c0fbe2d941ca402=Q16&rd6c6ff63cc77447f9c55a69e0e447341=Q17&r650ca7118aaf4aa8833cae060ef38fb0=Q18&rc46f4c25bc454c72a280f97974f1e297=Q19&r8b258130b6fa484a836844352bf5f3ed=Q20&r976cacbc2b85496082d6bf23360f37ff=Q21&rb2232907ef744be7899ec32df542d747=Q22&rb3da839e95b746bea383409fed541d93=Q23&r93ad76f129a646719418fd6714a0ae6a=Q24&r992121a51dca4bc381034187fc90eb0f=Q25&re00e1665593d48a08029a2aed7450185=Q26&re290dd3442674fb89179df36505654c2=Q27&r6da5cf2539e14ce58fbfe050ab6d1666=Q28";
 const LAB_WORD = "lunch";
+const CLASS_WORD = "count";
 const SCREENS = ["intro", "p1a", "p1b", "p1c", "p2a", "p2b", "p2c", "end"];
 const GATED = ["p1c", "p2b", "p2c"];
 const ENV = { p1c: "envelope 1", p2b: "envelope 2", p2c: "envelope 3" };
@@ -241,7 +245,7 @@ const showCode = (code) => code.replace(/(.{3})(?=.)/g, "$1-");
 const TEXT = [2, 8, 9, 15, 16]; /* positions of the free-text answers */
 const LINK_BUDGET = 6000;
 const FIELDS = () => {
-  const cc = ccOk() ? `LS-1 ${S.cc.n1}, LS-2 ${S.cc.n2}; prices ${S.cc.a1}/${S.cc.a2}; screen time ${S.cc.b1}/${S.cc.b2}; satisfaction ${S.cc.c1}/${S.cc.c2}` : "";
+  const cc = S.cw ? "Shown on the big screen; the teacher keeps the counts" : "";
   const f = [S.group, S.salt, S.a.p1diff, S.a.predA, S.a.predB, S.a.predC, S.a.predSure, cc, S.a.p1see, S.a.p1advice,
     S.eye.map((i) => i + 1).join(" "), S.eye.length === 10 ? eyeMean() : "", S.a.close, S.a.closeSure, S.draws.map((d) => d.mean).join(" "), S.a.p2see, S.a.p2compare, S.a.method, S.a.methodSure,
     minutes("p1a", "p2a"), minutes("p2a", "end"), seconds("p1a", "fetch-p1c"), seconds("p2a", "fetch-p2b"), seconds("fetch-p1c", "opened-p1c"), seconds("fetch-p2b", "opened-p2b"), seconds("fetch-p2c", "opened-p2c"),
@@ -352,7 +356,7 @@ function budget(est, label) {
 function notesText() {
   const A = S.a;
   return ["The Lunch Survey, Session 2: " + S.group, "", "PART 1: the two forms", "Differences we found: " + (A.p1diff || ""), "Our predictions: prices " + (A.predA || "") + "; screen time " + (A.predB || "") + "; satisfaction " + (A.predC || "") + " (" + (A.predSure == null ? "" : A.predSure) + "% sure)",
-    ccOk() ? `Class count: prices ${share("a", 1)}% on LS-1 and ${share("a", 2)}% on LS-2; screen time ${share("b", 1)}% and ${share("b", 2)}%; satisfaction ${share("c", 1)}% and ${share("c", 2)}%` : "", "What we saw: " + (A.p1see || ""), "Our advice to the owner: " + (A.p1advice || ""), "",
+    S.cw ? "Class count: shown on the big screen" : "", "What we saw: " + (A.p1see || ""), "Our advice to the owner: " + (A.p1advice || ""), "",
     "PART 2: ten receipts", "By eye: " + (S.eye.length === 10 ? eyeMean() + " kr" : ""), "How close we thought it was: " + (A.close || "") + " (" + (A.closeSure == null ? "" : A.closeSure) + "% sure)", "Lottery averages: " + S.draws.map((d) => d.mean + " kr").join(", "), "All 100 receipts: " + Math.round(TRUE_MEAN) + " kr",
     "What we saw: " + (A.p2see || ""), "The two methods: " + (A.p2compare || ""), "Our advice: " + (A.method || "") + " (" + (A.methodSure == null ? "" : A.methodSure) + "% sure)"].join("\n");
 }
@@ -415,17 +419,16 @@ const view = {
     <h2>Part 1. Envelope 1</h2>
     <div class="envelope stack"><div class="tag">Envelope 1: the class count</div>
       <p>Your teacher now counts the class, one form at a time. Open "My survey slip" below: it tells you when to stand up.</p>
-      <p>When the count is done, your teacher gives the whole class one code.</p></div>
-    <p class="step">Step 3. When the count is done, your teacher shows a <b>class code</b>. Type it here to see how the class answered.</p>
-    ${RO ? "" : ccOk() ? "" : `<div class="card stack"><label for="classcode">Class code from your teacher</label><input id="classcode" type="text" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="for example 7KQ-M2X-9PA">
-      <button class="go" data-classcode disabled>Show the class count</button><p class="small" id="ccmsg" role="status"></p></div>`}
-    <div id="ccbars">${countBars()}</div>
-    <p class="step">Step 4. Look at the shares on the two forms.</p>
+      <p>When the count is done, your teacher shows the class result on the big screen and gives the whole class one word.</p></div>
+    <p class="step">Step 3. When the count is done, look at the class result on the big screen.${follower() ? "" : " Type the class word here to continue."}</p>
+    ${RO || follower() ? "" : S.cw ? `<div class="locked"><b>Class word accepted</b>The class result is on the big screen. Use it for steps 4 and 5.</div>` : `<div class="card stack"><label for="classcode">Class word from your teacher</label><input id="classcode" type="text" maxlength="20" autocomplete="off" autocapitalize="none" spellcheck="false">
+      <button class="go" data-classcode disabled>Continue</button><p class="small" id="ccmsg" role="status"></p></div>`}
+    <p class="step">Step 4. Look at the shares on the two forms, on the big screen.</p>
     ${textQ("p1see", "What do you see? If the two forms differ, what do you think produced the difference? If they do not, what could explain that?")}
     <p class="step">Step 5. A restaurant owner near campus wants to print form LS-1 and hand it to 500 of her guests next week.</p>
     ${textQ("p1advice", "What do you advise her?")}
     <button class="go" data-next disabled>Lock our answers and start Part 2</button>`,
-    ready: () => ccOk() && filled("p1see") && filled("p1advice") }),
+    ready: () => S.cw && filled("p1see") && filled("p1advice") }),
 
   p2a: () => ({ where: "Part 2, steps 1 and 2", html: `
     ${star("Part 1 is closed", "First milestone reached. One more part to go.", 1)}
@@ -510,7 +513,7 @@ const view = {
     <h1>Your case file</h1>
     <p>${esc(S.group)}: keep this screen open. Your teacher will ask what each group found.</p>
     <div class="card recap-wrap"><table class="recap"><thead><tr><th></th><th>Before the envelope</th><th>After the envelope</th></tr></thead><tbody>
-      <tr><td><b>Part 1: lunch prices</b></td><td>We predicted: ${esc(S.a.predA)}<br><span class="small">${S.a.predSure}% sure about our three predictions</span></td><td>${ccOk() ? `${share("a", 1)}% said too high on LS-1, ${share("a", 2)}% on LS-2` : ""}</td></tr>
+      <tr><td><b>Part 1: lunch prices</b></td><td>We predicted: ${esc(S.a.predA)}<br><span class="small">${S.a.predSure}% sure about our three predictions</span></td><td>${S.a.p1see ? "We saw: " + esc(S.a.p1see) : ""}</td></tr>
       <tr><td><b>Part 2: the average bill</b></td><td>By eye: ${kr(eyeMean())}<br><span class="small">We thought: ${esc(S.a.close)} (${S.a.closeSure}% sure)</span></td><td>All 100 receipts: ${kr(TRUE_MEAN)}<br><span class="small">Our lottery draws: ${S.draws.map((d) => d.mean).join(", ")} kr</span></td></tr></tbody></table></div>
     ${send}
     ${prompts}
@@ -540,7 +543,7 @@ const teacherKey = () => `<div class="card stack"><h2>Teacher key</h2>
       ["c", `"Everyone sit down. Satisfaction. Stand up if you chose 4 or lower for the lunch options overall."`, "those standing, then say \"Thank you, sit down.\""],
     ].map(([q, say, count], i) => `<div class="tcstep"><span class="tcnum">${(f - 1) * 4 + i + 1}</span><label for="tc-${q}${f}"><span class="tcsay"><b>Say:</b> ${say}</span><span class="tccount"><b>Count:</b> ${count}</span></label><input id="tc-${q}${f}" data-tc="${q}${f}" type="text" inputmode="numeric" maxlength="2" autocomplete="off" value="${esc(S.tc[q + f] == null ? "" : S.tc[q + f])}" aria-label="Step ${(f - 1) * 4 + i + 1}, form LS-${f}"></div>`).join("")}</div>`).join("")}
     <div id="tcout">${tcOut()}</div>
-    <p><b>Then:</b> when all eight numbers are in, the class code appears here. Check that the total matches the room, then write the code on the board or show this screen. Each group types the code and sees the class result.</p>
+    <p><b>Then:</b> when all eight numbers are in, check that the total matches the room. Click "Show the class result on the big screen" and say the class word. Leave the result on the screen until every group has started Part 2: the groups need it for their answers.</p>
     <p class="small">A student who is unsure follows the slip: "My survey slip" on their screen says stand up or stay seated for each of the three questions.</p>
     <p><button class="go secondary" data-tcclear>Clear the counts</button></p></div></details>
   <details><summary>The two survey forms</summary>${bothForms()}</details></div>`;
@@ -554,10 +557,11 @@ function tcOut() {
   const missing = CC.filter((k) => val(k) === "").length;
   if (missing) return `<p class="small">${8 - missing} of 8 numbers typed.</p>`;
   if (!validCounts(c)) return "";
-  const code = encodeCounts(c), back = decodeCounts(code);
-  if (!back || CC.some((k) => Number(back[k]) !== Number(c[k]))) return `<p class="small" style="color:var(--hot)">These counts cannot be turned into a code. Check them.</p>`;
-  return `<div class="envelope stack"><div class="tag">Class code: show or read this to the whole class</div><p class="bigcode">${showCode(code)}</p>
-    <p class="small">Total counted: ${Number(c.n1) + Number(c.n2)} students. If that does not match the room, correct the numbers above; the code changes with them. The dashes are only for reading: students can type the code with or without them.</p></div>${barsFor(c, false)}`;
+  return `<div class="envelope stack"><div class="tag">The count is complete</div>
+    <p>Total counted: <b>${Number(c.n1) + Number(c.n2)} students</b>. If that does not match the room, correct the numbers above.</p>
+    <p><button class="go" data-proj>Show the class result on the big screen</button></p>
+    <p>Class word, to say when the result is on the screen: <span class="bigcode" style="font-size:28px">${CLASS_WORD}</span></p>
+    <p><button class="go secondary" data-copycount>Copy the class count</button> <span class="small" id="cccopied" role="status"></span></p></div>${barsFor(c, false)}`;
 }
 const lookMax = () => (S.pick ? S.at : S.at - 1);
 function current() { return !S.handed && !S.lab ? "survey" : !S.lab ? "receipt" : S.look != null ? SCREENS[S.look] : S.pick ? "pickup" : SCREENS[S.at]; }
@@ -572,6 +576,7 @@ function render(scroll) {
   const back = !looking && S.lab && S.role && id !== "end" && lookMax() >= 1 ? '<p><button class="go secondary" data-look="open">Look back at earlier screens</button></p>' : "";
   const slip = S.lab && S.role && id !== "intro" ? `<details class="slip"${id === "p1c" && !looking ? " open" : ""}><summary>My survey slip</summary><div class="stack" style="margin-top:10px">${slipView(S.at >= 3 || id === "p1c")}</div></details>` : "";
   app.innerHTML = "";
+  if (preview && S.proj && validCounts(S.tc)) { app.appendChild($(`<section class="proj stack"><h1>Our class: how the two forms answered</h1>${barsFor(S.tc, false)}<p class="projword">Class word: <b>${CLASS_WORD}</b></p><p><button class="go secondary" data-proj>Back to the teacher key</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
   app.appendChild($(`<header class="top"><div class="brand">${S.lab ? "The Lunch Survey" : "Lunch survey"}</div><div class="where">Session 2 · ${v.where}${who}${preview ? " · facilitator preview" : ""}</div></header>${S.lab ? `<div class="track" aria-hidden="true">${track}</div>` : ""}${preview ? teacherKey() : ""}${bar}<section class="stack" id="screen">${v.html}</section>${bar}${slip}${back}${preview && S.lab && id !== "intro" && !looking ? '<p class="small">Facilitator preview: <button class="go secondary" data-skip>Skip to the next screen</button></p>' : ""}${preview && !S.lab ? '<p class="small">Facilitator preview: <button class="go secondary" data-lab-skip>Go to the lab without the survey</button></p>' : ""}`));
   if (looking) { app.querySelectorAll("#screen .go, #screen .hint, #screen details").forEach((el) => el.remove()); app.querySelectorAll("#screen input, #screen textarea, #screen button").forEach((el) => { el.disabled = true; }); }
   if (follower() && !S.pick && !looking) { const b = app.querySelector("[data-next]"); if (b) b.textContent = GATED.includes(SCREENS[S.at + 1]) ? "Continue to the checkpoint" : "Continue"; }
@@ -586,7 +591,7 @@ function refresh() {
   const pw = app.querySelector("#pw"), ob = app.querySelector("[data-open]"); if (pw && ob) ob.disabled = pw.value.trim().length < 3;
   const ga = app.querySelector("#gate"), gb = app.querySelector("[data-gate]"); if (ga && gb) gb.disabled = !/^\d{4}$/.test(ga.value.trim());
   const hb = app.querySelector("[data-hand]"); if (hb) hb.disabled = !surveyDone();
-  const cl = app.querySelector("#classcode"), cb = app.querySelector("[data-classcode]"); if (cl && cb) cb.disabled = cl.value.replace(/[^0-9a-zA-Z]/g, "").length < 4;
+  const cl = app.querySelector("#classcode"), cb = app.querySelector("[data-classcode]"); if (cl && cb) cb.disabled = cl.value.trim().length < 3;
   const lw = app.querySelector("#labword"), lb = app.querySelector("[data-lab]"); if (lw && lb) lb.disabled = lw.value.trim().length < 3;
 }
 function go() {
@@ -617,12 +622,13 @@ app.addEventListener("click", (e) => {
   }
   if (t.dataset.sv) { const v = t.dataset.val; S.sv[t.dataset.sv] = /^\d$/.test(v) ? Number(v) : v; save(); app.querySelectorAll(`[data-sv="${t.dataset.sv}"]`).forEach((b) => b.setAttribute("aria-pressed", String(b === t))); refresh(); return; }
   if (t.hasAttribute("data-classcode")) {
-    const got = decodeCounts(app.querySelector("#classcode").value);
-    if (got) { S.cc = got; stamp("count"); save(); render(false); }
-    else app.querySelector("#ccmsg").textContent = "That is not the class code. Check each character with your teacher; the code has no 0, 1, I, L or O.";
+    if (norm(app.querySelector("#classcode").value) === CLASS_WORD) { S.cw = true; stamp("count"); save(); render(false); }
+    else app.querySelector("#ccmsg").textContent = "That is not the class word. Your teacher gives it after the count.";
     return;
   }
   if (t.hasAttribute("data-tcclear")) { S.tc = {}; save(); render(false); return; }
+  if (t.hasAttribute("data-proj")) { S.proj = !S.proj; save(); render(true); return; }
+  if (t.hasAttribute("data-copycount")) { const c = S.tc, text = `Session 2 class count, ${new Date().toISOString().slice(0, 10)}: LS-1 ${c.n1}, LS-2 ${c.n2}; prices ${c.a1}/${c.a2}; screen time ${c.b1}/${c.b2}; satisfaction ${c.c1}/${c.c2}`; const done = (m) => { app.querySelector("#cccopied").textContent = m; }; try { navigator.clipboard.writeText(text).then(() => done("Copied. Paste it into your notes."), () => done(text)); } catch (err) { done(text); } return; }
   if (t.hasAttribute("data-hand")) { if (surveyDone()) { S.handed = true; save(); render(true); } return; }
   if (t.hasAttribute("data-lab")) { if (norm(app.querySelector("#labword").value) === LAB_WORD) { S.lab = true; save(); render(true); } else app.querySelector("#labmsg").textContent = "That is not the word. Wait for your teacher to give it."; return; }
   if (t.hasAttribute("data-lab-skip")) { S.lab = true; save(); render(true); return; }
