@@ -109,6 +109,13 @@ table.recap th { color: var(--muted); font-size: 14px; }
 .sendsteps li.now::before { background: var(--hot); }
 .sendsteps li.done::before { content: "\2713"; background: var(--accent); color: var(--accent-ink); }
 .keytable th, .keytable td { padding: 6px 6px; font-size: 14px; } .keytable td:first-child { width: 22%; }
+body.wide main { max-width: 1200px; } .proj p { max-width: none; }
+.walk { display: grid; gap: 3px; padding: 10px 12px; background: var(--soft); border-radius: 8px; font-size: 15px; color: var(--ink); }
+.walk > b { font-family: var(--display); color: var(--accent); }
+.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: var(--ink); }
+.classres td, .classres th { font-size: 15px; }
+.proj h1 { font-size: 40px; } .proj .classres td, .proj .classres th { font-size: 26px; padding: 16px 14px; } .proj p { font-size: 24px; }
+.proj .ask { font-family: var(--display); font-weight: 700; font-size: 28px; border-left: 8px solid var(--accent); padding: 14px 18px; background: var(--soft); border-radius: 0 8px 8px 0; }
 .locked { border-left: 0; background: var(--soft); border-radius: 8px; padding: 10px 12px; font-size: 15px; }
 .locked b { color: var(--muted); font-size: 13px; display: block; }
 details { font-size: 15px; color: var(--muted); }
@@ -390,8 +397,51 @@ const view = {
 
 /* ---------- render and events ---------- */
 const app = document.getElementById("app");
-const teacherKey = () => `<div class="card stack"><h2>Teacher key</h2><p>A student tells you the group code and the envelope. Ask first. For envelope 1A and envelope 2: "What did your group advise, and how sure are you?" For envelope 1B: "What did you see inside each row?" Then find the row for the <b>last digit</b> of the group code and give the password for that envelope.</p>
-      <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>Code ends in</th><th>Envelope 1A</th><th>Envelope 1B</th><th>Envelope 2</th></tr></thead><tbody>${WORDS.map((w, k) => `<tr><td><b>${k}</b></td><td>${w[0]}</td><td>${w[1]}</td><td>${w[2]}</td></tr>`).join("")}</tbody></table></div></div>`;
+/* ---------- class results: the teacher pastes the rows of the form's Excel file; nothing leaves this device ---------- */
+const CKEY = KEY + "-class";
+let CR = { sum: null, proj: false };
+try { const raw = localStorage.getItem(CKEY); if (raw) CR = Object.assign(CR, JSON.parse(raw)); } catch (e) {}
+const saveCR = () => { try { localStorage.setItem(CKEY, JSON.stringify(CR)); } catch (e) {} };
+function classResults(text) {
+  const seen = new Map(); let dup = 0;
+  const num = (c) => { const v = parseFloat(String(c == null ? "" : c).replace("%", "").replace(",", ".")); return isFinite(v) ? (v > 0 && v <= 1 && String(c).indexOf("%") < 0 && String(c).indexOf(".") >= 0 ? v * 100 : v) : null; };
+  String(text).split(/\r?\n/).forEach((line, n) => {
+    const row = line.split("\t").map((c) => c.trim().replace(/^"|"$/g, ""));
+    const pos = (opts, from) => row.findIndex((c, k) => k >= from && opts.includes(c));
+    const i = pos(C1, 0); if (i < 0) return;
+    const j = pos(C1, i + 2), p = pos(C2, 0), q = p < 0 ? -1 : pos(C2, p + 2);
+    const rec = { c1f: row[i], c1fs: num(row[i + 1]), c1l: j < 0 ? null : row[j], c1ls: j < 0 ? null : num(row[j + 1]), c2f: p < 0 ? null : row[p], c2fs: p < 0 ? null : num(row[p + 1]), c2l: q < 0 ? null : row[q], c2ls: q < 0 ? null : num(row[q + 1]) };
+    const key = i >= 2 && row[i - 2] ? row[i - 2] : "row" + n;
+    if (seen.has(key)) dup++; seen.set(key, rec);
+  });
+  const rows = [...seen.values()]; if (!rows.length) return null;
+  const part = (k, first) => { const v = rows.filter((r) => r[k]); return { yes: v.filter((r) => r[k] === first).length, n: v.length }; };
+  const mean = (k) => { const v = rows.map((r) => r[k]).filter((x) => x != null); return v.length ? Math.round(v.reduce((s, x) => s + x, 0) / v.length) : null; };
+  const moved = (f, l) => { const v = rows.filter((r) => r[f] && r[l]); return { yes: v.filter((r) => r[f] !== r[l]).length, n: v.length }; };
+  return { n: rows.length, dup, c1f: part("c1f", C1[0]), c1l: part("c1l", C1[0]), c2f: part("c2f", C2[0]), c2l: part("c2l", C2[0]), c1fs: mean("c1fs"), c1ls: mean("c1ls"), c2fs: mean("c2fs"), c2ls: mean("c2ls"), c1m: moved("c1f", "c1l"), c2m: moved("c2f", "c2l") };
+}
+function classTable(s) {
+  const cell = (p, word) => (p.n ? `<b>${p.yes} of ${p.n}</b> “${word}”` : "no answers"), pc = (v) => (v == null ? "" : v + "%");
+  return `<div class="recap-wrap"><table class="recap classres"><thead><tr><th></th><th>First advice</th><th>Sure</th><th>Later advice</th><th>Sure</th></tr></thead><tbody>
+    <tr><td><b>Case 1: the ads</b></td><td>${cell(s.c1f, "double")}</td><td>${pc(s.c1fs)}</td><td>${cell(s.c1l, "double")}</td><td>${pc(s.c1ls)}</td></tr>
+    <tr><td><b>Case 2: the neighbours</b></td><td>${cell(s.c2f, "stop the flyers")}</td><td>${pc(s.c2fs)}</td><td>${cell(s.c2l, "stop the flyers")}</td><td>${pc(s.c2ls)}</td></tr></tbody></table></div>
+    <p>Groups whose advice changed: Case 1, <b>${s.c1m.yes} of ${s.c1m.n}</b>; Case 2, <b>${s.c2m.yes} of ${s.c2m.n}</b>.</p>`;
+}
+const classOut = () => (CR.sum ? `<div class="envelope stack"><div class="tag">Class results: ${CR.sum.n} groups</div>${CR.sum.dup ? `<p class="small">${CR.sum.dup} group code${CR.sum.dup > 1 ? "s were" : " was"} sent more than once; the later row was used.</p>` : ""}${classTable(CR.sum)}
+    <p><button class="go" data-cproj>Show the class results on the big screen</button></p><p><button class="go secondary" data-cclear>Clear the class results</button></p></div>` : "");
+const teacherKey = () => `<div class="card stack"><h2>Teacher key</h2><p>A student tells you the group code and the envelope. Ask your question first (see the table below). Then find the row for the <b>last digit</b> of the group code and give the password for that envelope.</p>
+      <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>Code ends in</th><th>Envelope 1A</th><th>Envelope 1B</th><th>Envelope 2</th></tr></thead><tbody>${WORDS.map((w, k) => `<tr><td><b>${k}</b></td><td>${w[0]}</td><td>${w[1]}</td><td>${w[2]}</td></tr>`).join("")}</tbody></table></div>
+      <details open><summary>What to do at each walk</summary><div class="stack" style="margin-top:10px">
+        <div class="walk"><b>Case 1 · envelope 1A</b><span>Comes when the first advice on the ads is locked.</span><span><b>Ask:</b> "What did your group advise, and how sure are you?"</span><span><b>Note on the board:</b> "double" or "do not double", and the percentage.</span></div>
+        <div class="walk"><b>Case 1 · envelope 1B</b><span>Comes when the weeks are sorted by season.</span><span><b>Ask:</b> "What did you see inside each row?"</span><span><b>Note on the board:</b> nothing. You only check that the group has looked.</span></div>
+        <div class="walk"><b>Case 2 · envelope 2</b><span>Comes when the first advice on the flyers is locked.</span><span><b>Ask:</b> "What did your group advise, and how sure are you?"</span><span><b>Note on the board:</b> "stop the flyers" or "keep them", and the percentage.</span></div>
+        <p><b>The board:</b> one row for each group, with five columns: Group, Case 1 advice, Sure, Case 2 advice, Sure.</p>
+        <ul class="tips"><li>Give the password only after the answer. A student who cannot answer goes back to the group.</li><li>Do not comment and do not hint, whatever the advice is. If a student asks whether it is right: "Open the envelope and see."</li><li>In the first 2 to 3 minutes, check that every group has one scribe and has started Case 1.</li><li>A group still in Case 1 after 18 minutes: "Lock your advice and come for the envelope."</li></ul></div></details>
+      <details${CR.sum ? " open" : ""}><summary>After the lab: the class results from Excel</summary><div class="stack" style="margin-top:10px">
+        <p>This fills the table "Our class: first advice and later advice" for you. Nothing is sent anywhere: the numbers are worked out on this device.</p>
+        <ol class="tips"><li>In Forms, open <b>Responses</b> and click <b>Open in Excel</b>.</li><li>Click any cell, select everything (Cmd+A, or Ctrl+A on Windows) and copy (Cmd+C or Ctrl+C).</li><li>Click in the box below and paste (Cmd+V or Ctrl+V).</li></ol>
+        <label for="cpaste">Paste the Excel rows here</label><textarea id="cpaste" rows="3" placeholder="Click here, then paste" autocomplete="off" spellcheck="false"></textarea>
+        <p class="small" id="cmsg" role="status"></p><div id="cout">${classOut()}</div></div></details></div>`;
 const lookMax = () => (S.pick ? S.at : S.at - 1); /* the latest screen that is already behind the group */
 function render(scroll) {
   const looking = S.look != null;
@@ -404,6 +454,8 @@ function render(scroll) {
   const bar = looking ? `<div class="lookbar"><b>Looking back: read only</b><span>${S.look > 1 ? '<button class="go secondary" data-look="prev">Earlier screen</button>' : ""}${S.look < lookMax() ? '<button class="go secondary" data-look="next">Later screen</button>' : ""}<button class="go" data-look="close">Return to where we were</button></span></div>` : "";
   const back = !looking && S.role && id !== "end" && lookMax() >= 1 ? '<p><button class="go secondary" data-look="open">Look back at earlier screens</button></p>' : "";
   app.innerHTML = "";
+  if (preview && CR.proj && CR.sum) { document.body.classList.add("wide"); app.appendChild($(`<section class="proj stack"><h1>Our class: first advice and later advice</h1><p>${CR.sum.n} groups</p>${classTable(CR.sum)}<p class="ask">If your advice changed: what made you change? If it stayed the same: what made you sure from the start?</p><p><button class="go secondary" data-cproj>Back to the teacher key</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
+  document.body.classList.remove("wide");
   app.appendChild($(`<header class="top"><div class="brand">What Should the Owner Do?</div><div class="where">Session 1 · ${v.where}${who}${preview ? " · facilitator preview" : ""}</div></header><div class="track" aria-hidden="true">${track}</div>${preview ? teacherKey() : ""}${bar}<section class="stack" id="screen">${v.html}</section>${bar}${back}${preview && id !== "intro" && !looking ? '<p class="small">Facilitator preview: <button class="go secondary" data-skip>Skip to the next screen</button></p>' : ""}`));
   if (looking) app.querySelectorAll("#screen .go, #screen .hint, #screen details").forEach((el) => el.remove());
   if (follower() && !S.pick && !looking) { const b = app.querySelector("[data-next]"); if (b) b.textContent = GATED.includes(SCREENS[S.at + 1]) ? "Continue to the checkpoint" : "Continue"; }
@@ -433,8 +485,16 @@ app.addEventListener("input", (e) => {
 app.addEventListener("change", (e) => { const t = e.target; if (t.dataset && t.dataset.sure) { S.a[t.dataset.sure + "Sure"] = Number(t.value); document.getElementById(t.dataset.sure + "-out").textContent = t.value + "%"; save(); refresh(); } });
 app.addEventListener("pointerup", (e) => { const t = e.target; if (t.dataset && t.dataset.sure) { S.a[t.dataset.sure + "Sure"] = Number(t.value); document.getElementById(t.dataset.sure + "-out").textContent = t.value + "%"; save(); refresh(); } });
 app.addEventListener("keydown", (e) => { if (e.key !== "Enter") return; const b = e.target.id === "pw" ? app.querySelector("[data-open]") : e.target.id === "gate" ? app.querySelector("[data-gate]") : null; if (b && !b.disabled) b.click(); });
+app.addEventListener("paste", (e) => {
+  const t = e.target; if (!t || t.id !== "cpaste") return;
+  e.preventDefault(); const text = (e.clipboardData || window.clipboardData).getData("text"); const sum = classResults(text);
+  if (!sum) { app.querySelector("#cmsg").textContent = "No group answers found in what you pasted. Copy the whole sheet from Excel, including the rows with the answers, and paste again."; return; }
+  CR.sum = sum; saveCR(); app.querySelector("#cmsg").textContent = "Read " + sum.n + " group" + (sum.n === 1 ? "" : "s") + "."; app.querySelector("#cout").innerHTML = classOut();
+});
 app.addEventListener("click", (e) => {
   const t = e.target.closest("button, a[data-sent]"); if (!t) return;
+  if (t.hasAttribute("data-cproj")) { CR.proj = !CR.proj; saveCR(); render(true); return; }
+  if (t.hasAttribute("data-cclear")) { CR = { sum: null, proj: false }; saveCR(); render(false); return; }
   if (t.dataset.look) {
     const m = lookMax();
     if (t.dataset.look === "open") S.look = m; else if (t.dataset.look === "prev") S.look = Math.max(1, S.look - 1); else if (t.dataset.look === "next") S.look = Math.min(m, S.look + 1); else S.look = null;
