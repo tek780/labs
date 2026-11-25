@@ -158,6 +158,17 @@ details.slip { background: var(--surface); border: 1px solid var(--line); border
 .proj h1 { font-size: 34px; } .proj .rowlabel { font-size: 22px; } .proj .cmp p { font-size: 22px; }
 .proj .barrow { grid-template-columns: 70px minmax(0, 1fr) 80px 120px; font-size: 24px; gap: 12px; margin: 6px 0; } .proj .track2 { height: 30px; } .proj .track2 i { height: 100%; }
 .proj .projword { font-size: 30px; text-align: center; margin-top: 10px; } .proj .projword b { font-family: var(--display); font-size: 40px; letter-spacing: 1px; }
+body.wide main { max-width: 1200px; } .proj p { max-width: none; }
+.walk { display: grid; gap: 3px; padding: 10px 12px; background: var(--soft); border-radius: 8px; font-size: 15px; color: var(--ink); }
+.walk > b { font-family: var(--display); color: var(--accent); }
+.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: var(--ink); }
+.classres td, .classres th { font-size: 15px; }
+.dotplot { width: 100%; height: auto; display: block; }
+.dotplot .ax { stroke: var(--muted); stroke-width: 1.5; } .dotplot .tru { stroke: var(--ink); stroke-width: 3; stroke-dasharray: 8 6; }
+.dotplot .eyed { fill: var(--hot); } .dotplot .lotd { fill: var(--accent); }
+.dotplot text { fill: var(--ink); font-family: inherit; } .dotplot .rowl { font-size: 26px; font-weight: 700; } .dotplot .rows { font-size: 17px; fill: var(--muted); } .dotplot .tick { font-size: 20px; fill: var(--muted); } .dotplot .trul { font-size: 22px; font-weight: 700; }
+.proj .classres td, .proj .classres th { font-size: 24px; padding: 14px 12px; } .proj > p { font-size: 24px; }
+.proj .ask { font-family: var(--display); font-weight: 700; font-size: 28px; border-left: 8px solid var(--accent); padding: 14px 18px; background: var(--soft); border-radius: 0 8px 8px 0; }
 .tcgrid { display: grid; grid-template-columns: minmax(0, 1fr) 76px 76px; gap: 10px; align-items: center; }
 .tcgrid label { margin: 0; font-weight: 700; font-size: 15px; } .tcgrid b { text-align: center; font-size: 14px; }
 .tcgrid input { width: 100%; text-align: center; font-size: 20px; padding: 8px 4px; }
@@ -330,7 +341,7 @@ function bothForms() {
 }
 function barsFor(c, withPrediction) {
   const pct = (q, f) => Math.round(100 * Number(c[q + f]) / Number(c["n" + f]));
-  return `<div class="table-top stack"><p class="rowlabel">Our class: ${c.n1} students had form LS-1 and ${c.n2} had form LS-2.</p>${ROWS.map(([q, pk, label]) => `<div class="cmp"><p><b>${label}</b></p>
+  return `<div class="table-top stack"><p class="rowlabel">Our class: ${c.n1} participants had form LS-1 and ${c.n2} had form LS-2.</p>${ROWS.map(([q, pk, label]) => `<div class="cmp"><p><b>${label}</b></p>
     ${[1, 2].map((f) => `<div class="barrow"><span>LS-${f}</span><div class="track2"><i class="${f === 1 ? "hotbar" : ""}" style="width:${pct(q, f)}%"></i></div><b>${pct(q, f)}%</b><small>${c[q + f]} of ${c["n" + f]}</small></div>`).join("")}
     ${withPrediction && !follower() && S.a[pk] ? `<p class="small">Your prediction: ${esc(S.a[pk])}</p>` : ""}</div>`).join("")}</div>`;
 }
@@ -368,7 +379,7 @@ const NOTICE = `<div class="research"><b>For research on teaching only</b>This p
 const view = {
   survey: () => ({ where: "Lunch survey", html: `
     <h1>Lunch survey</h1>
-    <p>Two minutes, anonymous. Answer on your own. <b>You will need your answers later today.</b></p>
+    <p>Two to three minutes, anonymous. Answer on your own. <b>You will need your answers later today.</b></p>
     <div class="card stack">${formView(S.form, true)}</div>
     <button class="go" data-hand disabled>Hand in my answers</button>
     <p class="small" style="text-align:right">LS-${S.form}</p>` }),
@@ -529,36 +540,99 @@ const view = {
 
 /* ---------- render and events ---------- */
 const app = document.getElementById("app");
+/* ---------- class results: the teacher pastes the rows of the form's Excel file; nothing leaves this device ---------- */
+const CKEY = KEY + "-class";
+let CR = { sum: null, proj: null };
+try { const raw = localStorage.getItem(CKEY); if (raw) CR = Object.assign(CR, JSON.parse(raw)); } catch (e) {}
+const saveCR = () => { try { localStorage.setItem(CKEY, JSON.stringify(CR)); } catch (e) {} };
+function classResults(text) {
+  const seen = new Map(); let dup = 0;
+  const num = (c) => { const v = parseFloat(String(c == null ? "" : c).replace("%", "").replace(",", ".")); return isFinite(v) ? v : null; };
+  String(text).split(/\r?\n/).forEach((line, n) => {
+    const row = line.split("\t").map((c) => c.trim().replace(/^"|"$/g, ""));
+    const i = row.findIndex((c, k) => PRED.includes(c) && PRED.includes(row[k + 1]) && PRED.includes(row[k + 2])); if (i < 0) return;
+    const rec = { pred: [row[i], row[i + 1], row[i + 2]], ps: num(row[i + 3]), eye: num(row[i + 8]), close: CLOSE.includes(row[i + 9]) ? row[i + 9] : null, cs: num(row[i + 10]),
+      draws: String(row[i + 11] || "").split(/\s+/).map(num).filter((v) => v != null), method: METHODS.includes(row[i + 14]) ? row[i + 14] : null, ms: num(row[i + 15]) };
+    const key = i >= 2 && row[i - 2] ? row[i - 2] : "row" + n;
+    if (seen.has(key)) dup++; seen.set(key, rec);
+  });
+  const rows = [...seen.values()]; if (!rows.length) return null;
+  const mean = (v) => (v.length ? Math.round(v.reduce((s, x) => s + x, 0) / v.length) : null), has = (k) => rows.map((r) => r[k]).filter((x) => x != null);
+  const eye = has("eye"), lot = rows.flatMap((r) => r.draws), off = (v) => Math.abs(v - TRUE_MEAN);
+  return { n: rows.length, dup, pred: [0, 1, 2].map((q) => PRED.map((o) => rows.filter((r) => r.pred[q] === o).length)), ps: mean(has("ps")),
+    eye, lot, eyeLow: eye.filter((v) => v < TRUE_MEAN).length, lotLow: lot.filter((v) => v < TRUE_MEAN).length,
+    believed: CLOSE.map((o) => rows.filter((r) => r.close === o).length), was: [eye.filter((v) => off(v) <= 10).length, eye.filter((v) => off(v) > 10 && off(v) <= 30).length, eye.filter((v) => off(v) > 30).length], cs: mean(has("cs")),
+    method: METHODS.map((o) => rows.filter((r) => r.method === o).length), ms: mean(has("ms")) };
+}
+function dotPlot(s) {
+  const all = s.eye.concat(s.lot, [TRUE_MEAN]); const lo = Math.floor((Math.min(...all) - 10) / 20) * 20, hi = Math.ceil((Math.max(...all) + 10) / 20) * 20;
+  const W = 1000, L = 150, R = 30, x = (v) => L + (W - L - R) * (v - lo) / (hi - lo), r = 10;
+  const stack = (vals, base, cls) => { const used = []; return vals.slice().sort((a, b) => a - b).map((v) => { const cx = x(v); let lvl = 0; while (used.some((u) => u.l === lvl && Math.abs(u.x - cx) < 2 * r)) lvl++; used.push({ x: cx, l: lvl }); return `<circle class="${cls}" cx="${cx.toFixed(1)}" cy="${base - r - lvl * 2 * r}" r="${r - 1}"></circle>`; }).join(""); };
+  const ticks = []; for (let v = lo; v <= hi; v += (hi - lo > 240 ? 40 : 20)) ticks.push(v);
+  return `<svg class="dotplot" viewBox="0 0 ${W} 400" role="img" aria-label="By-eye averages and lottery averages of the class, with the average of all 100 receipts"><line class="ax" x1="${L}" y1="150" x2="${W - R}" y2="150"></line><line class="ax" x1="${L}" y1="340" x2="${W - R}" y2="340"></line>
+    <text class="rowl" x="0" y="130">By eye</text><text class="rows" x="0" y="155">one dot per group</text><text class="rowl" x="0" y="320">Lottery</text><text class="rows" x="0" y="345">one dot per draw</text>
+    ${stack(s.eye, 150, "eyed")}${stack(s.lot, 340, "lotd")}<line class="tru" x1="${x(TRUE_MEAN)}" y1="28" x2="${x(TRUE_MEAN)}" y2="352"></line><text class="trul" x="${x(TRUE_MEAN)}" y="20" text-anchor="middle">All 100 receipts: ${kr(TRUE_MEAN)}</text>
+    ${ticks.map((v) => `<line class="ax" x1="${x(v)}" y1="340" x2="${x(v)}" y2="348"></line><text class="tick" x="${x(v)}" y="374" text-anchor="middle">${v}</text>`).join("")}<text class="tick" x="${W - R}" y="398" text-anchor="end">average bill (kr)</text></svg>`;
+}
+function classPart1(s) {
+  const tc = validCounts(S.tc) ? S.tc : null, sh = (q, f) => Math.round(100 * Number(tc[q + f]) / Number(tc["n" + f]));
+  return `<div class="recap-wrap"><table class="recap classres"><thead><tr><th>Groups that predicted</th><th>Higher on LS‑1</th><th>About the same</th><th>Higher on LS‑2</th>${tc ? "<th>The class count</th>" : ""}</tr></thead><tbody>
+    ${[["a", "Lunch prices too high"], ["b", "Screen time over 2½ hours"], ["c", "Satisfaction 4 or lower"]].map(([q, name], k) => `<tr><td><b>${name}</b></td>${s.pred[k].map((c) => `<td>${c} of ${s.n}</td>`).join("")}${tc ? `<td>LS-1 ${sh(q, 1)}%, LS-2 ${sh(q, 2)}%</td>` : ""}</tr>`).join("")}</tbody></table></div>
+    <p>How sure the groups were of their predictions, on average: <b>${s.ps == null ? "no answers" : s.ps + "%"}</b>.</p>`;
+}
+function classPart2(s) {
+  const e = s.eye.length, l = s.lot.length;
+  return `${e || l ? dotPlot(s) : ""}<p><b>By eye:</b> ${e ? `${s.eyeLow} of ${e} groups below the average of all 100 receipts, ${e - s.eyeLow} at or above it` : "no answers"}. <b>Lottery:</b> ${l ? `${s.lotLow} of ${l} draws below, ${l - s.lotLow} at or above` : "no answers"}.</p>
+    <div class="recap-wrap"><table class="recap classres"><thead><tr><th>The by-eye average</th>${CLOSE.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>
+    <tr><td><b>What the groups thought</b></td>${s.believed.map((c) => `<td>${c} of ${s.n}</td>`).join("")}</tr><tr><td><b>What it was</b></td>${s.was.map((c) => `<td>${c} of ${e}</td>`).join("")}</tr></tbody></table></div>
+    <p>How sure the groups were of how close they were, on average: <b>${s.cs == null ? "no answers" : s.cs + "%"}</b>. Advice at the end: ${METHODS.map((m, k) => `<b>${s.method[k]}</b> “${m.toLowerCase()}”`).join(", ")}.</p>`;
+}
+const classOut = () => (CR.sum ? `<div class="envelope stack"><div class="tag">Class results: ${CR.sum.n} groups</div>${CR.sum.dup ? `<p class="small">${CR.sum.dup} group code${CR.sum.dup > 1 ? "s were" : " was"} sent more than once; the later row was used.</p>` : ""}
+    <h3 class="tchead">Part 1: the predictions</h3>${classPart1(CR.sum)}<p><button class="go" data-cproj="p1">Show Part 1 on the big screen</button></p>
+    <h3 class="tchead">Part 2: ten receipts</h3>${classPart2(CR.sum)}<p><button class="go" data-cproj="p2">Show Part 2 on the big screen</button></p>
+    <p><button class="go secondary" data-cclear>Clear the class results</button></p></div>` : "");
 const teacherKey = () => `<div class="card stack"><h2>Teacher key</h2>
   <p><b>Word that opens the lab for the whole class:</b> <span style="font-size:20px;font-family:var(--display)">${LAB_WORD}</span>. Say it or write it on the board when the lab starts, not before.</p>
-  <p>At a checkpoint a student tells you the group code and the envelope. Ask first. Envelope 1: "What did your group predict for lunch prices, and how sure are you?" Envelope 2: "What is your by-eye average?" Envelope 3: "What is your first lottery average?" Write the answers on the board. Then find the row for the <b>last digit</b> of the group code.</p>
+  <p>At a checkpoint a participant tells you the group code and the envelope. Ask your question first (see "What to do at each walk"). Then find the row for the <b>last digit</b> of the group code and give the password for that envelope.</p>
   <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>Code ends in</th><th>Envelope 1</th><th>Envelope 2</th><th>Envelope 3</th></tr></thead><tbody>${WORDS.map((w, k) => `<tr><td><b>${k}</b></td><td>${w[0]}</td><td>${w[1]}</td><td>${w[2]}</td></tr>`).join("")}</tbody></table></div>
+  <details open><summary>What to do at each walk</summary><div class="stack" style="margin-top:10px">
+    <div class="walk"><b>Part 1 · envelope 1</b><span>Comes when the three predictions are locked.</span><span><b>Ask:</b> "What did your group predict for lunch prices, and how sure are you?"</span><span><b>Note on the board:</b> "LS-1 higher", "same" or "LS-2 higher", and the percentage.</span></div>
+    <div class="walk"><b>Part 1 · the class count</b><span>When every group has fetched the password for envelope 1.</span><span><b>Do:</b> the eight steps under "The class count", then show the result on the big screen and say the class word.</span><span><b>Note on the board:</b> nothing. The big screen shows the result.</span></div>
+    <div class="walk"><b>Part 2 · envelope 2</b><span>Comes when the ten receipts are chosen by eye and the group has said how close it thinks it is.</span><span><b>Ask:</b> "What is your by-eye average?"</span><span><b>Note on the board:</b> the average in kronor.</span></div>
+    <div class="walk"><b>Part 2 · envelope 3</b><span>Comes when the group has made its five lottery draws.</span><span><b>Ask:</b> "What is your first lottery average?"</span><span><b>Note on the board:</b> the average in kronor, next to the by-eye average.</span></div>
+    <p><b>The board:</b> one row for each group, with five columns: Group, Prices prediction, Sure, By eye, First lottery.</p>
+    <ul class="tips"><li>Give the password only after the answer. A participant who cannot answer goes back to the group.</li><li>Do not comment and do not hint, whatever the answer is. If a participant asks whether it is right: "Open the envelope and see."</li><li>In the first 2 to 3 minutes, check that every group has one scribe and that everyone has the survey slip on their own phone.</li><li>A group still in Part 1 after 18 minutes: "Lock your answers and move on to the receipts."</li></ul></div></details>
   <details open><summary>The class count: say, count, type</summary><div class="stack" style="margin-top:10px">
-    <p><b>When:</b> after every group has fetched the key word for envelope 1. From then on each student's slip shows when to stand. It takes about 3 minutes.</p>
-    <p><b>How:</b> eight steps, first form LS-1, then form LS-2. In each step: <b>say</b> the sentence, <b>count</b> the students who are standing, <b>type</b> the number. Students with the other form stay seated.</p>
+    <p><b>When:</b> after every group has fetched the key word for envelope 1. From then on each participant's slip shows when to stand. It takes 3 to 5 minutes.</p>
+    <p><b>How:</b> eight steps, first form LS-1, then form LS-2. In each step: <b>say</b> the sentence, <b>count</b> the participants who are standing, <b>type</b> the number. Participants with the other form stay seated.</p>
     ${[1, 2].map((f) => `<h3 class="tchead">Form LS-${f}</h3><div class="tcsteps">${[
-      ["n", `"Everyone with form LS-${f}, stand up."`, `all students with form LS-${f}`],
+      ["n", `"Everyone with form LS-${f}, stand up."`, `all participants with form LS-${f}`],
       ["a", f === 1 ? `"Lunch prices. Stay standing if you answered Yes. The others sit down."` : `"Lunch prices. Stay standing if you answered Too high. The others sit down."`, "those still standing"],
       ["b", f === 1 ? `"Everyone sit down. Screen time. Stand up if you ticked the last box, more than 2½ hours."` : `"Everyone sit down. Screen time. Stand up if you ticked any box except the first."`, "those standing"],
       ["c", `"Everyone sit down. Satisfaction. Stand up if you chose 4 or lower for the lunch options overall."`, "those standing, then say \"Thank you, sit down.\""],
     ].map(([q, say, count], i) => `<div class="tcstep"><span class="tcnum">${(f - 1) * 4 + i + 1}</span><label for="tc-${q}${f}"><span class="tcsay"><b>Say:</b> ${say}</span><span class="tccount"><b>Count:</b> ${count}</span></label><input id="tc-${q}${f}" data-tc="${q}${f}" type="text" inputmode="numeric" maxlength="2" autocomplete="off" value="${esc(S.tc[q + f] == null ? "" : S.tc[q + f])}" aria-label="Step ${(f - 1) * 4 + i + 1}, form LS-${f}"></div>`).join("")}</div>`).join("")}
     <div id="tcout">${tcOut()}</div>
     <p><b>Then:</b> when all eight numbers are in, check that the total matches the room. Click "Show the class result on the big screen" and say the class word. Leave the result on the screen until every group has started Part 2: the groups need it for their answers.</p>
-    <p class="small">A student who is unsure follows the slip: "My survey slip" on their screen says stand up or stay seated for each of the three questions.</p>
+    <p class="small">A participant who is unsure follows the slip: "My survey slip" on their screen says stand up or stay seated for each of the three questions.</p>
     <p><button class="go secondary" data-tcclear>Clear the counts</button></p></div></details>
+  <details${CR.sum ? " open" : ""}><summary>After the lab: the class results from Excel</summary><div class="stack" style="margin-top:10px">
+    <p>This works out the class results for the reflection: the predictions of Part 1 and a picture of all by-eye and lottery averages of Part 2. Nothing is sent anywhere: the numbers are worked out on this device.</p>
+    <ol class="tips"><li>In Forms, open <b>Responses</b> and click <b>Open in Excel</b>.</li><li>Click any cell, select everything (Cmd+A, or Ctrl+A on Windows) and copy (Cmd+C or Ctrl+C).</li><li>Click in the box below and paste (Cmd+V or Ctrl+V).</li></ol>
+    <label for="cpaste">Paste the Excel rows here</label><textarea id="cpaste" rows="3" placeholder="Click here, then paste" autocomplete="off" spellcheck="false"></textarea>
+    <p class="small" id="cmsg" role="status"></p><div id="cout">${classOut()}</div></div></details>
   <details><summary>The two survey forms</summary>${bothForms()}</details></div>`;
 function tcOut() {
   const c = S.tc, val = (k) => String(c[k] == null ? "" : c[k]).trim(), msgs = [];
   for (const k of CC) if (val(k) !== "" && !/^\d{1,2}$/.test(val(k))) msgs.push("Use whole numbers only.");
   for (const f of [1, 2]) for (const [q, name] of [["a", "lunch prices"], ["b", "screen time"], ["c", "satisfaction"]])
-    if (/^\d+$/.test(val(q + f)) && /^\d+$/.test(val("n" + f)) && Number(val(q + f)) > Number(val("n" + f))) msgs.push(`Form LS-${f}: ${name} (${val(q + f)}) cannot be more than the students with this form (${val("n" + f)}).`);
-  for (const f of [1, 2]) if (val("n" + f) === "0") msgs.push(`Form LS-${f}: the number of students cannot be 0.`);
+    if (/^\d+$/.test(val(q + f)) && /^\d+$/.test(val("n" + f)) && Number(val(q + f)) > Number(val("n" + f))) msgs.push(`Form LS-${f}: ${name} (${val(q + f)}) cannot be more than the participants with this form (${val("n" + f)}).`);
+  for (const f of [1, 2]) if (val("n" + f) === "0") msgs.push(`Form LS-${f}: the number of participants cannot be 0.`);
   if (msgs.length) return `<p class="small" style="color:var(--hot);font-weight:700">${[...new Set(msgs)].join("<br>")}</p>`;
   const missing = CC.filter((k) => val(k) === "").length;
   if (missing) return `<p class="small">${8 - missing} of 8 numbers typed.</p>`;
   if (!validCounts(c)) return "";
   return `<div class="envelope stack"><div class="tag">The count is complete</div>
-    <p>Total counted: <b>${Number(c.n1) + Number(c.n2)} students</b>. If that does not match the room, correct the numbers above.</p>
+    <p>Total counted: <b>${Number(c.n1) + Number(c.n2)} participants</b>. If that does not match the room, correct the numbers above.</p>
     <p><button class="go" data-proj>Show the class result on the big screen</button></p>
     <p>Class word, to say when the result is on the screen: <span class="bigcode" style="font-size:28px">${CLASS_WORD}</span></p>
     <p><button class="go secondary" data-copycount>Copy the class count</button> <span class="small" id="cccopied" role="status"></span></p></div>${barsFor(c, false)}`;
@@ -576,6 +650,8 @@ function render(scroll) {
   const back = !looking && S.lab && S.role && id !== "end" && lookMax() >= 1 ? '<p><button class="go secondary" data-look="open">Look back at earlier screens</button></p>' : "";
   const slip = S.lab && S.role && id !== "intro" ? `<details class="slip"${id === "p1c" && !looking ? " open" : ""}><summary>My survey slip</summary><div class="stack" style="margin-top:10px">${slipView(S.at >= 3 || id === "p1c")}</div></details>` : "";
   app.innerHTML = "";
+  document.body.classList.toggle("wide", !!(preview && CR.proj && CR.sum));
+  if (preview && CR.proj && CR.sum) { app.appendChild($(`<section class="proj stack"><h1>${CR.proj === "p1" ? "Our class: what the groups predicted" : "Our class: ten receipts, by eye and by lottery"}</h1><p>${CR.sum.n} groups</p>${CR.proj === "p1" ? classPart1(CR.sum) : classPart2(CR.sum)}<p class="ask">${CR.proj === "p1" ? "If the class count differs from what you predicted: what in the two forms could explain it?" : "What do you see in the two rows of dots? If they differ, what do you think explains the difference?"}</p><p><button class="go secondary" data-cproj="">Back to the teacher key</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
   if (preview && S.proj && validCounts(S.tc)) { app.appendChild($(`<section class="proj stack"><h1>Our class: how the two forms answered</h1>${barsFor(S.tc, false)}<p class="projword">Class word: <b>${CLASS_WORD}</b></p><p><button class="go secondary" data-proj>Back to the teacher key</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
   app.appendChild($(`<header class="top"><div class="brand">${S.lab ? "The Lunch Survey" : "Lunch survey"}</div><div class="where">Session 2 · ${v.where}${who}${preview ? " · facilitator preview" : ""}</div></header>${S.lab ? `<div class="track" aria-hidden="true">${track}</div>` : ""}${preview ? teacherKey() : ""}${bar}<section class="stack" id="screen">${v.html}</section>${bar}${slip}${back}${preview && S.lab && id !== "intro" && !looking ? '<p class="small">Facilitator preview: <button class="go secondary" data-skip>Skip to the next screen</button></p>' : ""}${preview && !S.lab ? '<p class="small">Facilitator preview: <button class="go secondary" data-lab-skip>Go to the lab without the survey</button></p>' : ""}`));
   if (looking) { app.querySelectorAll("#screen .go, #screen .hint, #screen details").forEach((el) => el.remove()); app.querySelectorAll("#screen input, #screen textarea, #screen button").forEach((el) => { el.disabled = true; }); }
@@ -613,8 +689,16 @@ app.addEventListener("change", (e) => { if (e.target.dataset && e.target.dataset
 app.addEventListener("pointerup", (e) => { if (e.target.dataset && e.target.dataset.sure) setSure(e.target); });
 app.addEventListener("keydown", (e) => { if (e.key !== "Enter") return; const b = e.target.id === "pw" ? app.querySelector("[data-open]") : e.target.id === "gate" ? app.querySelector("[data-gate]") : e.target.id === "labword" ? app.querySelector("[data-lab]") : e.target.id === "classcode" ? app.querySelector("[data-classcode]") : null; if (b && !b.disabled) b.click(); });
 function resetLab() { const keep = { form: S.form, sv: S.sv, handed: S.handed, lab: true, tc: S.tc }; S = Object.assign(blank(), keep); save(); render(true); }
+app.addEventListener("paste", (e) => {
+  const t = e.target; if (!t || t.id !== "cpaste") return;
+  e.preventDefault(); const text = (e.clipboardData || window.clipboardData).getData("text"); const sum = classResults(text);
+  if (!sum) { app.querySelector("#cmsg").textContent = "No group answers found in what you pasted. Copy the whole sheet from Excel, including the rows with the answers, and paste again."; return; }
+  CR.sum = sum; saveCR(); app.querySelector("#cmsg").textContent = "Read " + sum.n + " group" + (sum.n === 1 ? "" : "s") + "."; app.querySelector("#cout").innerHTML = classOut();
+});
 app.addEventListener("click", (e) => {
   const t = e.target.closest("button, a[data-sent]"); if (!t) return;
+  if (t.hasAttribute("data-cproj")) { CR.proj = t.getAttribute("data-cproj") || null; saveCR(); render(true); return; }
+  if (t.hasAttribute("data-cclear")) { CR = { sum: null, proj: null }; saveCR(); render(false); return; }
   if (t.dataset.look) {
     const m = lookMax();
     if (t.dataset.look === "open") S.look = m; else if (t.dataset.look === "prev") S.look = Math.max(1, S.look - 1); else if (t.dataset.look === "next") S.look = Math.min(m, S.look + 1); else S.look = null;

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Owner's Inbox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: one narrow working column, one step on screen at a time; the cards sit in a ruled "table top" panel. */
+:root {
+  --bg: #F3F5F8; --surface: #FFFFFF; --ink: #18222F; --muted: #5B6878; --line: #D5DBE3;
+  --accent: #1F4E79; --accent-ink: #FFFFFF; --hot: #B5402A; --soft: #E6ECF3; --note: #FFF6DA; --note-line: #E3C96B;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #11161D; --surface: #1A222C; --ink: #E8EDF3; --muted: #9BA8B8; --line: #334050;
+    --accent: #7FB2E0; --accent-ink: #0E1620; --hot: #EE8A72; --soft: #232E3B; --note: #2E2A18; --note-line: #7A6A2A;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #11161D; --surface: #1A222C; --ink: #E8EDF3; --muted: #9BA8B8; --line: #334050;
+  --accent: #7FB2E0; --accent-ink: #0E1620; --hot: #EE8A72; --soft: #232E3B; --note: #2E2A18; --note-line: #7A6A2A;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.5; }
+main { max-width: 860px; margin: 0 auto; padding: 20px 16px 64px; display: flex; flex-direction: column; gap: 18px; }
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+.brand { font-family: var(--display); font-weight: 700; font-size: 20px; color: var(--accent); }
+.where { color: var(--muted); font-size: 15px; }
+.track { display: flex; gap: 4px; }
+.track span { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
+.track span.done { background: var(--accent); }
+.track span.now { background: var(--hot); }
+h1 { font-family: var(--display); font-size: 30px; line-height: 1.15; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-size: 21px; margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 68ch; }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+.quote { background: var(--note); border: 1px solid var(--note-line); border-radius: 10px; padding: 14px 16px; }
+.quote .who { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+.envelope { border: 2px dashed var(--hot); border-radius: 10px; padding: 16px; background: var(--surface); }
+.envelope .tag { font-family: var(--display); color: var(--hot); font-weight: 700; margin-bottom: 6px; }
+.step { font-weight: 700; }
+.mins { color: var(--muted); font-weight: 400; font-size: 15px; }
+label { font-weight: 700; display: block; margin-bottom: 6px; }
+textarea { width: 100%; min-height: 64px; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px; resize: vertical; }
+input[type=text] { width: 100%; max-width: 360px; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+textarea:focus-visible, button:focus-visible, input:focus-visible, a.go:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.choices { display: flex; flex-wrap: wrap; gap: 10px; }
+.choice { font: inherit; padding: 12px 16px; border-radius: 8px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; flex: 1 1 220px; text-align: left; }
+.choice[aria-pressed="true"] { border-color: var(--accent); background: var(--soft); font-weight: 700; }
+.sure { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sure input[type=range] { flex: 1 1 220px; accent-color: var(--accent); }
+.sure output { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 4.5ch; }
+a.go { display: inline-block; }
+.go { font: inherit; font-weight: 700; padding: 13px 18px; border-radius: 8px; border: 0; background: var(--accent); color: var(--accent-ink); cursor: pointer; align-self: flex-start; }
+.go[disabled] { background: var(--line); color: var(--muted); cursor: not-allowed; }
+.go.secondary { background: var(--surface); color: var(--accent); border: 2px solid var(--accent); }
+.hint { color: var(--muted); font-size: 15px; }
+.table-top { background: var(--soft); border-radius: 10px; padding: 14px; overflow-x: auto; }
+.rowlabel { font-size: 14px; font-weight: 700; color: var(--muted); margin: 0 0 6px; }
+.rowlabel.hot { color: var(--hot); }
+.weeks { display: flex; gap: 4px; align-items: flex-end; min-width: max-content; }
+.week { width: 44px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 2px; text-align: center; font-size: 12.5px; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.week b { display: block; font-family: var(--display); font-size: 17px; color: var(--accent); }
+.week.hot { border-color: var(--hot); } .week.hot b { color: var(--hot); }
+.week .bar { height: 70px; display: flex; align-items: flex-end; justify-content: center; margin: 4px 0; }
+.week .bar i { display: block; width: 18px; background: var(--accent); border-radius: 3px 3px 0 0; }
+.week.hot .bar i { background: var(--hot); }
+.week small { display: block; color: var(--muted); font-size: 11px; }
+.piles { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(118px, 1fr); gap: 8px; min-width: max-content; }
+.pile { display: flex; flex-direction: column; gap: 6px; }
+.pile h3 { margin: 0; font-size: 14px; color: var(--muted); text-align: center; }
+.guest { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 13px; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.guest b { font-size: 16px; }
+.guest.reg { border-color: var(--hot); border-width: 2px; }
+.guest .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 9px; background: var(--hot); color: var(--surface); margin-left: 4px; }
+.guest.other { color: var(--muted); }
+.pile .foot { font-size: 14px; text-align: center; font-weight: 700; padding-top: 4px; border-top: 2px solid var(--line); font-variant-numeric: tabular-nums; }
+.pile .foot span { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
+.loose { display: flex; flex-wrap: wrap; gap: 6px; }
+.loose .guest { width: 118px; }
+.stats { display: flex; gap: 12px; flex-wrap: wrap; }
+.stat { flex: 1 1 200px; background: var(--soft); border-radius: 8px; padding: 12px; }
+.stat b { font-family: var(--display); font-size: 30px; display: block; font-variant-numeric: tabular-nums; }
+table.recap { width: 100%; border-collapse: collapse; font-size: 16px; }
+table.recap th, table.recap td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+table.recap th { color: var(--muted); font-size: 14px; }
+.recap-wrap { overflow-x: auto; }
+.milestone { display: flex; align-items: center; gap: 14px; background: var(--note); border: 1px solid var(--note-line); border-radius: 10px; padding: 12px 16px; }
+.milestone .stars { color: #E0A100; display: flex; flex: none; }
+.research { background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; font-size: 15px; }
+.research b:first-child { display: block; font-family: var(--display); font-size: 16px; color: var(--accent); margin-bottom: 2px; }
+.lookbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; background: var(--note); border: 1px solid var(--note-line); border-radius: 10px; padding: 10px 14px; }
+.lookbar span { display: flex; flex-wrap: wrap; gap: 8px; }
+.lookbar .go { padding: 9px 14px; }
+.sendbox { border: 3px solid var(--hot); border-radius: 10px; padding: 18px; background: var(--surface); }
+.sendsteps { margin: 0; padding-left: 0; list-style: none; counter-reset: s; display: flex; flex-direction: column; gap: 8px; }
+.sendsteps li { counter-increment: s; position: relative; padding: 10px 12px 10px 48px; border-radius: 8px; background: var(--soft); }
+.sendsteps li::before { content: counter(s); position: absolute; left: 12px; top: 9px; width: 26px; height: 26px; border-radius: 50%; background: var(--muted); color: var(--surface); font-weight: 700; text-align: center; line-height: 26px; }
+.sendsteps li.now { background: var(--note); outline: 2px solid var(--hot); }
+.sendsteps li.now::before { background: var(--hot); }
+.sendsteps li.done::before { content: "\2713"; background: var(--accent); color: var(--accent-ink); }
+.keytable th, .keytable td { padding: 6px 6px; font-size: 14px; } .keytable td:first-child { width: 22%; }
+body.wide main { max-width: 1200px; } .proj p { max-width: none; }
+.walk { display: grid; gap: 3px; padding: 10px 12px; background: var(--soft); border-radius: 8px; font-size: 15px; color: var(--ink); }
+.walk > b { font-family: var(--display); color: var(--accent); }
+.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: var(--ink); }
+.classres td, .classres th { font-size: 15px; }
+.proj h1 { font-size: 40px; } .proj .classres td, .proj .classres th { font-size: 26px; padding: 16px 14px; } .proj p { font-size: 24px; }
+.proj .ask { font-family: var(--display); font-weight: 700; font-size: 28px; border-left: 8px solid var(--accent); padding: 14px 18px; background: var(--soft); border-radius: 0 8px 8px 0; }
+.locked { border-left: 0; background: var(--soft); border-radius: 8px; padding: 10px 12px; font-size: 15px; }
+.locked b { color: var(--muted); font-size: 13px; display: block; }
+details { font-size: 15px; color: var(--muted); }
+details button { font: inherit; }
+.small { font-size: 14px; color: var(--muted); }
+@media (max-width: 480px) { h1 { font-size: 25px; } body { font-size: 16px; } }
+@media (prefers-reduced-motion: no-preference) { .week, .guest { transition: border-color .2s; } }
+select { width: 100%; font: inherit; padding: .6rem .7rem; border: 1.5px solid #c9ced6; border-radius: 10px; background: #fff; }
+.simbars { display: flex; gap: .5rem; align-items: flex-end; height: 170px; padding-top: .5rem; }
+.simcol { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; font-size: .9rem; }
+.simcol i { display: block; width: 100%; background: #9aa1ab; border-radius: 6px 6px 0 0; }
+.simcol.hot i { background: #d9622b; } .simcol b { margin-top: .25rem; } .simcol.hot span { font-weight: 700; color: #b24a1a; }
+.gcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: .4rem; margin-bottom: .6rem; }
+.gcard { border: 1.5px solid #c9ced6; border-radius: 8px; padding: .35rem .45rem; background: #fff; font-size: .82rem; line-height: 1.25; display: flex; flex-direction: column; }
+.gcard small { color: #5f6672; } .gcard.yes { border-left: 6px solid #1e7b34; } .gcard.no { border-left: 6px solid #9aa1ab; } .gcard.yes span { color: #1e7b34; font-weight: 700; } .gcard.no span { color: #5f6672; }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+/* Session 3 lab: The Owner's Inbox. One step on screen at a time; an answer is locked before the next step opens. */
+const KEY = "inbox-s3-v1";
+/* Paste the pre-filled Microsoft Forms link here (dummy answers Q1 ... Q22). Empty = offer "Copy our case file" instead. */
+const FORM_URL = "";
+const CLASS_WORD = "deal";
+const MENU = { "New menu": [3, 3, 3, 3, 3, 3, 7, 7, 7, 7], "Old menu": [4, 4, 4, 4, 4, 4, 4, 4, 3, 5] };
+/* 32 guests: [type, service, satisfied]. Individual: counter 9 of 12, table 4 of 4. Group booking: counter 1 of 4, table 5 of 12. */
+const GUESTS = (() => { const g = []; const add = (n, t, s, y) => { for (let i = 0; i < n; i++) g.push([t, s, y]); };
+  add(9, "Individual", "Counter", 1); add(3, "Individual", "Counter", 0); add(4, "Individual", "Table", 1); add(1, "Group", "Counter", 1); add(3, "Group", "Counter", 0); add(5, "Group", "Table", 1); add(7, "Group", "Table", 0);
+  const o = []; for (let i = 0; i < 32; i++) o.push(g[(i * 13) % 32]); return o; })();
+const TOOLS = ["Independent t-test", "Paired t-test", "ANOVA", "Chi-square test", "Correlation", "Multiple regression"];
+const ASKS = ["Are office workers more satisfied than shop-floor workers?", "Did the same 30 guests rate us higher after the renovation than before?", "Does satisfaction differ between the five weekdays?",
+  "Do men and women choose the vegetarian dish equally often?", "Do guests who rate the food higher also rate the visit higher?", "Which matters most: food, service or price, each with the others held constant?"];
+const KEYS4 = [0, 1, 2, 3, 4, 5];
+const SCREENS = ["intro", "t1a", "t1b", "t2a", "t2b", "t3a", "t3b", "t4", "memo", "end"];
+const NAMES = { intro: "Start", t1a: "Ticket 1", t1b: "Ticket 1", t2a: "Ticket 2", t2b: "Ticket 2", t3a: "Ticket 3", t3b: "Ticket 3", t4: "Ticket 4", memo: "Memo", end: "Case file" };
+let S = { at: 0, a: {}, group: "", t: {}, sim: null, view: "all", pic: false, word: false, sent: null };
+try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
+let preview = location.hash === "#facilitator";
+window.addEventListener("hashchange", () => { preview = location.hash === "#facilitator"; render(); });
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const clean = (v) => (v == null ? "" : String(v)).replace(/\s+/g, " ").replace(/"/g, "'").trim();
+const stamp = (id) => { if (!S.t[id]) S.t[id] = Date.now(); };
+const minutes = (a, b) => (S.t[a] && S.t[b] ? Math.max(1, Math.round((S.t[b] - S.t[a]) / 60000)) : "");
+function checkCode(list) { let h = 5381; for (const c of list.join("|")) h = (h * 33 + c.charCodeAt(0)) % 2147483647; return h.toString(36).toUpperCase(); }
+const app = document.getElementById("app");
+let RO = false; /* a step that is already locked is shown read-only */
+
+/* ---------- building blocks ---------- */
+const owner = (t) => `<div class="quote">${t}<div class="who">The owner</div></div>`;
+function advice(key, label, options) {
+  const v = S.a[key], sure = S.a[key + "Sure"];
+  if (RO) return `<div class="locked"><b>${label}</b>${esc(v || "")}${sure == null ? "" : " (" + sure + "% sure)"}</div>`;
+  return `<div class="stack"><div><label>${label}</label><div class="choices" role="group" aria-label="${label}">${options.map((o) => `<button type="button" class="choice" data-choice="${key}" data-val="${esc(o)}" aria-pressed="${v === o}">${esc(o)}</button>`).join("")}</div></div>
+    <div><label for="${key}-sure">How sure are you, from 0 to 100%?</label><div class="sure"><input id="${key}-sure" type="range" min="0" max="100" step="5" value="${sure == null ? 50 : sure}" data-sure="${key}"><output id="${key}-out">${sure == null ? "move the slider" : sure + "%"}</output></div></div></div>`;
+}
+const adviceDone = (k) => !!S.a[k] && S.a[k + "Sure"] != null;
+function pick(key, label, options) {
+  if (RO) return `<div class="locked"><b>${label}</b>${esc(S.a[key] || "")}</div>`;
+  return `<div><label>${label}</label><div class="choices" role="group" aria-label="${label}">${options.map((o) => `<button type="button" class="choice" data-choice="${key}" data-val="${esc(o)}" aria-pressed="${S.a[key] === o}">${esc(o)}</button>`).join("")}</div></div>`;
+}
+function num(key, label, min, max, hint) {
+  if (RO) return `<div class="locked"><b>${label}</b>${esc(S.a[key] == null ? "" : S.a[key])}</div>`;
+  return `<div><label for="${key}">${label}</label><input type="text" inputmode="numeric" id="${key}" data-num="${key}" data-min="${min}" data-max="${max}" value="${esc(S.a[key] == null ? "" : S.a[key])}" style="max-width:8rem">${hint ? `<p class="hint">${hint}</p>` : ""}</div>`;
+}
+function textQ(key, label, rows) {
+  if (RO) return `<div class="locked"><b>${label}</b>${esc(S.a[key] || "")}</div>`;
+  return `<div><label for="${key}">${label}</label><textarea id="${key}" data-text="${key}" rows="${rows || 2}" maxlength="240">${esc(S.a[key] || "")}</textarea></div>`;
+}
+const numOK = (k) => S.a[k] !== undefined && S.a[k] !== "" && !isNaN(Number(S.a[k]));
+const textOK = (k) => (S.a[k] || "").trim().length >= 3;
+
+function dotPlot() {
+  const W = 560, rowH = 120, x = (v) => 60 + (v - 1) * 72; let h = `<svg viewBox="0 0 ${W} ${rowH * 2 + 40}" role="img" aria-label="Each dot is one guest's score, for the new menu and the old menu" style="width:100%;height:auto">`;
+  Object.keys(MENU).forEach((name, r) => {
+    const base = 100 + r * rowH, cnt = {}; h += `<text x="4" y="${base - 70}" font-size="15" font-weight="700" fill="#1f2a37">${name}</text><line x1="40" x2="${W - 10}" y1="${base}" y2="${base}" stroke="#9aa1ab"/>`;
+    MENU[name].forEach((v) => { cnt[v] = (cnt[v] || 0) + 1; h += `<circle cx="${x(v)}" cy="${base - 10 - (cnt[v] - 1) * 11}" r="5" fill="${r ? "#5f6672" : "#1e6fa8"}"/>`; });
+  });
+  for (let v = 1; v <= 7; v++) h += `<text x="${x(v)}" y="${rowH * 2 + 30}" font-size="14" text-anchor="middle" fill="#1f2a37">${v}</text>`;
+  return h + `</svg><p class="hint">Score from 1 (poor) to 7 (excellent). Each dot is one guest.</p>`;
+}
+const CSV_MENU = "data:text/csv;charset=utf-8," + encodeURIComponent("menu,score\n" + Object.keys(MENU).map((k) => MENU[k].map((v) => k + "," + v).join("\n")).join("\n") + "\n");
+function simulate() {
+  const cards = Array(5).fill(1).concat(Array(15).fill(0)), tally = [0, 0, 0, 0, 0, 0];
+  for (let n = 0; n < 1000; n++) { for (let i = 19; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [cards[i], cards[j]] = [cards[j], cards[i]]; } let k = 0; for (let i = 0; i < 10; i++) k += cards[i]; tally[k]++; }
+  return tally;
+}
+function simView(t) {
+  const max = Math.max(...t), hot = t[4] + t[5];
+  return `<div class="simbars">${t.map((n, k) => `<div class="simcol${k >= 4 ? " hot" : ""}"><span>${n}</span><i style="height:${Math.round((n / max) * 120) + 2}px"></i><b>${k}</b></div>`).join("")}</div>
+    <p class="hint">High scores that landed in the “new” pile, in 1,000 shuffles by the computer.</p><p><b>${hot} of 1,000</b> shuffles put four or five high scores in the “new” pile: about <b>${Math.round(hot / 10)} in 100</b>.</p>`;
+}
+function guestCard(g) { return `<div class="gcard ${g[2] ? "yes" : "no"}"><small>${g[0] === "Group" ? "Group booking" : "Individual"}</small><b>${g[1] === "Table" ? "Table service" : "Counter"}</b><span>${g[2] ? "Satisfied" : "Not satisfied"}</span></div>`; }
+function guestsView() {
+  const v = S.view, groups = [];
+  if (v === "all") groups.push(["All 32 guests", GUESTS]);
+  else if (v === "svc") ["Counter", "Table"].forEach((s) => groups.push([s === "Table" ? "Table service" : "Counter", GUESTS.filter((g) => g[1] === s)]));
+  else ["Individual", "Group"].forEach((t) => ["Counter", "Table"].forEach((s) => groups.push([(t === "Group" ? "Group bookings" : "Individual guests") + " · " + (s === "Table" ? "table service" : "counter"), GUESTS.filter((g) => g[0] === t && g[1] === s)])));
+  const tabs = [["all", "All together"], ["svc", "Sort by service"], ["both", "Sort by service and guest type"]];
+  return `<div class="choices" role="group" aria-label="How to sort the guest cards">${tabs.map(([k, l]) => `<button type="button" class="choice" data-view="${k}" aria-pressed="${v === k}">${l}</button>`).join("")}</div>
+    ${groups.map(([name, list]) => `<p class="rowlabel">${name} (${list.length} guests)</p><div class="gcards">${list.map(guestCard).join("")}</div>`).join("")}`;
+}
+
+/* ---------- the steps ---------- */
+const STEP = {
+  intro: { html: () => `<h1>The Owner's Inbox</h1><p>A restaurant owner sends you four tickets. Each time she has a number, and a plan. She needs advice she can act on.</p>
+      <div class="card stack"><p><b>How it works</b></p><p>Work in pairs or groups of three, with one laptop that has JASP. One of you writes on this page; change who writes at each ticket.</p><p>Each step is locked before the next one opens. Nothing is graded: your answers are used for research on teaching only.</p></div>
+      ${RO ? `<div class="locked"><b>Group code</b>${esc(S.group)}</div>` : `<div><label for="group">Your group code: any three digits</label><input type="text" inputmode="numeric" id="group" data-group maxlength="3" value="${esc(S.group)}" style="max-width:8rem"></div>`}`,
+    ok: () => /^\d{3}$/.test(S.group), go: "Open the first ticket" },
+  t1a: { mins: "about 3 minutes", html: () => `<h1>Ticket 1: the new menu</h1><p>The owner served a <b>new menu</b> to ten guests on Tuesday and the <b>old menu</b> to ten guests on Wednesday. Each guest rated the lunch from 1 (poor) to 7 (excellent).</p>
+      ${owner("“The new menu scored 4.6 on average, the old one 4.0. I will switch to the new menu for good. Agreed?”")}${advice("t1first", "What do you advise, from what she has told you?", ["Switch to the new menu", "Keep the old menu", "Not enough to decide"])}`,
+    ok: () => adviceDone("t1first"), go: "Lock our advice and see the data" },
+  t1b: { mins: "5–7 minutes", html: () => `<h1>Ticket 1: look at the 20 scores</h1><div class="card stack"><p><b>With JASP</b></p><p>1. <a href="${CSV_MENU}" download="menu.csv">Download menu.csv</a> and open it in JASP.<br>2. Descriptives → move <b>score</b> to Variables and <b>menu</b> to Split.<br>3. Tick Median. Under Basic plots, tick Dot plots.</p>
+      <p><b>Without a laptop</b></p>${S.pic || RO ? dotPlot() : `<p><button type="button" class="go secondary" data-pic>Show the picture here</button></p>`}</div>
+      ${num("t1mnew", "The middle score (median) of the new menu", 1, 7)}${num("t1mold", "The middle score (median) of the old menu", 1, 7)}${pick("t1jasp", "How did you look at the data?", ["In JASP", "On this page", "Both"])}
+      ${advice("t1later", "What do you advise now?", ["Switch to the new menu", "Keep the old menu", "Not enough to decide"])}`,
+    ok: () => numOK("t1mnew") && numOK("t1mold") && !!S.a.t1jasp && adviceDone("t1later"), go: "Lock and open ticket 2" },
+  t2a: { mins: "about 2 minutes", html: () => `<h1>Ticket 2: luck or real?</h1>${owner("“Look at the high scores. Four of my ten new-menu guests gave a 5 or higher. Only one of the ten old-menu guests did. Four times as many!”")}
+      <p>Five of the 20 guests gave a high score. Suppose the menu made <b>no difference at all</b>, and the five high scores fell on the two days by chance alone.</p>
+      ${num("t2guess", "Your guess: in how many of 100 tries would chance alone give the new menu four or more of the five high scores?", 0, 100, "A number from 0 to 100. Guess first; you will test it with cards.")}`,
+    ok: () => numOK("t2guess"), go: "Lock our guess and get the cards" },
+  t2b: { mins: "8–10 minutes", html: () => `<h1>Ticket 2: let chance deal</h1><div class="card stack"><p><b>With playing cards</b></p><p>1. Take <b>5 red</b> and <b>15 black</b> cards. A red card is a guest who gave a high score.<br>2. Shuffle. Deal ten cards face down to a pile you call “new”.<br>3. Turn the pile over and count the red cards. Do this three times.</p></div>
+      ${num("t2s1", "Red cards in the “new” pile, shuffle 1", 0, 5)}${num("t2s2", "Shuffle 2", 0, 5)}${num("t2s3", "Shuffle 3", 0, 5)}
+      <p><b>Now tell the class.</b> One of you puts three crosses on the board, one for each shuffle, above the number you counted.</p>
+      <div class="card stack"><p><b>Then let the computer deal</b></p>${S.sim ? simView(S.sim) : (numOK("t2s1") && numOK("t2s2") && numOK("t2s3") ? `<p><button type="button" class="go secondary" data-sim>Shuffle 1,000 times</button></p>` : `<p class="hint">Enter your three counts first.</p>`)}</div>
+      ${textQ("t2says", "What do you think this says about the owner's “four times as many”?", 3)}
+      ${RO ? "" : `<div><label for="word">The class word. Your teacher gives it when the board is full.</label><input type="text" id="word" data-word value="${S.word ? CLASS_WORD : ""}" style="max-width:12rem" autocomplete="off">${S.word ? `<p class="hint">Correct.</p>` : ""}</div>`}`,
+    ok: () => numOK("t2s1") && numOK("t2s2") && numOK("t2s3") && !!S.sim && textOK("t2says") && S.word, go: "Lock and open ticket 3" },
+  t3a: { mins: "about 3 minutes", html: () => `<h1>Ticket 3: counter or table service?</h1><p>The restaurant offers <b>counter service</b> and <b>table service</b>. Table service needs two extra staff. The owner asked 32 guests whether they were satisfied.</p>
+      ${owner("“Of 16 counter guests, 10 were satisfied: 63%. Of 16 table-service guests, 9 were satisfied: 56%. I will close table service and save two salaries. Agreed?”")}${advice("t3first", "What do you advise, from what she has told you?", ["Close table service", "Keep table service", "Not enough to decide"])}`,
+    ok: () => adviceDone("t3first"), go: "Lock our advice and see the guests" },
+  t3b: { mins: "6–8 minutes", html: () => `<h1>Ticket 3: the 32 guest cards</h1><p>Each card is one guest. The owner also wrote down whether the guest came alone or with a group booking. Sort the cards and count.</p><div class="table-top">${guestsView()}</div>
+      ${pick("t3ind", "Among individual guests, where is the larger share satisfied?", ["Counter", "Table service", "The same"])}${pick("t3grp", "Among group bookings, where is the larger share satisfied?", ["Counter", "Table service", "The same"])}
+      ${advice("t3later", "What do you advise now?", ["Close table service", "Keep table service", "Not enough to decide"])}`,
+    ok: () => !!S.a.t3ind && !!S.a.t3grp && adviceDone("t3later"), go: "Lock and open ticket 4" },
+  t4: { mins: "5–7 minutes", html: () => `<h1>Ticket 4: which tool?</h1><p>The owner has six more questions for her guest survey. Choose one tool for each. Every tool is used once.</p>
+      ${ASKS.map((q, i) => (RO ? `<div class="locked"><b>${i + 1}. ${q}</b>${esc(S.a["t4q" + i] || "")}</div>` : `<div><label for="t4q${i}">${i + 1}. ${q}</label><select id="t4q${i}" data-sel="t4q${i}"><option value="">Choose a tool</option>${TOOLS.map((t) => `<option${S.a["t4q" + i] === t ? " selected" : ""}>${t}</option>`).join("")}</select></div>`)).join("")}`,
+    ok: () => ASKS.every((q, i) => !!S.a["t4q" + i]), go: "Lock and write the memo" },
+  memo: { mins: "3–4 minutes", html: () => `<h1>Your memo to the owner</h1><p>She reads one line. Give her <b>one piece of advice</b> and <b>one thing to be careful about</b> when she looks at her own numbers.</p>${textQ("memo", "Our memo, in one or two sentences", 3)}`,
+    ok: () => textOK("memo"), go: "Finish" },
+};
+const FIELDS = () => {
+  const A = S.a, right = KEYS4.filter((k, i) => A["t4q" + i] === TOOLS[k]).length;
+  const f = [S.group, A.t1first, A.t1firstSure, A.t1mnew, A.t1mold, A.t1later, A.t1laterSure, A.t2guess, [A.t2s1, A.t2s2, A.t2s3].join(" "), A.t2says, A.t3first, A.t3firstSure, A.t3ind, A.t3grp, A.t3later, A.t3laterSure,
+    ASKS.map((q, i) => (i + 1) + ":" + (A["t4q" + i] || "")).join("; "), right, A.memo, minutes("t1a", "end"), A.t1jasp].map(clean);
+  f.push(checkCode(f)); return f;
+};
+function formLink() { const f = FIELDS(); let u = FORM_URL; for (let i = f.length; i >= 1; i--) u = u.replace(new RegExp("=Q" + i + "(?=&|$)"), "=" + encodeURIComponent(f[i - 1])); return u; }
+function notesText() {
+  const A = S.a, s = (k) => (A[k + "Sure"] == null ? "" : " (" + A[k + "Sure"] + "% sure)");
+  return ["The Owner's Inbox, Session 3: group " + S.group, "", "TICKET 1: the new menu", "First advice: " + (A.t1first || "") + s("t1first"), "Middle score, new menu: " + A.t1mnew + ", old menu: " + A.t1mold, "Advice after the data: " + (A.t1later || "") + s("t1later"), "",
+    "TICKET 2: luck or real?", "Our guess: " + A.t2guess + " in 100", "Our three shuffles: " + [A.t2s1, A.t2s2, A.t2s3].join(", "), "What it says: " + (A.t2says || ""), "", "TICKET 3: counter or table service?", "First advice: " + (A.t3first || "") + s("t3first"),
+    "Individual guests: " + (A.t3ind || "") + ". Group bookings: " + (A.t3grp || ""), "Advice after the cards: " + (A.t3later || "") + s("t3later"), "", "TICKET 4: which tool?"].concat(ASKS.map((q, i) => (i + 1) + ". " + q + " " + (A["t4q" + i] || ""))).concat(["", "OUR MEMO", A.memo || ""]).join("\n");
+}
+function endView() {
+  const A = S.a, row = (l, a, b) => `<tr><th>${l}</th><td>${esc(a || "")}</td><td>${esc(b || "")}</td></tr>`, s = (k) => (A[k + "Sure"] == null ? "" : " (" + A[k + "Sure"] + "%)");
+  return `<h1>Your case file</h1><p>All four tickets are answered. The class looks at them together after the break.</p>
+    <div class="recap-wrap"><table class="recap"><tr><th></th><th>First advice</th><th>After the data</th></tr>${row("Ticket 1", A.t1first + s("t1first"), A.t1later + s("t1later"))}${row("Ticket 3", A.t3first + s("t3first"), A.t3later + s("t3later"))}</table></div>
+    <div class="locked"><b>Ticket 2</b>Our guess: ${esc(A.t2guess)} in 100. Our shuffles: ${esc([A.t2s1, A.t2s2, A.t2s3].join(", "))}.</div><div class="locked"><b>Our memo</b>${esc(A.memo)}</div>
+    <div class="sendbox stack">${FORM_URL ? `<p><b>Last step: send your case file.</b> The button opens a form with your answers filled in. Scroll down and press <b>Submit</b>.</p><p><a class="go" href="${esc(formLink())}" target="_blank" rel="noopener" data-sent>Open the form with our answers</a></p>${S.sent ? `<p class="hint">Opened. If you pressed Submit in the form, you are done.</p>` : ""}`
+      : `<p><b>Last step: keep your case file.</b></p><p><button type="button" class="go" data-copy>Copy our case file</button></p><p class="hint" id="copied"></p>`}</div>`;
+}
+function teacher() {
+  return `<h1>The Owner's Inbox: teacher view</h1><p class="hint">Remove #facilitator from the address to see the page as participants do.</p>
+  <div class="card stack"><h2>Before the lab</h2><p><b>Per pair or group of three:</b> one laptop with JASP if possible, and 20 playing cards: 5 red and 15 black. One deck serves two groups.</p><p><b>On the board:</b> the numbers 0 to 5 in a row, with room for crosses above each.</p><p><b>Class word</b> for opening ticket 3: <b>${CLASS_WORD}</b>. Give it when most groups have put their three crosses on the board.</p><p><b>Time:</b> 30–40 minutes for the four tickets and the memo.</p></div>
+  <div class="card stack"><h2>What to do at each ticket</h2>
+    <p><b>Ticket 1 (8–10 minutes).</b> Walk around. Ask one question only: “How many guests gave a score near 4.6?” Do not say more.</p>
+    <p><b>Ticket 2 (10–12 minutes).</b> Hand out the cards. Watch the board fill. Circle columns 4 and 5 and count the crosses there aloud: “so many of so many shuffles”. Then give the class word.</p>
+    <p><b>Ticket 3 (9–11 minutes).</b> If a group is stuck after sorting by service, ask: “What else is written on the cards?”</p>
+    <p><b>Ticket 4 and the memo (8–11 minutes).</b> No help. The answers come in round 4.</p></div>
+  <div class="card stack"><h2>Answer key</h2><table class="keytable"><tr><th>Ticket</th><th>What groups find</th><th>What it means</th></tr>
+    <tr><td>1. The new menu</td><td>Middle score: new menu 3, old menu 4. New menu: six guests at 3 and four at 7, nobody near 4.6.</td><td>The average describes a guest who does not exist. Look at the distribution before quoting an average.</td></tr>
+    <tr><td>2. Luck or real?</td><td>Chance alone puts four or five high scores in the “new” pile in about 15 of 100 shuffles.</td><td>This is what a p-value answers. With 27 crosses on the board, expect about four in columns 4 and 5; anything from one to eight is normal.</td></tr>
+    <tr><td>3. Counter or table?</td><td>Individual guests: counter 9 of 12 (75%), table 4 of 4 (100%). Group bookings: counter 1 of 4 (25%), table 5 of 12 (42%).</td><td>Table service wins in both groups and loses overall, because most group bookings sit at table service and groups are harder to please. A third variable can reverse a comparison.</td></tr>
+    <tr><td>4. Which tool?</td><td colspan="2">${ASKS.map((q, i) => (i + 1) + ". " + TOOLS[KEYS4[i]]).join(" · ")}</td></tr></table></div>
+  <div class="card stack"><h2>What it means for the owner</h2><p><b>Ticket 1:</b> do not switch for good; six of ten guests liked the new menu less.</p><p><b>Ticket 2:</b> “four times as many” is not yet evidence; chance does it about one time in seven.</p><p><b>Ticket 3:</b> keep table service; closing it would remove the service that satisfies more guests of both kinds.</p></div>`;
+}
+
+/* ---------- drawing and events ---------- */
+function render() {
+  if (preview) { document.body.classList.add("wide"); app.innerHTML = `<div class="stack">${teacher()}</div>`; return; }
+  document.body.classList.remove("wide");
+  const id = SCREENS[S.at], last = SCREENS.length - 1, furthest = S.max || 0; RO = S.at < furthest; stamp(id);
+  const track = `<div class="track" aria-hidden="true">${SCREENS.map((s, i) => `<span class="${i < S.at ? "done" : i === S.at ? "now" : ""}"></span>`).join("")}</div>`;
+  let body, foot = "";
+  if (id === "end") { body = endView(); foot = `<p><button type="button" class="go secondary" data-back>Look back at our answers</button></p>`; }
+  else { const st = STEP[id]; body = st.html() + (st.mins && !RO ? `<p class="mins">${st.mins}</p>` : "");
+    foot = RO ? `<div class="lookbar"><span>Locked. You are looking back.</span><button type="button" class="go" data-fwd>Forward</button></div>` : `<p><button type="button" class="go" data-next ${st.ok() ? "" : "disabled"}>${st.go}</button></p>`;
+    if (S.at > 0) foot += `<p><button type="button" class="go secondary" data-back>Back</button></p>`; }
+  app.innerHTML = `<header class="top"><span class="brand">The Owner's Inbox</span><span class="where">${NAMES[id]}${S.group ? " · group " + esc(S.group) : ""}</span></header>${track}<div class="stack">${body}${foot}</div>`;
+}
+function refreshNext() { const b = app.querySelector("[data-next]"); if (b) b.disabled = !STEP[SCREENS[S.at]].ok(); }
+app.addEventListener("click", (e) => {
+  const t = e.target.closest("button, a"); if (!t) return;
+  if (t.dataset.choice) { S.a[t.dataset.choice] = t.dataset.val; save(); render(); }
+  else if (t.dataset.view) { S.view = t.dataset.view; save(); render(); }
+  else if (t.hasAttribute("data-pic")) { S.pic = true; save(); render(); }
+  else if (t.hasAttribute("data-sim")) { S.sim = simulate(); save(); render(); }
+  else if (t.hasAttribute("data-next")) { if (!STEP[SCREENS[S.at]].ok()) return; S.at++; S.max = Math.max(S.max || 0, S.at); save(); render(); window.scrollTo(0, 0); }
+  else if (t.hasAttribute("data-back")) { S.at = Math.max(0, S.at - 1); save(); render(); window.scrollTo(0, 0); }
+  else if (t.hasAttribute("data-fwd")) { S.at = Math.min(S.max || 0, S.at + 1); save(); render(); window.scrollTo(0, 0); }
+  else if (t.hasAttribute("data-sent")) { S.sent = Date.now(); save(); setTimeout(render, 300); }
+  else if (t.hasAttribute("data-copy")) { const txt = notesText(); (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => { document.getElementById("copied").textContent = "Copied. Paste it into your notes."; }, () => { document.getElementById("copied").textContent = txt; }); }
+});
+app.addEventListener("input", (e) => {
+  const t = e.target;
+  if (t.dataset.sure) { S.a[t.dataset.sure + "Sure"] = Number(t.value); document.getElementById(t.dataset.sure + "-out").textContent = t.value + "%"; }
+  else if (t.hasAttribute("data-group")) { t.value = t.value.replace(/\D/g, "").slice(0, 3); S.group = t.value; }
+  else if (t.dataset.num) { const v = t.value.replace(/[^\d]/g, ""); t.value = v; const n = Number(v); S.a[t.dataset.num] = v === "" || n < Number(t.dataset.min) || n > Number(t.dataset.max) ? "" : n; if (t.dataset.num.startsWith("t2s") && !S.sim && ["t2s1", "t2s2", "t2s3"].every(numOK)) { save(); const pos = t.id; render(); const el = document.getElementById(pos); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } return; } }
+  else if (t.dataset.text) { S.a[t.dataset.text] = t.value; }
+  else if (t.dataset.sel) { S.a[t.dataset.sel] = t.value; }
+  else if (t.hasAttribute("data-word")) { const ok = t.value.toLowerCase().replace(/[^a-z]/g, "") === CLASS_WORD; if (ok !== S.word) { S.word = ok; save(); if (ok) { render(); return; } } }
+  save(); refreshNext();
+});
+render();
+
+</script>
+</body>
+</html>
