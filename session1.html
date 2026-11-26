@@ -527,6 +527,28 @@ app.addEventListener("click", (e) => {
   if (t.hasAttribute("data-copy")) { const text = FIELDS().join("\t"); const done = () => { app.querySelector("#copied").textContent = "Copied. Paste it where your teacher tells you."; }; try { navigator.clipboard.writeText(text).then(done, () => { app.querySelector("#copied").textContent = text; }); } catch (err) { app.querySelector("#copied").textContent = text; } return; }
   if (t.hasAttribute("data-reset")) { S = { at: 0, a: {}, ui: {}, role: null, group: "", salt: "", sent: null, t: {}, pick: null, tries: {}, sw: {}, look: null, confirmed: false }; try { localStorage.removeItem(KEY); } catch (err) {} render(true); }
 });
+/* Class lock: the address can be shared before class; the page opens with a code the teacher gives when the lab starts.
+   To change the code: put the new word (letters only) through btoa() and paste the result here. */
+const CLASS_CODE = atob("ZXZpZGVuY2U=");
+const LKEY = KEY + "-open";
+let OPENED = false; try { OPENED = localStorage.getItem(LKEY) === "1"; } catch (e) {}
+const lockOn = () => !OPENED && !preview && !S.role;
+const _renderOpen = render;
+render = function (scroll) {
+  if (!lockOn()) { _renderOpen(scroll); if (preview && !CR.proj) { const c = app.querySelector(".card"); if (c) c.before($(`<div class="locked" style="margin-bottom:12px"><b>Class code for today: <span style="font-size:18px;color:var(--ink)">${CLASS_CODE}</span></b><br>The page is locked until a participant types this word. Say it or write it on the board when the lab starts.</div>`)); } return; }
+  document.body.classList.remove("wide");
+  app.innerHTML = `<section class="stack"><h1>What Should the Owner Do?</h1><div class="card stack"><h2>This page opens in class</h2>
+    <p>The lab starts in Round 3. Your teacher gives the class code then.</p>
+    <div><label for="classcode">Class code</label><input id="classcode" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="One word"></div>
+    <button class="go" data-unlock>Open the lab</button><p class="small" id="lockmsg" role="status"></p></div></section>`;
+};
+function tryUnlock() {
+  const el = app.querySelector("#classcode"); if (!el) return;
+  if (norm(el.value) === norm(CLASS_CODE)) { OPENED = true; try { localStorage.setItem(LKEY, "1"); } catch (e) {} render(true); return; }
+  app.querySelector("#lockmsg").textContent = el.value.trim() ? "That is not the class code. Check the spelling, or ask your teacher." : "Type the class code first.";
+}
+app.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("[data-unlock]")) tryUnlock(); });
+app.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.id === "classcode") tryUnlock(); });
 render(false);
 </script>
 </body>
