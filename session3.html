@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Owner's Inbox</title>
+<title>The Inbox</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap" rel="stylesheet">
@@ -150,20 +150,20 @@ header.top { padding-right: 5.6rem; }
 <body>
 <main id="app"></main>
 <script>
-/* Session 3 lab: The Owner's Inbox. One step on screen at a time; an answer is locked before the next step opens. */
-const KEY = "inbox-s3-v6";
+/* Session 3 lab: The Inbox. One step on screen at a time; an answer is locked before the next step opens. */
+const KEY = "inbox-s3-v7";
 /* Paste the pre-filled Microsoft Forms link here (dummy answers Q1 ... Q22). Empty = offer "Copy our case file" instead. */
 const FORM_URL = "";
 const CLASS_WORD = "deal";
-const MENU = { "New menu": [3, 3, 3, 3, 3, 3, 7, 7, 7, 7], "Old menu": [4, 4, 4, 4, 4, 4, 4, 4, 3, 5] };
-/* 100 guests: [satisfied, all] per guest kind and service. Table service wins within both kinds and loses overall. */
+const MENU = { "New process": [3, 3, 3, 3, 3, 3, 7, 7, 7, 7], "Old process": [4, 4, 4, 4, 4, 4, 4, 4, 3, 5] };
+/* 100 orders: [on time, all] per order type and supplier. Supplier B wins within both types and loses overall. */
 const G3 = { own: { Counter: [32, 40], Table: [9, 10] }, party: { Counter: [3, 10], Table: [16, 40] } };
-const SVC = { Counter: "Counter", Table: "Table service" };
+const SVC = { Counter: "Supplier A", Table: "Supplier B" };
 const WORDS7 = ["Very dissatisfied", "Dissatisfied", "Somewhat dissatisfied", "Neither", "Somewhat satisfied", "Satisfied", "Very satisfied"];
 const SCALE = `<p class="hint"><b>The answer scale:</b> ${WORDS7.map((w, i) => (i + 1) + " = " + w).join(" · ")}</p>`;
 const TOOLS = ["Independent t-test", "Paired t-test", "ANOVA", "Chi-square test", "Correlation", "Multiple regression"];
-const ASKS = ["Are office workers more satisfied than shop-floor workers?", "Did the same 30 guests rate us higher after the renovation than before?", "Does satisfaction differ between the five weekdays?",
-  "Do men and women choose the vegetarian dish equally often?", "Do guests who rate the food higher also rate the visit higher?", "Which matters most: food, service or price, each with the others held constant?"];
+const ASKS = ["Are web-shop customers more satisfied than customers of the physical stores?", "Did the same 30 operators work faster after the training than before?", "Does delivery time differ between our five warehouses?",
+  "Are rush orders late more often than standard orders (late: yes or no)?", "Do suppliers with a higher audit score also have fewer defects?", "Which matters most for customer satisfaction: price, delivery time or product quality, each with the others held constant?"];
 const KEYS4 = [0, 1, 2, 3, 4, 5];
 const SCREENS = ["intro", "t1a", "t1b", "t2a", "t2b", "t3a", "t3b", "t4", "memo", "end"];
 const NAMES = { intro: "Start", t1a: "Ticket 1", t1b: "Ticket 1", t2a: "Ticket 2", t2b: "Ticket 2", t3a: "Ticket 3", t3b: "Ticket 3", t4: "Ticket 4", memo: "Memo", end: "Case file" };
@@ -181,7 +181,8 @@ const app = document.getElementById("app");
 let RO = false; /* a step that is already locked is shown read-only */
 
 /* ---------- building blocks ---------- */
-const owner = (t) => `<div class="quote">${t}<div class="who">The owner</div></div>`;
+const owner = (t, who) => `<div class="quote">${t}<div class="who">${who}</div></div>`;
+const QM = "The quality manager", PM = "The product manager", SM = "The purchasing manager";
 function advice(key, label, options) {
   const v = S.a[key], sure = S.a[key + "Sure"];
   if (RO) return `<div class="locked"><b>${label}</b>${esc(v || "")}${sure == null ? "" : " (" + sure + "% sure)"}</div>`;
@@ -205,16 +206,16 @@ const numOK = (k) => S.a[k] !== undefined && S.a[k] !== "" && !isNaN(Number(S.a[
 const textOK = (k) => (S.a[k] || "").trim().length >= 3;
 
 function dotPlot() {
-  const W = 560, rowH = 120, x = (v) => 60 + (v - 1) * 72; let h = `<svg viewBox="0 0 ${W} ${rowH * 2 + 40}" role="img" aria-label="Each dot is one guest's score, for the new menu and the old menu" style="width:100%;height:auto">`;
+  const W = 560, rowH = 120, x = (v) => 60 + (v - 1) * 72; let h = `<svg viewBox="0 0 ${W} ${rowH * 2 + 40}" role="img" aria-label="Each dot is one customer's rating, for the new process and the old process" style="width:100%;height:auto">`;
   Object.keys(MENU).forEach((name, r) => {
     const base = 100 + r * rowH, cnt = {}; h += `<text x="4" y="${base - 70}" font-size="15" font-weight="700" fill="#1f2a37">${name}</text><line x1="40" x2="${W - 10}" y1="${base}" y2="${base}" stroke="#9aa1ab"/>`;
     MENU[name].forEach((v) => { cnt[v] = (cnt[v] || 0) + 1; h += `<circle cx="${x(v)}" cy="${base - 10 - (cnt[v] - 1) * 11}" r="5" fill="${r ? "#5f6672" : "#1e6fa8"}"/>`; });
   });
   for (let v = 1; v <= 7; v++) h += `<text x="${x(v)}" y="${rowH * 2 + 14}" font-size="14" font-weight="700" text-anchor="middle" fill="#1f2a37">${v}</text>${v === 1 || v === 4 || v === 7 ? `<text x="${v === 1 ? 20 : v === 7 ? W - 4 : x(v)}" y="${rowH * 2 + 32}" font-size="12" text-anchor="${v === 1 ? "start" : v === 7 ? "end" : "middle"}" fill="#5f6672">${WORDS7[v - 1]}</text>` : ""}`;
-  return h + `</svg><p class="hint">Each dot is one guest. The dot sits above the rating that guest gave.</p>`;
+  return h + `</svg><p class="hint">Each dot is one customer. The dot sits above the rating that customer gave.</p>`;
 }
-const CSV_MENU = "data:text/csv;charset=utf-8," + encodeURIComponent("menu,score\n" + Object.keys(MENU).map((k) => MENU[k].map((v) => k + "," + v).join("\n")).join("\n") + "\n");
-function simulate() { /* 1,000 rounds of ten guests who each pick a menu like a coin flip */
+const CSV_MENU = "data:text/csv;charset=utf-8," + encodeURIComponent("process,score\n" + Object.keys(MENU).map((k) => MENU[k].map((v) => k + "," + v).join("\n")).join("\n") + "\n");
+function simulate() { /* 1,000 rounds of ten users who each pick a design like a coin flip */
   const tally = Array(11).fill(0);
   for (let n = 0; n < 1000; n++) { let k = 0; for (let i = 0; i < 10; i++) k += Math.random() < 0.5 ? 1 : 0; tally[k]++; }
   return tally;
@@ -222,55 +223,55 @@ function simulate() { /* 1,000 rounds of ten guests who each pick a menu like a 
 function simView(t) {
   const max = Math.max(...t), hot = t.slice(7).reduce((x, y) => x + y, 0);
   return `<div class="simbars">${t.map((n, k) => `<div class="simcol${k >= 7 ? " hot" : ""}"><span>${n}</span><i style="height:${Math.round((n / max) * 120) + 2}px"></i><b>${k}</b></div>`).join("")}</div>
-    <p class="hint">Under each bar: how many of the ten guests picked the new menu. Above each bar: in how many of the 1,000 rounds that happened. The owner's result is 7.</p><p>In <b>${hot} of 1,000</b> rounds, luck alone gave the new menu <b>7 or more</b> of the ten guests: about <b>${Math.round(hot / 10)} times in 100</b>.</p>`;
+    <p class="hint">Under each bar: how many of the ten users picked the new design. Above each bar: in how many of the 1,000 rounds that happened. The product manager's result is 7.</p><p>In <b>${hot} of 1,000</b> rounds, luck alone gave the new design <b>7 or more</b> of the ten users: about <b>${Math.round(hot / 10)} times in 100</b>.</p>`;
 }
 const pct = (y, n) => Math.round((100 * y) / n) + "%";
 function dots(y, n) { let h = '<div class="dots">'; for (let i = 0; i < n; i++) h += `<i class="${i < y ? "yes" : "no"}"></i>`; return h + "</div>"; }
-function block(label, y, n) { return `<div class="gblock"><p class="rowlabel">${label}</p>${dots(y, n)}<p><b>${y} of ${n}</b> satisfied = <b>${pct(y, n)}</b></p></div>`; }
+function block(label, y, n) { return `<div class="gblock"><p class="rowlabel">${label}</p>${dots(y, n)}<p><b>${y} of ${n}</b> on time = <b>${pct(y, n)}</b></p></div>`; }
 function guestsView() {
   const tot = (s) => [G3.own[s][0] + G3.party[s][0], G3.own[s][1] + G3.party[s][1]];
-  let h = `<p class="hint">Each dot is one guest. Green = satisfied. Grey = not satisfied.</p><p class="rowlabel hot">All 100 guests</p><div class="gpair">${["Counter", "Table"].map((s) => block(SVC[s], ...tot(s))).join("")}</div>`;
-  if (!S.split && !RO) return h + `<p>The owner also wrote down how each guest came: <b>on their own</b>, or with a <b>large party</b> (a company lunch of eight or more).</p><p><button type="button" class="go secondary" data-split>Split the guests by how they came</button></p>`;
-  return h + [["own", "Guests on their own (50)"], ["party", "Guests in a large party (50)"]].map(([k, l]) => `<p class="rowlabel hot">${l}</p><div class="gpair">${["Counter", "Table"].map((s) => block(SVC[s], ...G3[k][s])).join("")}</div>`).join("");
+  let h = `<p class="hint">Each dot is one order. Green = delivered on time. Grey = late.</p><p class="rowlabel hot">All 100 orders</p><div class="gpair">${["Counter", "Table"].map((s) => block(SVC[s], ...tot(s))).join("")}</div>`;
+  if (!S.split && !RO) return h + `<p>The order system also shows the type of each order: a <b>standard order</b>, or a <b>rush order</b> that is needed within a week.</p><p><button type="button" class="go secondary" data-split>Split the orders by type</button></p>`;
+  return h + [["own", "Standard orders (50)"], ["party", "Rush orders (50)"]].map(([k, l]) => `<p class="rowlabel hot">${l}</p><div class="gpair">${["Counter", "Table"].map((s) => block(SVC[s], ...G3[k][s])).join("")}</div>`).join("");
 }
 
 /* ---------- the steps ---------- */
 const STEP = {
-  intro: { html: () => `<h1>The Owner's Inbox</h1><p>A restaurant owner sends you four tickets. Each time she has a number, and a plan. She needs advice she can act on.</p>
+  intro: { html: () => `<h1>The Inbox</h1><p>You are the analysts of a company. Three managers send you tickets. Each has a number, and a plan. They need advice they can act on.</p>
       <div class="card stack"><p><b>How it works</b></p><p>Work in pairs or groups of three, with one laptop that has JASP. One of you writes on this page; change who writes at each ticket.</p><p>Each step is locked before the next one opens. Nothing is graded: your answers are used for research on teaching only.</p></div>
       ${RO ? `<div class="locked"><b>Group code</b>${esc(S.group)}</div>` : `<div><label for="group">Your group code: any three digits</label><input type="text" inputmode="numeric" id="group" data-group maxlength="3" value="${esc(S.group)}" style="max-width:8rem"></div>`}`,
     ok: () => /^\d{3}$/.test(S.group), go: "Open the first ticket" },
-  t1a: { mins: "about 3 minutes", html: () => `<h1>Ticket 1: the new menu</h1><p>The owner served a <b>new menu</b> to ten guests on Tuesday and the <b>old menu</b> to ten guests on Wednesday. Each guest answered “How satisfied are you with today's lunch?” on a scale from <b>1 = very dissatisfied</b> to <b>7 = very satisfied</b>.</p>${SCALE}
-      ${owner("“The average rating of the new menu is 4.6. The average rating of the old menu is 4.0. I will switch to the new menu for good. Agreed?”")}${advice("t1first", "What do you advise, from what she has told you?", ["Switch to the new menu", "Keep the old menu", "Not enough to decide"])}`,
+  t1a: { mins: "about 3 minutes", html: () => `<h1>Ticket 1: the new returns process</h1><p>The company tests a <b>new process</b> for handling product returns. Ten customers went through the new process and ten through the <b>old process</b>. Each customer answered “How satisfied are you with how your return was handled?” on a scale from <b>1 = very dissatisfied</b> to <b>7 = very satisfied</b>.</p>${SCALE}
+      ${owner("“The average rating of the new process is 4.6. The average rating of the old process is 4.0. We roll out the new process to all customers. Agreed?”", QM)}${advice("t1first", "What do you advise, from what the manager has told you?", ["Roll out the new process", "Keep the old process", "Not enough to decide"])}`,
     ok: () => adviceDone("t1first"), go: "Lock our advice and see the data" },
-  t1b: { mins: "5–7 minutes", html: () => `<h1>Ticket 1: look at the 20 scores</h1><div class="card stack"><p><b>With JASP</b></p><p>1. <a href="${CSV_MENU}" download="menu.csv">Download menu.csv</a> and open it in JASP.<br>2. Descriptives → move <b>score</b> to Variables and <b>menu</b> to Split.<br>3. Tick Median. Under Basic plots, tick Dot plots.</p>
+  t1b: { mins: "5–7 minutes", html: () => `<h1>Ticket 1: look at the 20 ratings</h1><div class="card stack"><p><b>With JASP</b></p><p>1. <a href="${CSV_MENU}" download="returns.csv">Download returns.csv</a> and open it in JASP.<br>2. Descriptives → move <b>score</b> to Variables and <b>process</b> to Split.<br>3. Tick Median. Under Basic plots, tick Dot plots.</p>
       <p><b>Without a laptop</b></p>${S.pic || RO ? dotPlot() : `<p><button type="button" class="go secondary" data-pic>Show the picture here</button></p>`}</div>
-      ${num("t1mnew", "New menu: the rating of the middle guest (the median), from 1 to 7", 1, 7)}${num("t1mold", "Old menu: the rating of the middle guest (the median), from 1 to 7", 1, 7)}${pick("t1jasp", "How did you look at the data?", ["In JASP", "On this page", "Both"])}
-      ${advice("t1later", "What do you advise now?", ["Switch to the new menu", "Keep the old menu", "Not enough to decide"])}`,
+      ${num("t1mnew", "New process: the rating of the middle customer (the median), from 1 to 7", 1, 7)}${num("t1mold", "Old process: the rating of the middle customer (the median), from 1 to 7", 1, 7)}${pick("t1jasp", "How did you look at the data?", ["In JASP", "On this page", "Both"])}
+      ${advice("t1later", "What do you advise now?", ["Roll out the new process", "Keep the old process", "Not enough to decide"])}`,
     ok: () => numOK("t1mnew") && numOK("t1mold") && !!S.a.t1jasp && adviceDone("t1later"), go: "Lock and open ticket 2" },
-  t2a: { mins: "about 2 minutes", html: () => `<h1>Ticket 2: luck or real?</h1><p>The owner tries something new. She lets <b>10 guests taste both menus</b> and asks each one: “Which do you prefer?”</p>
-      ${owner("“Seven of the ten guests chose the new menu. Seven out of ten! My guests prefer the new menu.”")}
-      <div class="card stack"><p><b>Could that be luck?</b></p><p>Imagine guests have <b>no preference</b> at all. Then each guest picks one of the two menus at random, like <b>flipping a coin</b>.</p><p>Ten guests, ten coin flips. Sometimes 5 pick the new menu, sometimes 4 or 6, and sometimes 7 or more, by luck alone.</p></div>
-      ${pick("t2guess", "Your guess: with ten such guests, how often does luck alone give the new menu 7 or more?", ['Almost never: about 1 time in 100', 'Rarely: about 5 times in 100', 'Fairly often: about 17 times in 100', 'About half the time: 50 times in 100'])}`,
+  t2a: { mins: "about 2 minutes", html: () => `<h1>Ticket 2: luck or real?</h1><p>The company has a new design for its ordering app. <b>10 users try both designs</b>, and each one says which they prefer.</p>
+      ${owner("“Seven of the ten users chose the new design. Seven out of ten! Our users prefer the new design.”", PM)}
+      <div class="card stack"><p><b>Could that be luck?</b></p><p>Imagine users have <b>no preference</b> at all. Then each user picks one of the two designs at random, like <b>flipping a coin</b>.</p><p>Ten users, ten coin flips. Sometimes 5 pick the new design, sometimes 4 or 6, and sometimes 7 or more, by luck alone.</p></div>
+      ${pick("t2guess", "Your guess: with ten such users, how often does luck alone give the new design 7 or more?", ['Almost never: about 1 time in 100', 'Rarely: about 5 times in 100', 'Fairly often: about 17 times in 100', 'About half the time: 50 times in 100'])}`,
     ok: () => !!S.a.t2guess, go: "Lock our guess and get the cards" },
-  t2b: { mins: "8–10 minutes", html: () => `<h1>Ticket 2: let luck choose</h1><div class="card stack"><p><b>With playing cards</b></p><p>1. Shuffle your cards well.<br>2. Turn over <b>10 cards</b>. Each card is one guest with no preference.<br>&nbsp;&nbsp;&nbsp;&nbsp;<b>Red</b> = this guest picks the new menu. <b>Black</b> = the old menu.<br>3. Count the red cards. Do this three times.</p></div>
-      ${num("t2s1", "Round 1: how many of the 10 guests picked the new menu (red cards)?", 0, 10)}${num("t2s2", "Round 2", 0, 10)}${num("t2s3", "Round 3", 0, 10)}
+  t2b: { mins: "8–10 minutes", html: () => `<h1>Ticket 2: let luck choose</h1><div class="card stack"><p><b>With playing cards</b></p><p>1. Shuffle your cards well.<br>2. Turn over <b>10 cards</b>. Each card is one user with no preference.<br>&nbsp;&nbsp;&nbsp;&nbsp;<b>Red</b> = this user picks the new design. <b>Black</b> = the old design.<br>3. Count the red cards. Do this three times.</p></div>
+      ${num("t2s1", "Round 1: how many of the 10 users picked the new design (red cards)?", 0, 10)}${num("t2s2", "Round 2", 0, 10)}${num("t2s3", "Round 3", 0, 10)}
       <p><b>Now tell the class.</b> One of you puts three crosses on the board, one for each round, above the number you counted.</p>
       <div class="card stack"><p><b>Then let the computer do 1,000 rounds</b></p>${S.sim ? simView(S.sim) : (numOK("t2s1") && numOK("t2s2") && numOK("t2s3") ? `<p><button type="button" class="go secondary" data-sim>Do 1,000 rounds</button></p>` : `<p class="hint">Enter your three counts first.</p>`)}</div>
-      ${pick("t2says", "The owner said: “Seven out of ten! My guests prefer the new menu.” What do you tell her now?", ['Seven of ten is convincing: switch', 'It could easily be luck: ask more guests first', 'It shows that guests prefer the old menu'])}
+      ${pick("t2says", "The product manager said: “Seven out of ten! Our users prefer the new design.” What do you say now?", ['Seven of ten is convincing: launch the new design', 'It could easily be luck: test with more users first', 'It shows that users prefer the old design'])}
       ${RO ? "" : `<div><label for="word">The class word. Your teacher gives it when the board is full.</label><input type="text" id="word" data-word value="${S.word ? CLASS_WORD : ""}" style="max-width:12rem" autocomplete="off">${S.word ? `<p class="hint">Correct.</p>` : ""}</div>`}`,
     ok: () => numOK("t2s1") && numOK("t2s2") && numOK("t2s3") && !!S.sim && !!S.a.t2says && S.word, go: "Lock and open ticket 3" },
-  t3a: { mins: "about 3 minutes", html: () => `<h1>Ticket 3: counter or table service?</h1><p>Guests can order at the <b>counter</b> or be served at the <b>table</b>. Table service needs two extra staff. The owner asked 100 guests: “Are you satisfied?”</p>
-      ${owner("“Counter: 35 of 50 guests satisfied, that is 70%. Table service: 25 of 50 satisfied, only 50%. I will close table service and save two salaries. Agreed?”")}${advice("t3first", "What do you advise, from what she has told you?", ["Close table service", "Keep table service", "Not enough to decide"])}`,
-    ok: () => adviceDone("t3first"), go: "Lock our advice and see the guests" },
-  t3b: { mins: "5–7 minutes", html: () => `<h1>Ticket 3: the 100 guests</h1><div class="table-top">${guestsView()}</div>
-      ${S.split || RO ? `${pick("t3ind", "Guests on their own: which service has the larger share satisfied?", ["Counter", "Table service"])}${pick("t3grp", "Guests in a large party: which service has the larger share satisfied?", ["Counter", "Table service"])}${pick("t3where", "Where do most large parties sit?", ["At the counter", "At table service"])}
-      ${advice("t3later", "What do you advise now?", ["Close table service", "Keep table service", "Not enough to decide"])}` : ""}`,
+  t3a: { mins: "about 3 minutes", html: () => `<h1>Ticket 3: supplier A or supplier B?</h1><p>Two suppliers deliver the same component. Last quarter each of them delivered <b>50 orders</b>. The company wants to work with one supplier only.</p>
+      ${owner("“Supplier A: 35 of 50 orders on time, that is 70%. Supplier B: 25 of 50 on time, only 50%. I will drop supplier B and give all orders to A. Agreed?”", SM)}${advice("t3first", "What do you advise, from what the manager has told you?", ["Drop supplier B", "Keep supplier B", "Not enough to decide"])}`,
+    ok: () => adviceDone("t3first"), go: "Lock our advice and see the orders" },
+  t3b: { mins: "5–7 minutes", html: () => `<h1>Ticket 3: the 100 orders</h1><div class="table-top">${guestsView()}</div>
+      ${S.split || RO ? `${pick("t3ind", "Standard orders: which supplier has the larger share on time?", ["Supplier A", "Supplier B"])}${pick("t3grp", "Rush orders: which supplier has the larger share on time?", ["Supplier A", "Supplier B"])}${pick("t3where", "Who gets most of the rush orders?", ["Supplier A", "Supplier B"])}
+      ${advice("t3later", "What do you advise now?", ["Drop supplier B", "Keep supplier B", "Not enough to decide"])}` : ""}`,
     ok: () => !!S.split && !!S.a.t3ind && !!S.a.t3grp && !!S.a.t3where && adviceDone("t3later"), go: "Lock and open ticket 4" },
-  t4: { mins: "5–7 minutes", html: () => `<h1>Ticket 4: which tool?</h1><p>The owner has six more questions for her guest survey. Choose one tool for each. Every tool is used once.</p>
+  t4: { mins: "5–7 minutes", html: () => `<h1>Ticket 4: which tool?</h1><p>The three managers have six more questions. Choose one tool for each. Every tool is used once.</p>
       ${ASKS.map((q, i) => (RO ? `<div class="locked"><b>${i + 1}. ${q}</b>${esc(S.a["t4q" + i] || "")}</div>` : `<div><label for="t4q${i}">${i + 1}. ${q}</label><select id="t4q${i}" data-sel="t4q${i}"><option value="">Choose a tool</option>${TOOLS.map((t) => `<option${S.a["t4q" + i] === t ? " selected" : ""}>${t}</option>`).join("")}</select></div>`)).join("")}`,
     ok: () => ASKS.every((q, i) => !!S.a["t4q" + i]), go: "Lock and write the memo" },
-  memo: { mins: "3–4 minutes", html: () => `<h1>Your memo to the owner</h1><p>You have answered her four tickets. The owner is busy and reads one line. Write the one message she should remember:</p><p>• <b>one piece of advice</b> on what to do now, and<br>• <b>one thing to watch out for</b> whenever she looks at her own numbers.</p>${textQ("memo", "Our memo, in one or two sentences", 3)}`,
+  memo: { mins: "3–4 minutes", html: () => `<h1>Your memo to the managers</h1><p>You have answered their four tickets. Managers are busy and read one line. Write the one message they should remember:</p><p>• <b>one piece of advice</b> on what to do now, and<br>• <b>one thing to watch out for</b> whenever they look at their own numbers.</p>${textQ("memo", "Our memo, in one or two sentences", 3)}`,
     ok: () => textOK("memo"), go: "Finish" },
 };
 /* ---------- instant feedback: shown after a step is locked, never before ---------- */
@@ -280,20 +281,20 @@ const line = (ok, t) => `<p class="fbline"><b class="${ok ? "ok" : "no"}">${ok ?
 const FB = {
   t1a: () => ({ n: 1, max: 1, quick: "Advice locked. Now look at the data." }),
   t2a: () => ({ n: 1, max: 1, quick: "Guess locked. Now test it with cards." }),
-  t3a: () => ({ n: 1, max: 1, quick: "Advice locked. Now look at the guests." }),
-  memo: () => ({ n: 1, max: 1, quick: "Memo written. The owner has her answer." }),
+  t3a: () => ({ n: 1, max: 1, quick: "Advice locked. Now look at the orders." }),
+  memo: () => ({ n: 1, max: 1, quick: "Memo written. The managers have their answer." }),
   t1b: () => { const A = S.a, a = Number(A.t1mnew) === 3, b = Number(A.t1mold) === 4;
-    const adv = A.t1later === "Switch to the new menu" ? "You still advise switching. Six of the ten new-menu guests answered 3, below the typical old-menu guest. Bring your reasons to the class discussion."
-      : A.t1first === "Switch to the new menu" ? "You changed your advice when you saw the picture. That is what looking at the data is for." : "Your advice held when you saw the picture.";
-    return { n: 1 + a + b, max: 3, title: "Ticket 1 closed", html: line(a, `New menu, the middle guest: you wrote ${esc(A.t1mnew)}. It is <b>3</b> (somewhat dissatisfied).`) + line(b, `Old menu, the middle guest: you wrote ${esc(A.t1mold)}. It is <b>4</b> (neither).`)
-      + `<p>Six new-menu guests answered 3 and four answered 7. <b>Nobody is near the average of 4.6.</b> An average can describe a guest who does not exist, so look at the picture first.</p><p>${adv}</p>` }; },
+    const adv = A.t1later === "Roll out the new process" ? "You still advise the roll-out. Six of the ten customers of the new process answered 3, below the typical customer of the old process. Bring your reasons to the class discussion."
+      : A.t1first === "Roll out the new process" ? "You changed your advice when you saw the picture. That is what looking at the data is for." : "Your advice held when you saw the picture.";
+    return { n: 1 + a + b, max: 3, title: "Ticket 1 closed", html: line(a, `New process, the middle customer: you wrote ${esc(A.t1mnew)}. It is <b>3</b> (somewhat dissatisfied).`) + line(b, `Old process, the middle customer: you wrote ${esc(A.t1mold)}. It is <b>4</b> (neither).`)
+      + `<p>Six customers of the new process answered 3 and four answered 7. <b>Nobody is near the average of 4.6.</b> An average can describe a customer who does not exist, so look at the picture first.</p><p>${adv}</p>` }; },
   t2b: () => { const A = S.a, g = (A.t2guess || "").startsWith("Fairly often"), t = (A.t2says || "").includes("luck"), k = [A.t2s1, A.t2s2, A.t2s3].filter((v) => Number(v) >= 7).length;
     return { n: 1 + g + t, max: 3, title: "Ticket 2 closed", html: line(g, `Your guess: “${esc(A.t2guess)}”. Luck alone gives 7 or more in about <b>17 of 100</b> rounds. ${g ? "" : "Most people guess lower."}`)
-      + `<p class="fbline"><b class="ok">✓</b><span>Your three rounds: ${k} of 3 showed 7 or more.</span></p>` + line(t, `You tell her: “${esc(A.t2says)}”.`)
+      + `<p class="fbline"><b class="ok">✓</b><span>Your three rounds: ${k} of 3 showed 7 or more.</span></p>` + line(t, `You say: “${esc(A.t2says)}”.`)
       + `<p>Seven of ten is what luck does about <b>one time in six</b>. A result counts as evidence when luck would rarely produce it; the usual limit is 5 times in 100. That number is the <b>p-value</b>.</p>` }; },
-  t3b: () => { const A = S.a, a = A.t3ind === "Table service", b = A.t3grp === "Table service", c = A.t3where === "At table service";
-    return { n: 0 + a + b + c, max: 3, title: "Ticket 3 closed", html: line(a, "Guests on their own: table service wins, 90% against 80%.") + line(b, "Large parties: table service wins, 40% against 30%.") + line(c, "Most large parties sit at table service: 40 of 50.")
-      + `<p>Table service is better for <b>both</b> kinds of guest and still looks worse overall. Large parties are harder to please, and table service gets most of them. <b>A third variable can turn a comparison around.</b></p>` }; },
+  t3b: () => { const A = S.a, a = A.t3ind === "Supplier B", b = A.t3grp === "Supplier B", c = A.t3where === "Supplier B";
+    return { n: 0 + a + b + c, max: 3, title: "Ticket 3 closed", html: line(a, "Standard orders: supplier B wins, 90% against 80%.") + line(b, "Rush orders: supplier B wins, 40% against 30%.") + line(c, "Supplier B gets most of the rush orders: 40 of 50.")
+      + `<p>Supplier B is better on <b>both</b> types of order and still looks worse overall. Rush orders are harder to deliver on time, and supplier B gets most of them. <b>A third variable can turn a comparison around.</b></p>` }; },
   t4: () => { const right = KEYS4.map((k, i) => S.a["t4q" + i] === TOOLS[k]), r = right.filter(Boolean).length;
     return { n: Math.floor(r / 2), max: 3, title: "Ticket 4 closed: " + r + " of 6", html: ASKS.map((q, i) => line(right[i], `${i + 1}. ${q} <b>${TOOLS[KEYS4[i]]}</b>`)).join("")
       + `<p>The choice follows from two things: what kind of variable the outcome is, and how many groups or predictors you compare.</p>` }; },
@@ -315,33 +316,33 @@ const FIELDS = () => {
 function formLink() { const f = FIELDS(); let u = FORM_URL; for (let i = f.length; i >= 1; i--) u = u.replace(new RegExp("=Q" + i + "(?=&|$)"), "=" + encodeURIComponent(f[i - 1])); return u; }
 function notesText() {
   const A = S.a, s = (k) => (A[k + "Sure"] == null ? "" : " (" + A[k + "Sure"] + "% sure)");
-  return ["The Owner's Inbox, Session 3: group " + S.group, "", "TICKET 1: the new menu", "First advice: " + (A.t1first || "") + s("t1first"), "Middle score, new menu: " + A.t1mnew + ", old menu: " + A.t1mold, "Advice after the data: " + (A.t1later || "") + s("t1later"), "",
-    "TICKET 2: luck or real?", "Our guess: " + A.t2guess, "Guests who picked the new menu in our three rounds: " + [A.t2s1, A.t2s2, A.t2s3].join(", "), "What we tell her: " + (A.t2says || ""), "", "TICKET 3: counter or table service?", "First advice: " + (A.t3first || "") + s("t3first"),
-    "Guests on their own: " + (A.t3ind || "") + " wins. Large parties: " + (A.t3grp || "") + " wins. Most large parties sit: " + (A.t3where || ""), "Advice after the split: " + (A.t3later || "") + s("t3later"), "", "TICKET 4: which tool?"].concat(ASKS.map((q, i) => (i + 1) + ". " + q + " " + (A["t4q" + i] || ""))).concat(["", "OUR MEMO", A.memo || ""]).join("\n");
+  return ["The Inbox, Session 3: group " + S.group, "", "TICKET 1: the new returns process", "First advice: " + (A.t1first || "") + s("t1first"), "Middle rating, new process: " + A.t1mnew + ", old process: " + A.t1mold, "Advice after the data: " + (A.t1later || "") + s("t1later"), "",
+    "TICKET 2: luck or real?", "Our guess: " + A.t2guess, "Users who picked the new design in our three rounds: " + [A.t2s1, A.t2s2, A.t2s3].join(", "), "What we say: " + (A.t2says || ""), "", "TICKET 3: supplier A or supplier B?", "First advice: " + (A.t3first || "") + s("t3first"),
+    "Standard orders: " + (A.t3ind || "") + " wins. Rush orders: " + (A.t3grp || "") + " wins. Most rush orders go to: " + (A.t3where || ""), "Advice after the split: " + (A.t3later || "") + s("t3later"), "", "TICKET 4: which tool?"].concat(ASKS.map((q, i) => (i + 1) + ". " + q + " " + (A["t4q" + i] || ""))).concat(["", "OUR MEMO", A.memo || ""]).join("\n");
 }
 function endView() {
   const A = S.a, row = (l, a, b) => `<tr><th>${l}</th><td>${esc(a || "")}</td><td>${esc(b || "")}</td></tr>`, s = (k) => (A[k + "Sure"] == null ? "" : " (" + A[k + "Sure"] + "%)");
   const n = starTotal(), rank = n >= 14 ? "Head of the data desk" : n >= 10 ? "Senior analyst" : "Analyst";
   return `<h1>Your case file</h1><div class="rank">${stars(n, STAR_MAX)}<b>${rank}</b>${n} of ${STAR_MAX} stars. Good job: all four tickets are answered.</div><p>The class looks at them together after the break.</p>
     <div class="recap-wrap"><table class="recap"><tr><th></th><th>First advice</th><th>After the data</th></tr>${row("Ticket 1", A.t1first + s("t1first"), A.t1later + s("t1later"))}${row("Ticket 3", A.t3first + s("t3first"), A.t3later + s("t3later"))}</table></div>
-    <div class="locked"><b>Ticket 2</b>Our guess: ${esc(A.t2guess)}. Our three rounds: ${esc([A.t2s1, A.t2s2, A.t2s3].join(", "))} of 10 picked the new menu. We tell her: ${esc(A.t2says)}.</div><div class="locked"><b>Our memo</b>${esc(A.memo)}</div>
+    <div class="locked"><b>Ticket 2</b>Our guess: ${esc(A.t2guess)}. Our three rounds: ${esc([A.t2s1, A.t2s2, A.t2s3].join(", "))} of 10 picked the new design. We say: ${esc(A.t2says)}.</div><div class="locked"><b>Our memo</b>${esc(A.memo)}</div>
     <div class="sendbox stack">${FORM_URL ? `<p><b>Last step: send your case file.</b> The button opens a form with your answers filled in. Scroll down and press <b>Submit</b>.</p><p><a class="go" href="${esc(formLink())}" target="_blank" rel="noopener" data-sent>Open the form with our answers</a></p>${S.sent ? `<p class="hint">Opened. If you pressed Submit in the form, you are done.</p>` : ""}`
       : `<p><b>Last step: keep your case file.</b></p><p><button type="button" class="go" data-copy>Copy our case file</button></p><p class="hint" id="copied"></p>`}</div>`;
 }
 function teacher() {
-  return `<h1>The Owner's Inbox: teacher view</h1><p class="hint">Remove #facilitator from the address to see the page as participants do.</p>
+  return `<h1>The Inbox: teacher view</h1><p class="hint">Remove #facilitator from the address to see the page as participants do.</p>
   <div class="card stack"><h2>Before the lab</h2><p><b>Per pair or group of three:</b> one laptop with JASP if possible, and a pile of playing cards with as many red as black cards. A full deck per group is best; half a deck (13 red, 13 black) also works.</p><p><b>On the board:</b> the numbers 0 to 10 in a row, with room for crosses above each.</p><p><b>Class word</b> for opening ticket 3: <b>${CLASS_WORD}</b>. Give it when most groups have put their three crosses on the board.</p><p><b>Time:</b> 30–40 minutes for the four tickets and the memo.</p><p><b>Feedback and stars:</b> after each ticket is locked, the page shows what the data said, with up to three stars, 16 in all. Nothing is shown before the group has committed. The stars are for motivation and are not a grade.</p></div>
   <div class="card stack"><h2>What to do at each ticket</h2>
-    <p><b>Ticket 1 (8–10 minutes).</b> Walk around. Ask one question only: “How many guests gave a rating near 4.6?” Do not say more.</p>
-    <p><b>Ticket 2 (10–12 minutes).</b> Hand out the cards. Say once: “Ten cards are ten guests with no preference. Red picks the new menu. Count the red ones.” Watch the board fill: it grows into a hill around 5. Circle columns 7 to 10 and count the crosses there aloud: “so many of so many shuffles”. Then give the class word.</p>
-    <p><b>Ticket 3 (9–11 minutes).</b> Groups press “Split the guests” themselves. If a group is puzzled by the result, ask: “Who sits at table service?”</p>
+    <p><b>Ticket 1 (8–10 minutes).</b> Walk around. Ask one question only: “How many customers gave a rating near 4.6?” Do not say more.</p>
+    <p><b>Ticket 2 (10–12 minutes).</b> Hand out the cards. Say once: “Ten cards are ten users with no preference. Red picks the new design. Count the red ones.” Watch the board fill: it grows into a hill around 5. Circle columns 7 to 10 and count the crosses there aloud: “so many of so many shuffles”. Then give the class word.</p>
+    <p><b>Ticket 3 (9–11 minutes).</b> Groups press “Split the orders” themselves. If a group is puzzled by the result, ask: “Who gets the rush orders?”</p>
     <p><b>Ticket 4 and the memo (8–11 minutes).</b> No help. The answers come in round 4.</p></div>
   <div class="card stack"><h2>Answer key</h2><table class="keytable"><tr><th>Ticket</th><th>What groups find</th><th>What it means</th></tr>
-    <tr><td>1. The new menu</td><td>The middle guest: new menu 3 (somewhat dissatisfied), old menu 4 (neither). New menu: six guests at 3 and four at 7 (very satisfied), nobody near 4.6.</td><td>The average describes a guest who does not exist. Look at the distribution before quoting an average.</td></tr>
-    <tr><td>2. Luck or real?</td><td>With ten guests who have no preference, luck alone gives the new menu 7 or more in about 17 of 100 rounds (the third option of the guess).</td><td>This is what a p-value answers: how often would luck alone give a result like this one? With 27 crosses on the board, expect four or five at 7 or more; with half decks, slightly fewer.</td></tr>
-    <tr><td>3. Counter or table?</td><td>Guests on their own: counter 32 of 40 (80%), table service 9 of 10 (90%). Large parties: counter 3 of 10 (30%), table service 16 of 40 (40%). Most large parties sit at table service.</td><td>Table service wins in both kinds of guest and loses overall (50% against 70%), because large parties are harder to please and four of five of them sit at table service. A third variable can reverse a comparison.</td></tr>
+    <tr><td>1. The returns process</td><td>The middle customer: new process 3 (somewhat dissatisfied), old process 4 (neither). New process: six customers at 3 and four at 7 (very satisfied), nobody near 4.6.</td><td>The average describes a customer who does not exist. Look at the distribution before quoting an average.</td></tr>
+    <tr><td>2. Luck or real?</td><td>With ten users who have no preference, luck alone gives the new design 7 or more in about 17 of 100 rounds (the third option of the guess).</td><td>This is what a p-value answers: how often would luck alone give a result like this one? With 27 crosses on the board, expect four or five at 7 or more; with half decks, slightly fewer.</td></tr>
+    <tr><td>3. Supplier A or B?</td><td>Standard orders: A 32 of 40 on time (80%), B 9 of 10 (90%). Rush orders: A 3 of 10 (30%), B 16 of 40 (40%). Supplier B gets most of the rush orders.</td><td>Supplier B wins on both types of order and loses overall (50% against 70%), because rush orders are harder to deliver on time and four of five of them go to B. A third variable can reverse a comparison.</td></tr>
     <tr><td>4. Which tool?</td><td colspan="2">${ASKS.map((q, i) => (i + 1) + ". " + TOOLS[KEYS4[i]]).join(" · ")}</td></tr></table></div>
-  <div class="card stack"><h2>What it means for the owner</h2><p><b>Ticket 1:</b> do not switch for good; six of ten guests liked the new menu less.</p><p><b>Ticket 2:</b> seven of ten is not yet evidence; luck does it about one time in six. She should ask more guests: 70 of 100 would be convincing.</p><p><b>Ticket 3:</b> keep table service; it satisfies a larger share of both kinds of guest. Its low overall number comes from serving the large parties, who are harder to please.</p></div>`;
+  <div class="card stack"><h2>What it means for the managers</h2><p><b>Ticket 1 (quality):</b> do not roll out yet; six of ten customers were less satisfied with the new process. Find out what split them into two camps.</p><p><b>Ticket 2 (innovation):</b> seven of ten is not yet evidence; luck does it about one time in six. Test with more users: 70 of 100 would be convincing.</p><p><b>Ticket 3 (supply chain):</b> keep supplier B; it is on time more often on both types of order. If B is dropped, the rush orders go to the supplier that delivers 30% of them on time.</p></div>`;
 }
 
 /* ---------- drawing and events ---------- */
@@ -357,7 +358,7 @@ function render() {
     foot = S.at < furthest ? `<div class="lookbar"><span>Locked. You are looking back.</span><button type="button" class="go" data-fwd>Forward</button></div>`
       : locked ? `<p><button type="button" class="go" data-cont>Continue</button></p>` : `<p><button type="button" class="go" data-next ${st.ok() ? "" : "disabled"}>${st.go}</button></p>`;
     if (S.at > 0 && !(locked && S.at === furthest)) foot += `<p><button type="button" class="go secondary" data-back>Back</button></p>`; }
-  app.innerHTML = `<header class="top"><span class="brand">The Owner's Inbox</span><span class="where">${NAMES[id]}${S.group ? " · group " + esc(S.group) : ""}</span></header>${track}<div class="stack">${body}${foot}</div>`;
+  app.innerHTML = `<header class="top"><span class="brand">The Inbox</span><span class="where">${NAMES[id]}${S.group ? " · group " + esc(S.group) : ""}</span></header>${track}<div class="stack">${body}${foot}</div>`;
   if (S.group) { const b = document.createElement("div"); b.className = "starbadge"; b.textContent = "★ " + starTotal() + " / " + STAR_MAX; document.body.appendChild(b); }
 }
 function refreshNext() { const b = app.querySelector("[data-next]"); if (b) b.disabled = !STEP[SCREENS[S.at]].ok(); }
