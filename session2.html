@@ -181,7 +181,36 @@ details.slip summary { font-weight: 700; cursor: pointer; }
 <main id="app"></main>
 <script>
 const AMOUNTS = [125, 380, 100, 120, 140, 140, 135, 130, 100, 410, 125, 480, 110, 120, 260, 130, 110, 270, 115, 250, 135, 600, 440, 640, 145, 95, 260, 140, 115, 125, 115, 135, 100, 200, 135, 140, 130, 95, 115, 520, 140, 105, 130, 100, 100, 220, 135, 130, 140, 190, 110, 130, 115, 95, 135, 130, 125, 270, 125, 145, 140, 280, 120, 210, 140, 135, 280, 135, 200, 210, 260, 130, 135, 100, 290, 120, 290, 145, 140, 115, 130, 190, 100, 145, 120, 125, 100, 145, 125, 560, 135, 290, 125, 260, 270, 100, 220, 120, 270, 120];
-const TRUE_MEAN = AMOUNTS.reduce((a, b) => a + b, 0) / AMOUNTS.length;
+/* Part 2: the 100 firms on the list. FIRM_U: 1 = uses AI in its daily operations. FIRM_A: 1 = answered the email survey. Invented data. */
+const FIRM_U = "0000000011000100100111111001100111000111011101100001100110100100001011111100000010100011010010100101", FIRM_A = "0100011001000100101110011001000101100101011101000001100100000100000010000100011010100011010110100001";
+const FIRMS = Array.from({ length: 100 }, (x, i) => i), USES = (i) => FIRM_U[i] === "1", ANSW = (i) => FIRM_A[i] === "1";
+const TRUE_MEAN = FIRMS.filter(USES).length; /* 45 of the 100 firms use AI: a count and a percentage at once */
+const N_ANS = FIRMS.filter(ANSW).length, ANS_YES = FIRMS.filter((i) => ANSW(i) && USES(i)).length, CLAIM = Math.round(100 * ANS_YES / N_ANS);
+const SIL_YES = TRUE_MEAN - ANS_YES, N_SIL = 100 - N_ANS;
+(function () { const st = document.createElement("style"); st.textContent = `
+.receipts { min-width: 0; gap: 3px; } .rc { padding: 4px 0 5px; font-size: 13px; min-width: 0; }
+.rc.ans { background: var(--note); border-color: var(--note-line); }
+.rc.on { background: var(--accent); border-color: var(--accent); }
+.rc.yes { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; } .rc.yes small { color: var(--accent-ink); }
+.rc.no { background: var(--line); font-weight: 700; }
+.rc.mine { border-color: var(--ink); border-width: 3px; padding: 4px 1px 5px; }
+.rc.drawn { border-color: var(--hot); box-shadow: 0 0 0 2px var(--hot); }
+.reveal { text-align: center; }
+.bignum b { font-family: var(--display); font-size: 84px; line-height: 1; display: block; color: var(--hot); font-variant-numeric: tabular-nums; }
+.bignum.after b { color: var(--accent); }
+.bignum span { display: block; font-weight: 700; margin-top: 2px; }
+.fgroups { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; margin: 14px 0 6px; text-align: left; }
+.fgrid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 3px; }
+.ft { display: grid; place-items: center; aspect-ratio: 1; border-radius: 5px; font-style: normal; font-size: 11px; font-weight: 700; }
+.ft.yes { background: var(--accent); color: var(--accent-ink); } .ft.no { background: var(--line); color: var(--muted); }
+.ft.q { border: 2px dashed var(--muted); color: var(--muted); background: var(--surface); }
+@keyframes ftflip { 0% { transform: rotateY(90deg) scale(.6); opacity: 0; } 100% { transform: none; opacity: 1; } }
+.ft.flip { animation: ftflip .45s ease-out both; }
+@media (prefers-reduced-motion: reduce) { .ft.flip { animation: none; } }
+.nline .dot.eye { width: 16px; height: 16px; }
+.nline .truth.claim { background: repeating-linear-gradient(var(--hot) 0 5px, transparent 5px 8px); }
+.key.cl { width: 3px; background: repeating-linear-gradient(var(--hot) 0 4px, transparent 4px 6px); }
+`; document.head.appendChild(st); })();
 const LUNCHES = 25000;
 const KEY = "casefiles-s2-v1";
 /* Paste the pre-filled Microsoft Forms link here (dummy answers Q1 ... Q28). Empty = offer "Copy our case file" instead. */
@@ -214,7 +243,8 @@ const seconds = (from, to) => (S.t[from] && S.t[to] ? Math.max(1, Math.round((S.
 function checkCode(list) { let h = 5381; for (const c of list.join("|")) h = (h * 33 + c.charCodeAt(0)) % 2147483647; return h.toString(36).toUpperCase(); }
 const clean = (v) => (v == null ? "" : String(v)).replace(/\s+/g, " ").replace(/"/g, "'").trim();
 const mean = (list) => (list.length ? list.reduce((a, b) => a + b, 0) / list.length : 0);
-const eyeMean = () => Math.round(mean(S.eye.map((i) => AMOUNTS[i])));
+const eyeMean = () => 10 * S.eye.filter(USES).length; /* the group's own ten calls: share that uses AI, in % */
+const eyeAns = () => S.eye.filter(ANSW).length;
 const kr = (n) => Math.round(n) + " kr";
 const sek = (n) => "SEK " + String(Math.round(Math.abs(n) / 1000) * 1000).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 const CC = ["n1", "n2", "a1", "a2", "b1", "b2", "c1", "c2"];
@@ -258,7 +288,7 @@ const LINK_BUDGET = 6000;
 const FIELDS = () => {
   const cc = S.cw ? "Shown on the big screen; the teacher keeps the counts" : "";
   const f = [S.group, S.salt, S.a.p1diff, S.a.predA, S.a.predB, S.a.predC, S.a.predSure, cc, S.a.p1see, S.a.p1advice,
-    S.eye.map((i) => i + 1).join(" "), S.eye.length === 10 ? eyeMean() : "", S.a.close, S.a.closeSure, S.draws.map((d) => d.mean).join(" "), S.a.p2see, S.a.p2compare, S.a.method, S.a.methodSure,
+    S.eye.map((i) => i + 1).join(" "), S.a.est == null ? "" : S.a.est, S.a.close, S.a.closeSure, S.draws.map((d) => d.mean).join(" "), S.a.p2see, S.a.p2compare, S.a.method, S.a.methodSure,
     minutes("p1a", "p2a"), minutes("p2a", "end"), seconds("p1a", "fetch-p1c"), seconds("p2a", "fetch-p2b"), seconds("fetch-p1c", "opened-p1c"), seconds("fetch-p2b", "opened-p2b"), seconds("fetch-p2c", "opened-p2c"),
     (S.tries.p1c || 0) + (S.tries.p2b || 0) + (S.tries.p2c || 0)].map(clean);
   const size = () => f.reduce((n, v) => n + encodeURIComponent(v).length, 0);
@@ -304,7 +334,7 @@ function formView(form, live) {
     ${it.extra ? (live ? `<p style="margin-top:8px"><label for="times" style="display:inline;font-weight:400">In your answer, "regularly" means at least </label><input id="times" type="text" inputmode="numeric" maxlength="2" style="width:64px;display:inline-block" value="${esc(S.sv.times == null ? "" : S.sv.times)}"> times a month.</p>` : `<p class="small">In your answer, "regularly" means at least ___ times a month.</p>`) : ""}</div>`).join("");
 }
 function slipView(count) {
-  if (!S.handed) return `<p class="small">This device has no survey slip. If you answered on another device, look at that one.</p>`;
+  if (!S.handed) return `<p class="small">This device has no survey slip. Your slip is on the device where you answered the survey, for example your phone: look at that one.</p>`;
   const rows = surveyItems(S.form).map((it, n) => `<tr><td>${n + 1}. ${it.q}</td><td><b>${esc(S.sv[it.k])}</b>${it.extra ? "<br>at least " + esc(S.sv.times) + " times a month" : ""}</td></tr>`).join("");
   const A = S.form === 1, yes = (b) => (b ? '<span class="do">stand up</span>' : "stay seated");
   const stand = count ? `<div class="locked"><b>For the class count: what you do when your teacher calls form LS-${S.form}</b>
@@ -346,43 +376,78 @@ function barsFor(c, withPrediction) {
     ${withPrediction && !follower() && S.a[pk] ? `<p class="small">Your prediction: ${esc(S.a[pk])}</p>` : ""}</div>`).join("")}</div>`;
 }
 function countBars() { return ccOk() ? barsFor(S.cc, true) : ""; }
-function receiptGrid(mode) { /* mode: "pick" (scribe chooses), "show" (read only), "draw" (latest lottery draw highlighted) */
-  const last = S.draws.length ? S.draws[S.draws.length - 1].idx : [];
-  return `<div class="table-top"><p class="rowlabel">Last Tuesday's 100 lunch receipts, in kronor.${mode === "draw" ? " Framed in red: the latest lottery draw." : mode === "pick" ? " Tap to choose; tap again to undo." : ""}</p><div class="receipts">${AMOUNTS.map((amt, i) => {
-    const on = mode === "draw" ? last.includes(i) : S.eye.includes(i);
-    return `<button type="button" class="rc${on ? (mode === "draw" ? " drawn" : " on") : ""}" ${mode === "pick" ? `data-rc="${i}"` : "disabled"}><small>${i + 1}</small>${amt}</button>`;
+let JUSTREV = false;
+function firmGrid(mode) { /* "pick": the scribe chooses ten firms to phone; "show": read only; "calls": the group's ten and every lottery draw have been phoned, the latest draw is framed */
+  const last = S.draws.length ? S.draws[S.draws.length - 1].idx : [], known = new Set(mode === "calls" ? S.eye.concat(...S.draws.map((d) => d.idx)) : []);
+  const label = mode === "pick" ? " Tap ten firms to phone; tap again to undo." : mode === "calls" ? " AI = uses AI. no = does not. Thick frame: your ten calls. Red frame: the latest lottery." : "";
+  return `<div class="table-top"><p class="rowlabel">The 100 firms on the list. Yellow with ✉ = answered the email survey (${N_ANS} firms). White = stayed silent (${N_SIL} firms).${label}</p><div class="receipts">${FIRMS.map((i) => {
+    const k = known.has(i), mine = S.eye.includes(i);
+    const cls = (ANSW(i) ? " ans" : "") + (mode !== "calls" && mine ? " on" : "") + (k ? (USES(i) ? " yes" : " no") : "") + (mode === "calls" && mine ? " mine" : "") + (mode === "calls" && last.includes(i) ? " drawn" : "");
+    return `<button type="button" class="rc${cls}" ${mode === "pick" ? `data-rc="${i}"` : "disabled"}><small>${i + 1}</small>${k ? (USES(i) ? "AI" : "no") : ANSW(i) ? "✉" : "&nbsp;"}</button>`;
   }).join("")}</div></div>`;
 }
-function numberLine(showTruth) {
-  const lo = 80, hi = 320, pos = (v) => Math.max(0, Math.min(100, (v - lo) / (hi - lo) * 100));
-  const marks = S.draws.map((d) => `<i class="dot lot" style="left:${pos(d.mean)}%" title="${d.mean}"></i>`).join("") + (S.eye.length === 10 && !follower() ? `<i class="dot eye" style="left:${pos(eyeMean())}%"></i>` : "")
-    + (showTruth ? `<i class="truth" style="left:${pos(TRUE_MEAN)}%"></i>` : "");
-  return `<div class="nline"><div class="axis">${marks}</div><div class="ticks"><span>100 kr</span><span>150</span><span>200</span><span>250</span><span>300 kr</span></div>
-    <p class="small"><i class="key eye"></i> by eye &nbsp; <i class="key lot"></i> lottery draws${showTruth ? ' &nbsp; <i class="key tr"></i> all 100 receipts' : ""}</p></div>`;
+function truthReveal() { /* envelope 3: first the 38 answers, then one button that lets the 62 silent firms speak */
+  const done = !!S.rev || RO, by = (a, b) => Number(USES(b)) - Number(USES(a));
+  const ans = FIRMS.filter(ANSW).sort(by), sil = FIRMS.filter((i) => !ANSW(i)).sort(by);
+  const tile = (i, known, k) => `<i class="ft ${known ? (USES(i) ? "yes" : "no") : "q"}${known && JUSTREV && !ANSW(i) ? " flip" : ""}"${known && JUSTREV && !ANSW(i) ? ` style="animation-delay:${k * 32}ms"` : ""}>${known ? (USES(i) ? "AI" : "–") : "?"}</i>`;
+  return `<div class="reveal"><div class="bignum${done ? " after" : ""}"><b id="bigshare">${done && !JUSTREV ? TRUE_MEAN : CLAIM}%</b><span id="bigcap">${done && !JUSTREV ? "of all 100 firms use AI" : `of the ${N_ANS} firms that answered use AI`}</span></div>
+    <div class="fgroups"><div><p class="rowlabel">The ${N_ANS} that answered</p><div class="fgrid">${ans.map((i, k) => tile(i, true, k)).join("")}</div><p class="small"><b>${ANS_YES} of ${N_ANS}</b> use AI: ${CLAIM}%</p></div>
+      <div><p class="rowlabel">The ${N_SIL} that stayed silent</p><div class="fgrid">${sil.map((i, k) => tile(i, done, k)).join("")}</div><p class="small">${done ? `<b>${SIL_YES} of ${N_SIL}</b> use AI: ${Math.round(100 * SIL_YES / N_SIL)}%` : "Nobody has asked them yet."}</p></div></div>
+    ${done ? `<p class="small" style="text-align:left">Blue "AI" = uses AI. Grey "–" = does not. <b>Two of three AI users answered the survey. Only one of seven non-users did.</b></p>`
+      : `<p><button type="button" class="go" data-rev>Now hear the ${N_SIL} silent firms</button></p><p class="small">Maja and Arvid's supervisor made them phone every firm that had not answered.</p>`}</div>`;
 }
-function budget(est, label) {
-  const diff = (est - TRUE_MEAN) * LUNCHES;
-  return `<div class="stat">${label}: <b>${kr(est)}</b>${Math.abs(est - TRUE_MEAN) < 2 ? "Within 2 kr of the average of all 100 receipts" : `${kr(Math.abs(est - TRUE_MEAN))} ${est > TRUE_MEAN ? "above" : "below"} the average of all 100. Over ${LUNCHES.toLocaleString("en")} lunches, the yearly budget would be about ${sek(diff)} too ${est > TRUE_MEAN ? "high" : "low"}`}.</div>`;
+function numberLine(showTruth) { /* 0 to 100%: the 38 answers, the group's ten calls, its lotteries and, at the end, all 100 firms */
+  const seen = {}, lots = S.draws.map((d) => { const l = (seen[d.mean] = (seen[d.mean] || 0) + 1) - 1; return { v: d.mean, l }; }), top = Math.max(0, ...lots.map((d) => d.l));
+  const marks = lots.map((d) => `<i class="dot lot" style="left:${d.v}%;bottom:${4 + d.l * 15}px" title="${d.v}%"></i>`).join("")
+    + (S.eye.length === 10 && !follower() && S.at >= SCREENS.indexOf("p2b") ? `<i class="dot eye" style="left:${eyeMean()}%;bottom:${4 + ((seen[eyeMean()] || 0)) * 15}px"></i>` : "")
+    + `<i class="truth claim" style="left:${CLAIM}%"></i>` + (showTruth ? `<i class="truth" style="left:${TRUE_MEAN}%"></i>` : "");
+  return `<div class="nline"><div class="axis" style="height:${40 + (top + 1) * 15}px">${marks}</div><div class="ticks" style="padding:2px 0 0"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+    <p class="small">Share of firms that use AI. &nbsp; <i class="key cl"></i> the ${N_ANS} answers: ${CLAIM}% &nbsp; <i class="key eye"></i> your ten calls &nbsp; <i class="key lot"></i> your lotteries${showTruth ? ' &nbsp; <i class="key tr"></i> all 100 firms: ' + TRUE_MEAN + "%" : ""}</p></div>`;
+}
+function ownRead() { /* shown after envelope 3: reads the group's own numbers, whatever they are */
+  if (S.eye.length !== 10 || !S.draws.length) return "";
+  const r = eyeAns(), x = eyeMean() / 10, ms = S.draws.map((d) => d.mean / 10), closer = S.draws.filter((d) => Math.abs(d.mean - TRUE_MEAN) < Math.abs(CLAIM - TRUE_MEAN)).length;
+  const mix = r <= 1 ? `You phoned ${r === 0 ? "only" : "almost only"} firms that had stayed silent, and <b>${x} of your 10</b> use AI. That is what the silent firms look like: very different from the ${N_ANS} that answered.`
+    : r >= 8 ? `You phoned ${r === 10 ? "only" : "mostly"} firms that had already answered, and <b>${x} of your 10</b> use AI. You heard the story of the ${N_ANS} once more.`
+    : `You phoned ${r} firms that had answered and ${10 - r} that had stayed silent, and <b>${x} of your 10</b> use AI.`;
+  return `<div class="card stack"><h3 style="margin:0">So what? How to read your numbers</h3>
+    <p><b>1. Your ten calls.</b> ${mix} On the whole list, about 4 of every 10 firms answered and 6 stayed silent: whom you phone decides what you hear.</p>
+    <p><b>2. Your five lotteries.</b> They gave ${ms.join(", ")} of 10. <b>${closer} of the five</b> came closer to ${TRUE_MEAN}% than the ${N_ANS} answers did. A lottery does not ask who answered: every firm has the same chance.</p>
+    <p><b>3. Your estimate.</b> Before the calls you said <b>${esc(S.a.est)} of 100</b>. The ${N_ANS} answers said ${CLAIM}; all 100 firms say ${TRUE_MEAN}. A number that is given first tends to pull later guesses towards it.</p></div>`;
+}
+function lesson2() { /* last screen only, after both parts are locked */
+  return `<div class="card stack"><h2>What Part 2 shows</h2>
+    <p><b>The one idea:</b> a survey describes the ones who answered. Whether they resemble the ones who stayed silent is another question, and the number alone cannot answer it.</p>
+    <p><b>1. Who answers is not chance.</b> Firms with something to show were glad to answer: two of three AI users did, and only one of seven non-users. So ${ANS_YES} of ${N_ANS} answers said yes, while ${TRUE_MEAN} of all 100 firms use AI.</p>
+    <p><b>2. More of the same does not help.</b> The same survey sent to 1,000 more firms would most likely give about ${CLAIM}% again: more answers, the same lean.</p>
+    <p><b>3. Ten firms chosen by lottery, and phoned until they answer, beat ${N_ANS} that volunteered.</b> About 8 of 10 such lotteries land between 3 and 6 of 10. Only about 2 in 100 land as high as 8 of 10.</p>
+    <div class="locked"><b>For Maja and Arvid</b>Write "${CLAIM}% of the ${N_ANS} firms that answered", say that ${N_SIL} did not answer, and phone a lottery sample of the silent firms before saying anything about all firms. Their case company is not behind: fewer than half of the firms use AI.</div>
+    <p><b>The two parts together:</b> Part 1 was about <b>how you ask</b>. Part 2 is about <b>who answers</b>. Either one can change a result without anyone noticing.</p></div>`;
 }
 function notesText() {
   const A = S.a;
   return ["The Lunch Survey, Session 2: " + S.group, "", "PART 1: the two forms", "Differences we found: " + (A.p1diff || ""), "Our predictions: prices " + (A.predA || "") + "; screen time " + (A.predB || "") + "; satisfaction " + (A.predC || "") + " (" + (A.predSure == null ? "" : A.predSure) + "% sure)",
     S.cw ? "Class count: shown on the big screen" : "", "What we saw: " + (A.p1see || ""), "Our advice to the owner: " + (A.p1advice || ""), "",
-    "PART 2: ten receipts", "By eye: " + (S.eye.length === 10 ? eyeMean() + " kr" : ""), "How close we thought it was: " + (A.close || "") + " (" + (A.closeSure == null ? "" : A.closeSure) + "% sure)", "Lottery averages: " + S.draws.map((d) => d.mean + " kr").join(", "), "All 100 receipts: " + Math.round(TRUE_MEAN) + " kr",
-    "What we saw: " + (A.p2see || ""), "The two methods: " + (A.p2compare || ""), "Our advice: " + (A.method || "") + " (" + (A.methodSure == null ? "" : A.methodSure) + "% sure)"].join("\n");
+    "PART 2: eight in ten", "Our first advice on the sentence: " + (A.close || "") + " (" + (A.closeSure == null ? "" : A.closeSure) + "% sure)", "Our estimate: " + (A.est == null ? "" : A.est) + " of the 100 firms use AI", "Our ten calls: " + (S.eye.length === 10 ? eyeMean() / 10 + " of 10 use AI" : ""), "Our lotteries: " + S.draws.map((d) => d.mean / 10).join(", ") + " of 10", "The " + N_ANS + " answers: " + CLAIM + "%. All 100 firms: " + TRUE_MEAN + "%",
+    "What we saw: " + (A.p2see || ""), "Why AI users answered more often: " + (A.p2compare || ""), "Our advice: " + (A.method || "") + " (" + (A.methodSure == null ? "" : A.methodSure) + "% sure)"].join("\n");
 }
 
 /* ---------- screens ---------- */
-const METHODS = ["Pick ten typical receipts by eye", "Draw ten receipts by lottery", "Draw more than ten receipts by lottery"];
-const CLOSE = ["Within 10 kr", "Within 30 kr", "More than 30 kr away"];
+const METHODS = ["Keep the sentence as it is", "Send the survey to 1,000 more firms", "Phone a lottery sample of the silent firms"];
+const CLOSE = ["Keep the sentence", "Change the sentence", "Not enough to decide"];
 const NOTICE = `<div class="research"><b>For research on teaching only</b>This page records your group's answers and some timings, such as how long a step took. They are used only to study and improve this teaching activity. They do <b>not</b> measure your performance, they are not graded, and there are no right or wrong speeds. Take the time your group needs.</div>`;
+function suggestName() { if (!S.sugg) { const L = "ABCDEFGHJKLMNPQRSTUVWXYZ"; S.sugg = L[Math.floor(Math.random() * L.length)] + String(10 + Math.floor(Math.random() * 90)); try { save(); } catch (e) {} } return S.sugg; }
 const view = {
   survey: () => ({ where: "Lunch survey", html: `
     <h1>Lunch survey</h1>
     <p>Two to three minutes, anonymous. Answer on your own. <b>You will need your answers later today.</b></p>
     <div class="card stack">${formView(S.form, true)}</div>
     <button class="go" data-hand disabled>Hand in my answers</button>
-    <p class="small" style="text-align:right">LS-${S.form}</p>` }),
+    <p class="small" style="text-align:right">LS-${S.form}</p>
+    <details class="slip"><summary>For the lab, later today: I already answered on another device</summary><div class="stack" style="margin-top:10px">
+      <p>You do not answer again. Your survey slip stays on the device where you answered, for example your phone: keep it with you.</p>
+      <div><label for="labword">When the lab starts, type the lab word to open the lab on this device</label><input id="labword" type="text" maxlength="16" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="the lab word"></div>
+      <button class="go secondary" data-lab disabled>Open the lab</button><p class="small" id="labmsg" role="status"></p></div></details>` }),
   receipt: () => ({ where: "Lunch survey", html: `
     <h1>Thank you</h1>
     <p>Your answers are kept on this device. <b>Leave this page open, or take a screenshot of it now:</b> you will need your answers later today.</p>
@@ -391,10 +456,11 @@ const view = {
       <button class="go secondary" data-lab disabled>Open the lab</button><p class="small" id="labmsg" role="status"></p></div>` }),
   intro: () => ({ where: "Start", html: `
     <h1>The Lunch Survey</h1>
-    <p>Work as a group of four or five. Everyone follows on their own device, because you each need your own survey slip. <b>One device writes and sends</b> the group's answers. Talk first, then write.</p>
+    <p>Work as a group of four or five. Everyone keeps their own phone at hand, because you each need your own survey slip. <b>One device writes and sends</b> the group's answers; it can be a laptop. Talk first, then write.</p>
     <div class="card stack">
       <h2>Is this the device that writes for your group?</h2>
-      <div><label for="group">Yes: type your group's name</label><input id="group" type="text" maxlength="40" value="${esc(S.group)}" placeholder="For example: Group C" autocomplete="off"></div>
+      <div><label for="group">Yes: your group's name, a letter and a number</label><input id="group" type="text" maxlength="40" value="${esc(S.group || suggestName())}" placeholder="For example: ${suggestName()}" autocomplete="off"></div>
+      <p class="hint" style="margin-top:-6px">We suggest <b>${suggestName()}</b>, so that no two groups share a name. You may change it.</p>
       <button class="go" data-start="scribe" disabled>Start our group's case file</button>
       <p class="hint">There are sealed envelopes. Once your group has written its answer, it is locked, and one of you fetches the password for the next envelope from a teacher. One case file per group is accepted.</p>
     </div>
@@ -434,53 +500,58 @@ const view = {
     <p class="step">Step 3. When the count is done, look at the class result on the big screen.${follower() ? "" : " Type the class word here to continue."}</p>
     ${RO || follower() ? "" : S.cw ? `<div class="locked"><b>Class word accepted</b>The class result is on the big screen. Use it for steps 4 and 5.</div>` : `<div class="card stack"><label for="classcode">Class word from your teacher</label><input id="classcode" type="text" maxlength="20" autocomplete="off" autocapitalize="none" spellcheck="false">
       <button class="go" data-classcode disabled>Continue</button><p class="small" id="ccmsg" role="status"></p></div>`}
-    <p class="step">Step 4. Look at the shares on the two forms, on the big screen.</p>
+    ${S.cw || RO || follower() ? `<p class="step">Step 4. Look at the shares on the two forms, on the big screen.</p>
     ${textQ("p1see", "What do you see? If the two forms differ, what do you think produced the difference? If they do not, what could explain that?")}
     <p class="step">Step 5. A restaurant owner near campus wants to print form LS-1 and hand it to 500 of her guests next week.</p>
     ${textQ("p1advice", "What do you advise her?")}
-    <button class="go" data-next disabled>Lock our answers and start Part 2</button>`,
+    <button class="go" data-next disabled>Lock our answers and start Part 2</button>` : `<div class="locked"><b>Steps 4 and 5 open after the class word</b>They are about the class result, so they wait until it is on the big screen.</div>`}`,
     ready: () => S.cw && filled("p1see") && filled("p1advice") }),
 
-  p2a: () => ({ where: "Part 2, steps 1 and 2", html: `
+  p2a: () => ({ where: "Part 2, steps 1 to 3", html: `
     ${star("Part 1 is closed", "First milestone reached. One more part to go.", 1)}
-    <h1>Part 2. Ten receipts</h1>
-    <div class="quote"><div class="who">The restaurant owner writes to you</div>"I need the <b>average lunch bill</b> for next year's budget. I serve about 25,000 lunches a year. Here are last Tuesday's 100 receipts. Adding up all of them takes too long, so please <b>pick ten typical receipts</b> and give me their average."</div>
-    ${receiptGrid(follower() || RO ? "show" : "pick")}
-    <p class="step">Step 1. Choose ten receipts that look typical to your group.</p>
-    ${follower() ? `<div class="locked"><b>Your scribe taps the ten receipts</b>Decide together which ones are typical.</div>` : `<div class="stat" id="eyeout">${S.eye.length === 10 ? `Your ten receipts add up to an average of <b>${kr(eyeMean())}</b>` : `Chosen: <b>${S.eye.length} of 10</b>`}</div>`}
-    <p class="step">Step 2. Think about the average of all 100 receipts.</p>
-    ${choiceQ("close", "How close do you think your average is to the average of all 100 receipts?", CLOSE)}
+    <h1>Part 2. Eight in ten</h1>
+    <p>You are the opponents at a master's thesis seminar. Maja and Arvid present their result.</p>
+    <div class="quote"><div class="who">Maja and Arvid, two master's students</div>"We sent our survey to all <b>100 manufacturing firms</b> on the industry association's list. We asked: <i>Does your company use AI in its daily operations?</i> <b>${N_ANS} firms answered, and ${ANS_YES} of them said yes.</b> So we write in our thesis: <b>'${CLAIM}% of manufacturing firms use AI in their daily operations.'</b> Our case company is clearly behind."</div>
+    <p class="step">Step 1. Their sentence: '${CLAIM}% of manufacturing firms use AI in their daily operations.'</p>
+    ${choiceQ("close", "What do you advise them about this sentence?", CLOSE)}
     ${sureQ("closeSure", "How sure are you, from 0 to 100%?")}
-    <button class="go" data-next disabled>Lock our estimate and fetch envelope 2</button>
-    ${follower() ? "" : '<p class="hint">After this you cannot change your ten receipts or your answer.</p>'}`,
-    ready: () => S.eye.length === 10 && S.a.close && S.a.closeSure != null }),
+    <p class="step">Step 2. Think about all 100 firms on the list, not only the ${N_ANS} that answered.</p>
+    ${RO || follower() ? `<div class="locked"><b>Our estimate: how many of the 100 firms use AI</b>${follower() ? "Your scribe types the number. Agree on it together." : esc(S.a.est == null ? "" : S.a.est) + " of 100"}</div>`
+      : `<div><label for="est">Your estimate: how many of the 100 firms use AI in their daily operations?</label><input id="est" type="text" inputmode="numeric" maxlength="3" autocomplete="off" style="max-width:8rem" value="${esc(S.a.est == null ? "" : S.a.est)}" placeholder="0 to 100"></div>`}
+    <p class="step">Step 3. Before the seminar ends you may phone ten firms. Choose the ten you would phone.</p>
+    ${firmGrid(follower() || RO ? "show" : "pick")}
+    ${follower() ? `<div class="locked"><b>Your scribe taps the ten firms</b>Decide together whom to phone.</div>` : `<div class="stats"><div class="stat" id="eyeout">Chosen: <b>${S.eye.length} of 10</b></div></div>`}
+    <button class="go" data-next disabled>Lock our answers and fetch envelope 2</button>
+    ${follower() ? "" : '<p class="hint">After this you cannot change your advice, your estimate or your ten firms.</p>'}`,
+    ready: () => S.a.close && S.a.closeSure != null && S.a.est != null && S.a.est !== "" && S.eye.length === 10 }),
 
-  p2b: () => ({ where: "Part 2, step 3", html: `
+  p2b: () => ({ where: "Part 2, step 4", html: `
     <h2>Part 2. Envelope 2</h2>
-    <div class="envelope stack"><div class="tag">Envelope 2: the lottery</div>
-      <p>There is a second way to choose ten receipts: let chance decide. In a lottery, every receipt has the same chance of being drawn, and nobody's eye is involved.</p>
-      <p>Draw ten receipts by lottery, five times. Each draw gives a new average.</p></div>
-    ${receiptGrid("draw")}
-    ${follower() ? `<div class="locked"><b>Your scribe draws</b>Watch the five lottery averages on your scribe's screen.</div>` : `<div class="stack"><div class="choices">${RO || S.draws.length >= 5 ? "" : `<button class="go" data-draw>Draw ten receipts by lottery (${S.draws.length + 1} of 5)</button>`}</div>
-      <div class="stat">Your by-eye average: <b>${kr(eyeMean())}</b>Lottery averages so far: ${S.draws.length ? S.draws.map((d) => d.mean + " kr").join(", ") : "none yet"}</div>${numberLine(false)}</div>`}
-    <p class="step">Step 3. Look at your five lottery averages next to your by-eye average.</p>
+    <div class="envelope stack"><div class="tag">Envelope 2: the phone calls</div>
+      <p>You phoned your ten firms. Each of them told you whether it uses AI in its daily operations.</p>
+      ${follower() ? "" : `<div class="stats"><div class="stat">Your ten calls<b>${eyeMean() / 10} of 10 use AI</b>You phoned ${eyeAns()} that had answered the survey and ${10 - eyeAns()} that had stayed silent.</div></div>`}
+      <p>There is a second way to choose whom to phone: <b>let chance decide</b>. In a lottery, every firm on the list has the same chance of being drawn, whether it answered the survey or not.</p>
+      <p>Phone ten firms chosen by lottery, five times.</p></div>
+    ${firmGrid(follower() ? "show" : "calls")}
+    ${follower() ? `<div class="locked"><b>Your scribe draws</b>Watch the five lotteries on your scribe's screen.</div>` : `<div class="stack"><div class="choices">${RO || S.draws.length >= 5 ? "" : `<button class="go" data-draw>Phone ten firms chosen by lottery (${S.draws.length + 1} of 5)</button>`}</div>
+      <div class="stats"><div class="stat">Firms that use AI in each lottery of ten: <b>${S.draws.length ? S.draws.map((d) => d.mean / 10).join(", ") : "none yet"}</b>The ${N_ANS} answers said ${CLAIM}%: that would be about 8 of 10.</div></div>${numberLine(false)}</div>`}
+    <p class="step">Step 4. Look at your ten calls and your five lotteries next to the ${CLAIM}% of the ${N_ANS} answers.</p>
     ${textQ("p2see", "What do you see?")}
     <button class="go" data-next disabled>Lock our answer and fetch envelope 3</button>`,
     ready: () => S.draws.length >= 5 && filled("p2see") }),
 
-  p2c: () => ({ where: "Part 2, steps 4 and 5", html: `
+  p2c: () => ({ where: "Part 2, steps 5 and 6", html: `
     <h2>Part 2. Envelope 3</h2>
-    <div class="envelope stack"><div class="tag">Envelope 3: all 100 receipts, added up</div>
-      <div class="stats"><div class="stat">Average of all 100 receipts<b>${kr(TRUE_MEAN)}</b></div><div class="stat">Half of the receipts are at most<b>135 kr</b></div><div class="stat">Receipts of 380 kr or more<b>8 of 100</b></div></div>
-      <p>Most lunches cost between 100 and 150 kr. A few receipts are for whole tables and are much larger.</p></div>
-    ${follower() ? "" : `${numberLine(true)}<div class="stats">${budget(eyeMean(), "Your by-eye average")}${S.draws.length ? budget(S.draws[0].mean, "Your first lottery average") : ""}</div>`}
-    <p class="step">Step 4. Compare the two ways of choosing ten receipts, in your group and with the averages on the board.</p>
-    ${textQ("p2compare", "What do you think of each method?")}
-    <p class="step">Step 5. The owner still needs her average, and still has no time to add up all receipts every week.</p>
-    ${choiceQ("method", "What do you advise her to do?", METHODS)}
+    <div class="envelope stack"><div class="tag">Envelope 3: all 100 firms</div>${truthReveal()}</div>
+    ${S.rev || RO || follower() ? `${follower() ? "" : `${numberLine(true)}${ownRead()}`}
+    <p class="step">Step 5. The ${N_ANS} answers said ${CLAIM}%. All 100 firms say ${TRUE_MEAN}%.</p>
+    <p>On the board, your teacher wrote two numbers for each group: its estimate and its first lottery. Look at them too.</p>
+    ${textQ("p2compare", "Two of three AI users answered the survey, but only one of seven non-users. Why do you think that is?")}
+    <p class="step">Step 6. Maja and Arvid hand in their thesis in two weeks.</p>
+    ${choiceQ("method", "What do you advise them to do?", METHODS)}
     ${sureQ("methodSure", "How sure are you, from 0 to 100%?")}
-    <button class="go" data-next disabled>Lock our advice and finish</button>`,
-    ready: () => filled("p2compare") && S.a.method && S.a.methodSure != null }),
+    <button class="go" data-next disabled>Lock our advice and finish</button>` : `<div class="locked"><b>Steps 5 and 6 open after the silent firms</b>Press the button in the envelope first.</div>`}`,
+    ready: () => !!S.rev && filled("p2compare") && S.a.method && S.a.methodSure != null }),
 
   pickup: () => {
     const nxt = S.pick;
@@ -489,8 +560,8 @@ const view = {
     <p>Your group's answers are locked on your scribe's device. One of you fetches the password from a teacher. Only your scribe's device can type it.</p>
     <div class="card stack"><label for="gate">When ${ENV[nxt]} is open, your scribe's screen shows a screen code. Type it here.</label><input id="gate" type="text" inputmode="numeric" maxlength="4" placeholder="4 digits" autocomplete="off">
       <button class="go" data-gate disabled>Open ${ENV[nxt]}</button><p class="small" id="gatemsg" role="status"></p></div>` };
-    const ours = nxt === "p1c" ? `<p>Our prediction for lunch prices: <b>${esc(S.a.predA)}</b>, ${S.a.predSure}% sure.</p>` : nxt === "p2b" ? `<p>Our by-eye average: <b>${kr(eyeMean())}</b>.</p>` : `<p>Our first lottery average: <b>${S.draws.length ? kr(S.draws[0].mean) : ""}</b>.</p>`;
-    const tell = nxt === "p1c" ? "tells the teacher what your group predicted for lunch prices and how sure you are" : nxt === "p2b" ? "tells the teacher your by-eye average" : "tells the teacher your first lottery average";
+    const ours = nxt === "p1c" ? `<p>Our prediction for the survey question on lunch prices: <b>${esc(S.a.predA)}</b>, ${S.a.predSure}% sure.</p>` : nxt === "p2b" ? `<p>Our estimate: <b>${esc(S.a.est)} of the 100 firms</b> use AI.</p>` : `<p>Our first lottery: <b>${S.draws.length ? S.draws[0].mean / 10 : ""} of 10</b> use AI.</p>`;
+    const tell = nxt === "p1c" ? "tells the teacher your group's prediction for the survey question on lunch prices (which form gets more answers that the prices are too high), and how sure you are" : nxt === "p2b" ? "tells the teacher your group's estimate: how many of the 100 firms use AI" : "tells the teacher how many of the ten firms in your first lottery use AI";
     return { where: "Checkpoint", html: `
     <h1>Fetch ${ENV[nxt]}</h1>
     <p>Your answers so far are locked. The next envelope opens with a password that only a teacher has.</p>
@@ -505,7 +576,7 @@ const view = {
   end: () => {
     const prompts = `<div class="card stack"><h2>Bring to the discussion</h2>
       <p>Part 1: nobody changed their opinion about lunch between the two forms. If the shares differ in our class, what do you think changed them? If they do not differ, what could explain that?</p>
-      <p>Part 2: would choosing 20 typical receipts by eye, in place of 10, have brought your average closer? Would drawing 20 by lottery?</p></div>`;
+      <p>Part 2: in your own thesis, who is likely not to answer your survey, or to say no to an interview? How might they differ from those who say yes?</p></div>${lesson2()}`;
     if (follower()) return { where: "The end", html: `${star("Both parts are closed", "Second milestone reached. Well done.", 2)}<h1>Both parts are closed</h1><p>Your scribe sends the group's case file and can share the group's notes with you. Keep this screen open for the discussion.</p>${prompts}
       <details><summary>Leave this group and start again</summary><p style="margin:10px 0">This clears the lab on this device only. Your survey slip is kept.</p><button class="go secondary" data-rerole>Start again</button></details>` };
     const link = formLink();
@@ -524,8 +595,8 @@ const view = {
     <h1>Your case file</h1>
     <p>${esc(S.group)}: keep this screen open. Your teacher will ask what each group found.</p>
     <div class="card recap-wrap"><table class="recap"><thead><tr><th></th><th>Before the envelope</th><th>After the envelope</th></tr></thead><tbody>
-      <tr><td><b>Part 1: lunch prices</b></td><td>We predicted: ${esc(S.a.predA)}<br><span class="small">${S.a.predSure}% sure about our three predictions</span></td><td>${S.a.p1see ? "We saw: " + esc(S.a.p1see) : ""}</td></tr>
-      <tr><td><b>Part 2: the average bill</b></td><td>By eye: ${kr(eyeMean())}<br><span class="small">We thought: ${esc(S.a.close)} (${S.a.closeSure}% sure)</span></td><td>All 100 receipts: ${kr(TRUE_MEAN)}<br><span class="small">Our lottery draws: ${S.draws.map((d) => d.mean).join(", ")} kr</span></td></tr></tbody></table></div>
+      <tr><td><b>Part 1: the survey question on lunch prices</b></td><td>We predicted: ${esc(S.a.predA)}<br><span class="small">${S.a.predSure}% sure about our three predictions</span></td><td>${S.a.p1see ? "We saw: " + esc(S.a.p1see) : ""}</td></tr>
+      <tr><td><b>Part 2: eight in ten</b></td><td>Our estimate: ${esc(S.a.est)} of 100 use AI<br><span class="small">Our advice on the sentence: ${esc(S.a.close)} (${S.a.closeSure}% sure)</span></td><td>All 100 firms: ${TRUE_MEAN} use AI<br><span class="small">Our ten calls: ${eyeMean() / 10} of 10. Our lotteries: ${S.draws.map((d) => d.mean / 10).join(", ")} of 10</span></td></tr></tbody></table></div>
     ${send}
     ${prompts}
     ${countBars()}
@@ -533,7 +604,7 @@ const view = {
     <div class="card stack"><h2>Share your notes with the whole group</h2><p>Copy the group's notes and paste them into your group's chat, so that everyone has what you wrote.</p><button class="go secondary" data-notes>Copy our notes</button><p class="small" id="notesmsg" role="status"></p></div>
     <details><summary>Your notes</summary><div class="stack" style="margin-top:10px">
       ${lockedLine("Part 1, the differences you found", S.a.p1diff)}${lockedLine("Part 1, what you saw in the class count", S.a.p1see)}${lockedLine("Part 1, your advice to the owner", S.a.p1advice)}
-      ${lockedLine("Part 2, what you saw in the lottery draws", S.a.p2see)}${lockedLine("Part 2, the two methods", S.a.p2compare)}${lockedLine("Part 2, your advice", (S.a.method || "") + " (" + S.a.methodSure + "% sure)")}</div></details>
+      ${lockedLine("Part 2, what you saw in the calls and the lotteries", S.a.p2see)}${lockedLine("Part 2, why AI users answered more often", S.a.p2compare)}${lockedLine("Part 2, your advice", (S.a.method || "") + " (" + S.a.methodSure + "% sure)")}</div></details>
     <details><summary>Start again with an empty case file</summary><p style="margin:10px 0">This deletes everything your group has written on this device. Your survey slip is kept.</p><button class="go secondary" data-rerole>Delete and start again</button></details>` };
   },
 };
@@ -558,21 +629,21 @@ function classResults(text) {
   });
   const rows = [...seen.values()]; if (!rows.length) return null;
   const mean = (v) => (v.length ? Math.round(v.reduce((s, x) => s + x, 0) / v.length) : null), has = (k) => rows.map((r) => r[k]).filter((x) => x != null);
-  const eye = has("eye"), lot = rows.flatMap((r) => r.draws), off = (v) => Math.abs(v - TRUE_MEAN);
+  const eye = has("eye"), lot = rows.flatMap((r) => r.draws), off = (v) => Math.abs(v - TRUE_MEAN), gap = Math.abs(CLAIM - TRUE_MEAN);
   return { n: rows.length, dup, pred: [0, 1, 2].map((q) => PRED.map((o) => rows.filter((r) => r.pred[q] === o).length)), ps: mean(has("ps")),
-    eye, lot, eyeLow: eye.filter((v) => v < TRUE_MEAN).length, lotLow: lot.filter((v) => v < TRUE_MEAN).length,
+    eye, lot, eyeHigh: eye.filter((v) => v > TRUE_MEAN).length, eyeNear: eye.filter((v) => Math.abs(v - CLAIM) <= 10).length, lotCloser: lot.filter((v) => off(v) < gap).length,
     believed: CLOSE.map((o) => rows.filter((r) => r.close === o).length), was: [eye.filter((v) => off(v) <= 10).length, eye.filter((v) => off(v) > 10 && off(v) <= 30).length, eye.filter((v) => off(v) > 30).length], cs: mean(has("cs")),
     method: METHODS.map((o) => rows.filter((r) => r.method === o).length), ms: mean(has("ms")) };
 }
 function dotPlot(s) {
-  const all = s.eye.concat(s.lot, [TRUE_MEAN]); const lo = Math.floor((Math.min(...all) - 10) / 20) * 20, hi = Math.ceil((Math.max(...all) + 10) / 20) * 20;
+  const all = s.eye.concat(s.lot, [TRUE_MEAN, CLAIM]); const lo = Math.floor((Math.min(...all) - 10) / 20) * 20, hi = Math.ceil((Math.max(...all) + 10) / 20) * 20;
   const W = 1000, L = 150, R = 30, x = (v) => L + (W - L - R) * (v - lo) / (hi - lo), r = 10;
-  const stack = (vals, base, cls) => { const used = []; return vals.slice().sort((a, b) => a - b).map((v) => { const cx = x(v); let lvl = 0; while (used.some((u) => u.l === lvl && Math.abs(u.x - cx) < 2 * r)) lvl++; used.push({ x: cx, l: lvl }); return `<circle class="${cls}" cx="${cx.toFixed(1)}" cy="${base - r - lvl * 2 * r}" r="${r - 1}"></circle>`; }).join(""); };
+  const stack = (vals, base, cls) => { const used = [], nth = {}; return vals.slice().sort((a, b) => a - b).map((v) => { let cx = x(v), lvl = 0; if (cls === "lotd") { const k = (nth[v] = (nth[v] || 0) + 1) - 1; cx += ((k % 3) - 1) * 2 * r; lvl = Math.floor(k / 3); } else { while (used.some((u) => u.l === lvl && Math.abs(u.x - cx) < 2 * r)) lvl++; } used.push({ x: cx, l: lvl }); return `<circle class="${cls}" cx="${cx.toFixed(1)}" cy="${base - r - lvl * 2 * r}" r="${r - 1}"></circle>`; }).join(""); };
   const ticks = []; for (let v = lo; v <= hi; v += (hi - lo > 240 ? 40 : 20)) ticks.push(v);
-  return `<svg class="dotplot" viewBox="0 0 ${W} 400" role="img" aria-label="By-eye averages and lottery averages of the class, with the average of all 100 receipts"><line class="ax" x1="${L}" y1="150" x2="${W - R}" y2="150"></line><line class="ax" x1="${L}" y1="340" x2="${W - R}" y2="340"></line>
-    <text class="rowl" x="0" y="130">By eye</text><text class="rows" x="0" y="155">one dot per group</text><text class="rowl" x="0" y="320">Lottery</text><text class="rows" x="0" y="345">one dot per draw</text>
-    ${stack(s.eye, 150, "eyed")}${stack(s.lot, 340, "lotd")}<line class="tru" x1="${x(TRUE_MEAN)}" y1="28" x2="${x(TRUE_MEAN)}" y2="352"></line><text class="trul" x="${x(TRUE_MEAN)}" y="20" text-anchor="middle">All 100 receipts: ${kr(TRUE_MEAN)}</text>
-    ${ticks.map((v) => `<line class="ax" x1="${x(v)}" y1="340" x2="${x(v)}" y2="348"></line><text class="tick" x="${x(v)}" y="374" text-anchor="middle">${v}</text>`).join("")}<text class="tick" x="${W - R}" y="398" text-anchor="end">average bill (kr)</text></svg>`;
+  return `<svg class="dotplot" viewBox="0 0 ${W} 400" role="img" aria-label="The estimates of the groups and their lotteries, with the 38 answers and all 100 firms"><line class="ax" x1="${L}" y1="150" x2="${W - R}" y2="150"></line><line class="ax" x1="${L}" y1="340" x2="${W - R}" y2="340"></line>
+    <text class="rowl" x="0" y="130">Estimates</text><text class="rows" x="0" y="155">one dot per group</text><text class="rowl" x="0" y="320">Lottery</text><text class="rows" x="0" y="345">one dot per draw</text>
+    ${stack(s.eye, 150, "eyed")}${stack(s.lot, 340, "lotd")}<line class="tru" x1="${x(TRUE_MEAN)}" y1="28" x2="${x(TRUE_MEAN)}" y2="352"></line><text class="trul" x="${x(TRUE_MEAN)}" y="20" text-anchor="middle">All 100 firms: ${TRUE_MEAN}%</text><line x1="${x(CLAIM)}" y1="28" x2="${x(CLAIM)}" y2="352" stroke="var(--hot)" stroke-width="3" stroke-dasharray="10 7"></line><text class="trul" x="${x(CLAIM)}" y="20" text-anchor="middle" style="fill:var(--hot)">The ${N_ANS} answers: ${CLAIM}%</text>
+    ${ticks.map((v) => `<line class="ax" x1="${x(v)}" y1="340" x2="${x(v)}" y2="348"></line><text class="tick" x="${x(v)}" y="374" text-anchor="middle">${v}</text>`).join("")}<text class="tick" x="${W - R}" y="398" text-anchor="end">firms that use AI (%)</text></svg>`;
 }
 function classPart1(s) {
   const tc = validCounts(S.tc) ? S.tc : null, sh = (q, f) => Math.round(100 * Number(tc[q + f]) / Number(tc["n" + f]));
@@ -582,26 +653,26 @@ function classPart1(s) {
 }
 function classPart2(s) {
   const e = s.eye.length, l = s.lot.length;
-  return `${e || l ? dotPlot(s) : ""}<p><b>By eye:</b> ${e ? `${s.eyeLow} of ${e} groups below the average of all 100 receipts, ${e - s.eyeLow} at or above it` : "no answers"}. <b>Lottery:</b> ${l ? `${s.lotLow} of ${l} draws below, ${l - s.lotLow} at or above` : "no answers"}.</p>
-    <div class="recap-wrap"><table class="recap classres"><thead><tr><th>The by-eye average</th>${CLOSE.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>
-    <tr><td><b>What the groups thought</b></td>${s.believed.map((c) => `<td>${c} of ${s.n}</td>`).join("")}</tr><tr><td><b>What it was</b></td>${s.was.map((c) => `<td>${c} of ${e}</td>`).join("")}</tr></tbody></table></div>
-    <p>How sure the groups were of how close they were, on average: <b>${s.cs == null ? "no answers" : s.cs + "%"}</b>. Advice at the end: ${METHODS.map((m, k) => `<b>${s.method[k]}</b> “${m.toLowerCase()}”`).join(", ")}.</p>`;
+  return `${e || l ? dotPlot(s) : ""}<p><b>Estimates before the calls:</b> ${e ? `${s.eyeHigh} of ${e} groups above ${TRUE_MEAN}, and ${s.eyeNear} of ${e} within 10 of the ${CLAIM} they had been told` : "no answers"}. <b>Lotteries of ten:</b> ${l ? `${s.lotCloser} of ${l} came closer to ${TRUE_MEAN}% than the ${N_ANS} answers did` : "no answers"}.</p>
+    <div class="recap-wrap"><table class="recap classres"><thead><tr><th>The sentence "${CLAIM}% of firms use AI"</th>${CLOSE.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>
+    <tr><td><b>Advice before the calls</b></td>${s.believed.map((c) => `<td>${c} of ${s.n}</td>`).join("")}</tr></tbody></table></div>
+    <p>How sure the groups were of that first advice, on average: <b>${s.cs == null ? "no answers" : s.cs + "%"}</b>. Advice at the end: ${METHODS.map((m, k) => `<b>${s.method[k]}</b> “${m.toLowerCase()}”`).join(", ")}.</p>`;
 }
 const classOut = () => (CR.sum ? `<div class="envelope stack"><div class="tag">Class results: ${CR.sum.n} groups</div>${CR.sum.dup ? `<p class="small">${CR.sum.dup} group code${CR.sum.dup > 1 ? "s were" : " was"} sent more than once; the later row was used.</p>` : ""}
     <h3 class="tchead">Part 1: the predictions</h3>${classPart1(CR.sum)}<p><button class="go" data-cproj="p1">Show Part 1 on the big screen</button></p>
-    <h3 class="tchead">Part 2: ten receipts</h3>${classPart2(CR.sum)}<p><button class="go" data-cproj="p2">Show Part 2 on the big screen</button></p>
+    <h3 class="tchead">Part 2: eight in ten</h3>${classPart2(CR.sum)}<p><button class="go" data-cproj="p2">Show Part 2 on the big screen</button></p>
     <p><button class="go secondary" data-cclear>Clear the class results</button></p></div>` : "");
 const teacherKey = () => `<div class="card stack"><h2>Teacher key</h2>
   <p><b>Word that opens the lab for the whole class:</b> <span style="font-size:20px;font-family:var(--display)">${LAB_WORD}</span>. Say it or write it on the board when the lab starts, not before.</p>
   <p>At a checkpoint a participant tells you the group code and the envelope. Ask your question first (see "What to do at each walk"). Then find the row for the <b>last digit</b> of the group code and give the password for that envelope.</p>
   <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>Code ends in</th><th>Envelope 1</th><th>Envelope 2</th><th>Envelope 3</th></tr></thead><tbody>${WORDS.map((w, k) => `<tr><td><b>${k}</b></td><td>${w[0]}</td><td>${w[1]}</td><td>${w[2]}</td></tr>`).join("")}</tbody></table></div>
   <details open><summary>What to do at each walk</summary><div class="stack" style="margin-top:10px">
-    <div class="walk"><b>Part 1 · envelope 1</b><span>Comes when the three predictions are locked.</span><span><b>Ask:</b> "What did your group predict for lunch prices, and how sure are you?"</span><span><b>Note on the board:</b> "LS-1 higher", "same" or "LS-2 higher", and the percentage.</span></div>
+    <div class="walk"><b>Part 1 · envelope 1</b><span>Comes when the three predictions are locked.</span><span><b>Ask:</b> "The survey question on lunch prices: which form did your group predict gets more answers that the prices are too high? How sure are you?"</span><span><b>Note on the board:</b> "LS-1 higher", "same" or "LS-2 higher", and the percentage.</span></div>
     <div class="walk"><b>Part 1 · the class count</b><span>When every group has fetched the password for envelope 1.</span><span><b>Do:</b> the eight steps under "The class count", then show the result on the big screen and say the class word.</span><span><b>Note on the board:</b> nothing. The big screen shows the result.</span></div>
-    <div class="walk"><b>Part 2 · envelope 2</b><span>Comes when the ten receipts are chosen by eye and the group has said how close it thinks it is.</span><span><b>Ask:</b> "What is your by-eye average?"</span><span><b>Note on the board:</b> the average in kronor.</span></div>
-    <div class="walk"><b>Part 2 · envelope 3</b><span>Comes when the group has made its five lottery draws.</span><span><b>Ask:</b> "What is your first lottery average?"</span><span><b>Note on the board:</b> the average in kronor, next to the by-eye average.</span></div>
-    <p><b>The board:</b> one row for each group, with five columns: Group, Prices prediction, Sure, By eye, First lottery.</p>
-    <ul class="tips"><li>Give the password only after the answer. A participant who cannot answer goes back to the group.</li><li>Do not comment and do not hint, whatever the answer is. If a participant asks whether it is right: "Open the envelope and see."</li><li>In the first 2 to 3 minutes, check that every group has one scribe and that everyone has the survey slip on their own phone.</li><li>A group still in Part 1 after 18 minutes: "Lock your answers and move on to the receipts."</li></ul></div></details>
+    <div class="walk"><b>Part 2 · envelope 2</b><span>Comes when the group has locked its advice on the sentence, its estimate and its ten firms to phone.</span><span><b>Ask:</b> "How many of the 100 firms does your group think use AI?"</span><span><b>Note on the board:</b> the number, from 0 to 100.</span></div>
+    <div class="walk"><b>Part 2 · envelope 3</b><span>Comes when the group has made its five lottery draws.</span><span><b>Ask:</b> "In your first lottery, how many of the ten firms use AI?"</span><span><b>Note on the board:</b> that number times ten, next to the estimate. Example: 4 of 10 becomes 40.</span></div>
+    <p><b>The board:</b> one row for each group, with five columns: Group, Prices prediction, Sure, Estimate (of 100), First lottery (times ten).</p>
+    <ul class="tips"><li>Give the password only after the answer. A participant who cannot answer goes back to the group.</li><li>Do not comment and do not hint, whatever the answer is. If a participant asks whether it is right: "Open the envelope and see."</li><li>In the first 2 to 3 minutes, check that every group has one scribe and that everyone has the survey slip on their own phone.</li><li>A group still in Part 1 after 18 minutes: "Lock your answers and move on to Part 2."</li></ul></div></details>
   <details open><summary>The class count: say, count, type</summary><div class="stack" style="margin-top:10px">
     <p><b>When:</b> after every group has fetched the key word for envelope 1. From then on each participant's slip shows when to stand. It takes 3 to 5 minutes.</p>
     <p><b>How:</b> eight steps, first form LS-1, then form LS-2. In each step: <b>say</b> the sentence, <b>count</b> the participants who are standing, <b>type</b> the number. Participants with the other form stay seated.</p>
@@ -616,7 +687,7 @@ const teacherKey = () => `<div class="card stack"><h2>Teacher key</h2>
     <p class="small">A participant who is unsure follows the slip: "My survey slip" on their screen says stand up or stay seated for each of the three questions.</p>
     <p><button class="go secondary" data-tcclear>Clear the counts</button></p></div></details>
   <details${CR.sum ? " open" : ""}><summary>After the lab: the class results from Excel</summary><div class="stack" style="margin-top:10px">
-    <p>This works out the class results for the reflection: the predictions of Part 1 and a picture of all by-eye and lottery averages of Part 2. Nothing is sent anywhere: the numbers are worked out on this device.</p>
+    <p>This works out the class results for the reflection: the predictions of Part 1 and a picture of the groups' estimates and lotteries in Part 2. Nothing is sent anywhere: the numbers are worked out on this device.</p>
     <ol class="tips"><li>In Forms, open <b>Responses</b> and click <b>Open in Excel</b>.</li><li>Click any cell, select everything (Cmd+A, or Ctrl+A on Windows) and copy (Cmd+C or Ctrl+C).</li><li>Click in the box below and paste (Cmd+V or Ctrl+V).</li></ol>
     <label for="cpaste">Paste the Excel rows here</label><textarea id="cpaste" rows="3" placeholder="Click here, then paste" autocomplete="off" spellcheck="false"></textarea>
     <p class="small" id="cmsg" role="status"></p><div id="cout">${classOut()}</div></div></details>
@@ -651,8 +722,8 @@ function render(scroll) {
   const slip = S.lab && S.role && id !== "intro" ? `<details class="slip"${id === "p1c" && !looking ? " open" : ""}><summary>My survey slip</summary><div class="stack" style="margin-top:10px">${slipView(S.at >= 3 || id === "p1c")}</div></details>` : "";
   app.innerHTML = "";
   document.body.classList.toggle("wide", !!(preview && CR.proj && CR.sum));
-  if (preview && CR.proj && CR.sum) { app.appendChild($(`<section class="proj stack"><h1>${CR.proj === "p1" ? "Our class: what the groups predicted" : "Our class: ten receipts, by eye and by lottery"}</h1><p>${CR.sum.n} groups</p>${CR.proj === "p1" ? classPart1(CR.sum) : classPart2(CR.sum)}<p class="ask">${CR.proj === "p1" ? "If the class count differs from what you predicted: what in the two forms could explain it?" : "What do you see in the two rows of dots? If they differ, what do you think explains the difference?"}</p><p><button class="go secondary" data-cproj="">Back to the teacher key</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
-  if (preview && S.proj && validCounts(S.tc)) { app.appendChild($(`<section class="proj stack"><h1>Our class: how the two forms answered</h1>${barsFor(S.tc, false)}<p class="projword">Class word: <b>${CLASS_WORD}</b></p><p><button class="go secondary" data-proj>Back to the teacher key</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
+  if (preview && CR.proj && CR.sum) { app.appendChild($(`<section class="proj stack"><h1>${CR.proj === "p1" ? "Our class: what the groups predicted" : "Our class: eight in ten?"}</h1><p>${CR.sum.n} groups</p>${CR.proj === "p1" ? classPart1(CR.sum) : classPart2(CR.sum)}<p class="ask">${CR.proj === "p1" ? "If the class count differs from what you predicted: what in the two forms could explain it?" : "Where are the estimates, and where are the lotteries? What do you think pulled each of them there?"}</p><p><button class="go secondary" data-cproj="">Back to teacher's page</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
+  if (preview && S.proj && validCounts(S.tc)) { app.appendChild($(`<section class="proj stack"><h1>Our class: how the two forms answered</h1>${barsFor(S.tc, false)}<p class="projword">Class word: <b>${CLASS_WORD}</b></p><p><button class="go secondary" data-proj>Back to teacher's page</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
   app.appendChild($(`<header class="top"><div class="brand">${S.lab ? "The Lunch Survey" : "Lunch survey"}</div><div class="where">Session 2 · ${v.where}${who}${preview ? " · facilitator preview" : ""}</div></header>${S.lab ? `<div class="track" aria-hidden="true">${track}</div>` : ""}${preview ? teacherKey() : ""}${bar}<section class="stack" id="screen">${v.html}</section>${bar}${slip}${back}${preview && S.lab && id !== "intro" && !looking ? '<p class="small">Facilitator preview: <button class="go secondary" data-skip>Skip to the next screen</button></p>' : ""}${preview && !S.lab ? '<p class="small">Facilitator preview: <button class="go secondary" data-lab-skip>Go to the lab without the survey</button></p>' : ""}`));
   if (looking) { app.querySelectorAll("#screen .go, #screen .hint, #screen details").forEach((el) => el.remove()); app.querySelectorAll("#screen input, #screen textarea, #screen button").forEach((el) => { el.disabled = true; }); }
   if (follower() && !S.pick && !looking) { const b = app.querySelector("[data-next]"); if (b) b.textContent = GATED.includes(SCREENS[S.at + 1]) ? "Continue to the checkpoint" : "Continue"; }
@@ -682,6 +753,7 @@ app.addEventListener("input", (e) => {
   if (t.dataset.key) { S.a[t.dataset.key] = t.value; save(); }
   if (t.dataset.sure) { setSure(t); return; }
   if (t.id === "times") { S.sv.times = t.value.trim(); save(); }
+  if (t.id === "est") { const v = t.value.replace(/\D/g, "").slice(0, 3); t.value = v; S.a.est = v === "" || Number(v) > 100 ? "" : Number(v); save(); }
   if (t.dataset.tc) { S.tc[t.dataset.tc] = t.value.trim(); save(); const out = app.querySelector("#tcout"); if (out) out.innerHTML = tcOut(); return; }
   refresh();
 });
@@ -721,12 +793,18 @@ app.addEventListener("click", (e) => {
     const i = Number(t.dataset.rc), k = S.eye.indexOf(i);
     if (k >= 0) S.eye.splice(k, 1); else if (S.eye.length < 10) S.eye.push(i);
     save(); t.classList.toggle("on", S.eye.includes(i));
-    const out = app.querySelector("#eyeout"); if (out) out.innerHTML = S.eye.length === 10 ? `Your ten receipts add up to an average of <b>${kr(eyeMean())}</b>` : `Chosen: <b>${S.eye.length} of 10</b>`;
+    const out = app.querySelector("#eyeout"); if (out) out.innerHTML = `Chosen: <b>${S.eye.length} of 10</b>`;
     refresh(); return;
   }
+  if (t.hasAttribute("data-rev")) {
+    S.rev = true; JUSTREV = true; save(); render(false); JUSTREV = false;
+    const b = app.querySelector("#bigshare"), cap = app.querySelector("#bigcap"), box = app.querySelector(".reveal"); if (box) box.scrollIntoView({ block: "start", behavior: "smooth" });
+    if (b) { let v = CLAIM; const tick = () => { v -= 1; b.textContent = v + "%"; if (v > TRUE_MEAN) setTimeout(tick, 2100 / (CLAIM - TRUE_MEAN)); else if (cap) cap.textContent = "of all 100 firms use AI"; }; setTimeout(tick, 250); }
+    return;
+  }
   if (t.hasAttribute("data-draw")) {
-    if (S.draws.length < 5) { const pool = AMOUNTS.map((x, i) => i); for (let k = pool.length - 1; k > 0; k--) { const r = Math.floor(Math.random() * (k + 1)); [pool[k], pool[r]] = [pool[r], pool[k]]; }
-      const idx = pool.slice(0, 10).sort((x, y) => x - y); S.draws.push({ idx, mean: Math.round(mean(idx.map((i) => AMOUNTS[i]))) }); save(); render(false); }
+    if (S.draws.length < 5) { const pool = FIRMS.slice(); for (let k = pool.length - 1; k > 0; k--) { const r = Math.floor(Math.random() * (k + 1)); [pool[k], pool[r]] = [pool[r], pool[k]]; }
+      const idx = pool.slice(0, 10).sort((x, y) => x - y); S.draws.push({ idx, mean: 10 * idx.filter(USES).length }); save(); render(false); }
     return;
   }
   if (t.dataset.start === "scribe") { S.role = "scribe"; S.group = app.querySelector("#group").value.trim(); S.salt = String(100 + Math.floor(Math.random() * 900)); go(); return; }
@@ -780,27 +858,27 @@ render(false);
 
 /* ---------- rewards: stars and a short "good job" for each step that is closed. Additive: nothing is sent to the form. ---------- */
 (function () {
-  const st = document.createElement("style"); st.textContent = ".starbadge { position: fixed; top: .5rem; right: .6rem; z-index: 40; background: #fff7e0; border: 1.5px solid #e2b93b; color: #7a5a00; font-weight: 700; border-radius: 999px; padding: .2rem .7rem; font-size: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,.12); }\n.startoast { position: fixed; left: 50%; top: 3.2rem; transform: translateX(-50%); z-index: 50; background: #1f4e79; color: #fff; border-radius: 12px; padding: .7rem 1.1rem; font-weight: 700; box-shadow: 0 6px 18px rgba(0,0,0,.25); max-width: 90vw; text-align: center; animation: toastin .35s ease-out, toastout .5s ease-in 3.2s forwards; }\n.startoast small { display: block; font-weight: 400; opacity: .9; margin-top: .15rem; }\n.startoast .st { color: #ffd54a; font-size: 1.3rem; letter-spacing: .1em; }\n@keyframes toastin { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }\n@keyframes toastout { to { opacity: 0; visibility: hidden; } }\n@media (prefers-reduced-motion: reduce) { .startoast { animation: toastout .01s linear 3.5s forwards; } }\n.feedback { background: #fff7e0; border: 1.5px solid #e2b93b; border-radius: 12px; padding: .9rem 1rem; }\n.feedback h2 { margin: 0 0 .4rem; font-size: 1.15rem; color: #7a5a00; } .feedback p { margin: .35rem 0; }\n.feedback .st { color: #e0a800; font-size: 1.6rem; letter-spacing: .12em; } .feedback .st i { color: #d9d3bd; font-style: normal; }\n.fbline { display: flex; gap: .5rem; align-items: baseline; } .fbline b.ok { color: #1e7b34; } .fbline b.no { color: #b24a1a; }\n.rank { text-align: center; background: #fff7e0; border: 1.5px solid #e2b93b; border-radius: 14px; padding: 1rem; } .rank .st { color: #e0a800; font-size: 1.8rem; letter-spacing: .1em; } .rank .st i { color: #d9d3bd; font-style: normal; } .rank b { font-size: 1.3rem; display: block; margin-top: .3rem; }\n"; document.head.appendChild(st);
+  const st = document.createElement("style"); st.textContent = ".hist { margin: 8px 0 0; } .hist svg { width: 100%; max-width: 560px; height: auto; display: block; }\n.starrow { display: flex; justify-content: flex-end; margin: 6px 0 2px; }\n.starbadge { display: inline-block; background: #fff7e0; border: 1.5px solid #e2b93b; color: #7a5a00; font-weight: 700; border-radius: 999px; padding: .2rem .7rem; font-size: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,.12); }\n.startoast { position: fixed; left: 50%; top: 3.2rem; transform: translateX(-50%); z-index: 50; background: #1f4e79; color: #fff; border-radius: 12px; padding: .7rem 1.1rem; font-weight: 700; box-shadow: 0 6px 18px rgba(0,0,0,.25); max-width: 90vw; text-align: center; animation: toastin .35s ease-out, toastout .5s ease-in 3.2s forwards; }\n.startoast small { display: block; font-weight: 400; opacity: .9; margin-top: .15rem; }\n.startoast .st { color: #ffd54a; font-size: 1.3rem; letter-spacing: .1em; }\n@keyframes toastin { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }\n@keyframes toastout { to { opacity: 0; visibility: hidden; } }\n@media (prefers-reduced-motion: reduce) { .startoast { animation: toastout .01s linear 3.5s forwards; } }\n.feedback { background: #fff7e0; border: 1.5px solid #e2b93b; border-radius: 12px; padding: .9rem 1rem; }\n.feedback h2 { margin: 0 0 .4rem; font-size: 1.15rem; color: #7a5a00; } .feedback p { margin: .35rem 0; }\n.feedback .st { color: #e0a800; font-size: 1.6rem; letter-spacing: .12em; } .feedback .st i { color: #d9d3bd; font-style: normal; }\n.fbline { display: flex; gap: .5rem; align-items: baseline; } .fbline b.ok { color: #1e7b34; } .fbline b.no { color: #b24a1a; }\n.rank { text-align: center; background: #fff7e0; border: 1.5px solid #e2b93b; border-radius: 14px; padding: 1rem; } .rank .st { color: #e0a800; font-size: 1.8rem; letter-spacing: .1em; } .rank .st i { color: #d9d3bd; font-style: normal; } .rank b { font-size: 1.3rem; display: block; margin-top: .3rem; }\n"; document.head.appendChild(st);
   const PRAISE = ["Good job!", "Well done!", "Nice work!", "Great teamwork!", "Keep going!"];
-  const near = () => S.draws && S.draws.some((d) => Math.abs(d.mean - TRUE_MEAN) <= 15);
+  const near = () => S.rev && S.draws && S.draws.some((d) => Math.abs(d.mean - TRUE_MEAN) <= 5);
   const LIST = [
     [() => S.at >= 2, "The two forms compared", "You found what differed between them."],
     [() => S.at >= 3, "Predictions locked", "A prediction made before the result is worth more than one made after."],
     [() => S.at >= 4, "Part 1 is closed", "You saw what the question did to the answers."],
-    [() => S.at >= 5, "Ten receipts chosen by eye", "Your own sample is on the table."],
+    [() => S.at >= 5, "Ten firms chosen to phone", "Your own sample is on the table."],
     [() => S.draws && S.draws.length >= 5, "Five lotteries drawn", "Chance has had its say five times."],
-    [() => S.at >= 6 && near(), "Close call", "One of your lotteries landed within 15 kr of the true average."],
-    [() => S.at >= 6, "The lottery compared with your eye", "You have seen both errors side by side."],
-    [() => S.at >= 7, "Both parts are closed", "Your advice to the owner is ready."],
+    [() => S.at >= 6 && near(), "Close call", "One of your lotteries landed within 5 points of all 100 firms."],
+    [() => S.at >= 6 && !!S.rev, "The silent firms heard", "You have seen who answered and who did not."],
+    [() => S.at >= 7, "Both parts are closed", "Your advice to Maja and Arvid is ready."],
   ];
   const earned = () => (S.lab && !follower() ? LIST.filter((r) => { try { return r[0](); } catch (e) { return false; } }) : []);
   const base = render;
   render = function (scroll) {
     base(scroll);
-    document.querySelectorAll(".starbadge").forEach((n) => n.remove());
+    document.querySelectorAll(".starrow").forEach((n) => n.remove());
     if (!S.lab || follower() || preview) return;
     const got = earned(), n = got.length, seen = S.starsSeen || 0;
-    const b = document.createElement("div"); b.className = "starbadge"; b.setAttribute("aria-label", n + " stars of " + LIST.length); b.textContent = "★ " + n + " / " + LIST.length; document.body.appendChild(b);
+    const b = document.createElement("div"); b.className = "starbadge"; b.setAttribute("aria-label", n + " stars of " + LIST.length); b.textContent = "★ " + n + " / " + LIST.length; const row = document.createElement("div"); row.className = "starrow"; row.appendChild(b); const hd = app.querySelector("header.top"); if (hd) hd.after(row); else app.prepend(row);
     if (n > seen) {
       const last = got[got.length - 1]; document.querySelectorAll(".startoast").forEach((x) => x.remove());
       const t = document.createElement("div"); t.className = "startoast"; t.setAttribute("role", "status");
@@ -810,8 +888,6 @@ render(false);
   };
   render(false);
 })();
-
-
 </script>
 </body>
 </html>
