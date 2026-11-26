@@ -264,7 +264,7 @@ const view = {
     <p>A restaurant in central Gothenburg pays for Google ads: when someone googles "restaurant Gothenburg", the restaurant appears at the very top of the results, marked "Sponsored". The restaurant pays Google for every click. The owner has pulled 16 weeks of data.</p>
     <div class="quote"><div class="who">The owner writes to you</div>"Look at the numbers. In the weeks when we spend more on Google ads, we sell far more. I want to <b>double the ad budget</b> next year. Can you confirm that the data support this?"</div>
     ${weeksView(S.ui.c1sorted ? "row" : "loose")}
-    ${S.ui.c1sorted ? `<p class="step">Step 1. Look at the sales along the row.</p>${textQ("c1see", "What do you see?")}<button class="go" data-next disabled>Continue</button>`
+    ${S.ui.c1sorted ? `<p class="step">Step 1. Look at the sales along the row.</p>${textQ("c1see", "What do you see?")}<button class="go" data-next disabled>Continue</button>${RO ? "" : `<p><button class="go secondary" data-unui="c1sorted">Show the cards unsorted again</button></p>`}`
       : `<p class="step">Step 1. Lay the 16 cards in one row, from the lowest ad spend on the left to the highest on the right.</p><button class="go" data-ui="c1sorted">Lay the cards in a row</button>`}
     <details><summary>Wrong group name or group code?</summary><p style="margin:10px 0">You can start again from the first screen. This clears this device only.</p><button class="go secondary" data-reset>Start again</button></details>`,
     ready: () => S.ui.c1sorted && filled("c1see") }),
@@ -311,7 +311,7 @@ const view = {
     <p>Another restaurant owner opened a year ago. At the opening party, 25 people joined her guest club. Each of them tasted the 20 dishes on the menu, ticked the ones they <b>liked</b>, and gave their address. One year later, ten of the 25 are <b>regulars</b>: they have eaten there ten times or more.</p>
     <div class="quote"><div class="who">The owner writes to you</div>"I looked at my ten regulars. The further away they live, the <b>more of our dishes they like</b>. The regulars from around the corner like far fewer. So the neighbourhood does not care much for our food. I will <b>stop the flyers in the neighbourhood</b> and advertise across town instead. Do you agree?"</div>
     ${S.ui.c2sorted ? pilesView(false, true) : looseGuests()}
-    ${S.ui.c2sorted ? `<p class="step">Step 1. Read the averages from left to right.</p>${textQ("c2see", "What do you see?")}<button class="go" data-next disabled>Continue</button>`
+    ${S.ui.c2sorted ? `<p class="step">Step 1. Read the averages from left to right.</p>${textQ("c2see", "What do you see?")}<button class="go" data-next disabled>Continue</button>${RO ? "" : `<p><button class="go secondary" data-unui="c2sorted">Show the cards unsorted again</button></p>`}`
       : `<p class="step">Step 1. Sort the ten cards into piles by distance, from the nearest on the left to the furthest on the right, and work out the average share of dishes liked in each pile.</p><button class="go" data-ui="c2sorted">Sort into piles and work out the averages</button>`}`,
     ready: () => S.ui.c2sorted && filled("c2see") }),
 
@@ -452,7 +452,7 @@ function render(scroll) {
   const track = SCREENS.slice(1).map((s, i) => `<span class="${i + 1 < S.at ? "done" : i + 1 === S.at ? "now" : ""}"></span>`).join("");
   const who = S.role === "scribe" ? ` · ${esc(S.group)} · group code <b>${S.salt}</b>` : S.role === "follow" ? ` · following group ${esc(S.salt)}` : "";
   const bar = looking ? `<div class="lookbar"><b>Looking back: read only</b><span>${S.look > 1 ? '<button class="go secondary" data-look="prev">Earlier screen</button>' : ""}${S.look < lookMax() ? '<button class="go secondary" data-look="next">Later screen</button>' : ""}<button class="go" data-look="close">Return to where we were</button></span></div>` : "";
-  const back = !looking && S.role && id !== "end" && lookMax() >= 1 ? '<p><button class="go secondary" data-look="open">Look back at earlier screens</button></p>' : "";
+  const back = !looking && S.role && lookMax() >= 1 ? '<p><button class="go secondary" data-look="open">' + (id === "end" ? "Read our earlier screens again" : "Look back at earlier screens") + '</button></p>' : "";
   app.innerHTML = "";
   if (preview && CR.proj && CR.sum) { document.body.classList.add("wide"); app.appendChild($(`<section class="proj stack"><h1>Our class: first advice and later advice</h1><p>${CR.sum.n} groups</p>${classTable(CR.sum)}<p class="ask">If your advice changed: what made you change? If it stayed the same: what made you sure from the start?</p><p><button class="go secondary" data-cproj>Back to the teacher key</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
   document.body.classList.remove("wide");
@@ -502,6 +502,7 @@ app.addEventListener("click", (e) => {
   }
   if (t.dataset.choice) { if (S.a[t.dataset.choice] && S.a[t.dataset.choice] !== t.dataset.val) S.sw[t.dataset.choice] = (S.sw[t.dataset.choice] || 0) + 1; S.a[t.dataset.choice] = t.dataset.val; save(); app.querySelectorAll(`[data-choice="${t.dataset.choice}"]`).forEach((b) => b.setAttribute("aria-pressed", String(b === t))); refresh(); return; }
   if (t.dataset.ui) { S.ui[t.dataset.ui] = true; save(); render(false); return; }
+  if (t.dataset.unui) { S.ui[t.dataset.unui] = false; save(); render(false); return; }
   if (t.dataset.start === "scribe") { S.role = "scribe"; S.group = app.querySelector("#group").value.trim(); S.salt = String(100 + Math.floor(Math.random() * 900)); go(); return; }
   if (t.dataset.start === "follow") { S.role = "follow"; S.salt = app.querySelector("#join").value.trim(); go(); return; }
   if (t.hasAttribute("data-open")) {
