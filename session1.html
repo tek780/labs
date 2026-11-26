@@ -113,7 +113,9 @@ body.wide main { max-width: 1200px; } .proj p { max-width: none; }
 .walk { display: grid; gap: 3px; padding: 10px 12px; background: var(--soft); border-radius: 8px; font-size: 15px; color: var(--ink); }
 .walk > b { font-family: var(--display); color: var(--accent); }
 .tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: var(--ink); }
-.classres td, .classres th { font-size: 15px; }
+.classres td, .classres th { font-size: 15px; } .classres th:first-child, .classres td:first-child { width: 26%; } .classres .big { font-size: 1.35em; }
+.crh { margin: 14px 0 0; } .crq { margin: 2px 0 6px; color: var(--muted); } .crm { margin: 6px 0 0; }
+.proj .crh { font-size: 32px; } .proj .crq { font-size: 24px; }
 .proj h1 { font-size: 40px; } .proj .classres td, .proj .classres th { font-size: 26px; padding: 16px 14px; } .proj p { font-size: 24px; }
 .proj .ask { font-family: var(--display); font-weight: 700; font-size: 28px; border-left: 8px solid var(--accent); padding: 14px 18px; background: var(--soft); border-radius: 0 8px 8px 0; }
 .locked { border-left: 0; background: var(--soft); border-radius: 8px; padding: 10px 12px; font-size: 15px; }
@@ -421,11 +423,13 @@ function classResults(text) {
   return { n: rows.length, dup, c1f: part("c1f", C1[0]), c1l: part("c1l", C1[0]), c2f: part("c2f", C2[0]), c2l: part("c2l", C2[0]), c1fs: mean("c1fs"), c1ls: mean("c1ls"), c2fs: mean("c2fs"), c2ls: mean("c2ls"), c1m: moved("c1f", "c1l"), c2m: moved("c2f", "c2l") };
 }
 function classTable(s) {
-  const cell = (p, word) => (p.n ? `<b>${p.yes} of ${p.n}</b> “${word}”` : "no answers"), pc = (v) => (v == null ? "" : v + "%");
-  return `<div class="recap-wrap"><table class="recap classres"><thead><tr><th></th><th>First advice</th><th>Sure</th><th>Later advice</th><th>Sure</th></tr></thead><tbody>
-    <tr><td><b>Case 1: the ads</b></td><td>${cell(s.c1f, "double")}</td><td>${pc(s.c1fs)}</td><td>${cell(s.c1l, "double")}</td><td>${pc(s.c1ls)}</td></tr>
-    <tr><td><b>Case 2: the neighbours</b></td><td>${cell(s.c2f, "stop the flyers")}</td><td>${pc(s.c2fs)}</td><td>${cell(s.c2l, "stop the flyers")}</td><td>${pc(s.c2ls)}</td></tr></tbody></table></div>
-    <p>Groups whose advice changed: Case 1, <b>${s.c1m.yes} of ${s.c1m.n}</b>; Case 2, <b>${s.c2m.yes} of ${s.c2m.n}</b>.</p>`;
+  const g = (k) => `<b class="big">${k}</b> group${k === 1 ? "" : "s"}`, pc = (v) => (v == null ? "–" : v + "%");
+  const row = (label, p, sure) => `<tr><td><b>${label}</b></td>${p.n ? `<td>${g(p.yes)}</td><td>${g(p.n - p.yes)}</td>` : `<td colspan="2">no answers</td>`}<td>${pc(sure)}</td></tr>`;
+  const block = (title, q, a, b, f, l, fs, ls, m) => `<h3 class="crh">${title}</h3><p class="crq">${q}</p><div class="recap-wrap"><table class="recap classres"><thead><tr><th></th><th>${a}</th><th>${b}</th><th>How sure (average)</th></tr></thead><tbody>
+    ${row("First advice", f, fs)}${row("Later advice", l, ls)}</tbody></table></div>
+    <p class="crm">${m.n ? `<b>${m.yes} of ${m.n}</b> groups changed their advice.` : ""}</p>`;
+  return block("Case 1: the ads", "Should the owner double the ad budget?", "Double it", "Do not double it", s.c1f, s.c1l, s.c1fs, s.c1ls, s.c1m)
+    + block("Case 2: the neighbours", "Should the owner stop the flyers in the neighbourhood?", "Stop the flyers", "Keep the flyers", s.c2f, s.c2l, s.c2fs, s.c2ls, s.c2m);
 }
 const classOut = () => (CR.sum ? `<div class="envelope stack"><div class="tag">Class results: ${CR.sum.n} groups</div>${CR.sum.dup ? `<p class="small">${CR.sum.dup} group code${CR.sum.dup > 1 ? "s were" : " was"} sent more than once; the later row was used.</p>` : ""}${classTable(CR.sum)}
     <p><button class="go" data-cproj>Show the class results on the big screen</button></p><p><button class="go secondary" data-cclear>Clear the class results</button></p></div>` : "");
