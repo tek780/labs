@@ -150,7 +150,7 @@ window.addEventListener("hashchange", () => { preview = location.hash === "#faci
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 const $ = (h) => { const t = document.createElement("template"); t.innerHTML = h.trim(); return t.content; };
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const filled = (k) => (S.a[k] || "").trim().length >= 3;
+const filled = (k) => (S.a[k] || "").trim().length >= 1;
 const follower = () => S.role === "follow";
 const password = (screen) => WORDS[Number(String(S.salt).slice(-1)) || 0][GATED.indexOf(screen)];
 function gate(screen) { let h = 7; for (const c of S.salt + ":" + screen) h = (h * 31 + c.charCodeAt(0)) % 9000; return String(1000 + h); }
@@ -458,7 +458,7 @@ function render(scroll) {
   const bar = looking ? `<div class="lookbar"><b>Looking back: read only</b><span>${S.look > 1 ? '<button class="go secondary" data-look="prev">Earlier screen</button>' : ""}${S.look < lookMax() ? '<button class="go secondary" data-look="next">Later screen</button>' : ""}<button class="go" data-look="close">Return to where we were</button></span></div>` : "";
   const back = !looking && S.role && lookMax() >= 1 ? '<p><button class="go secondary" data-look="open">' + (id === "end" ? "Read our earlier screens again" : "Look back at earlier screens") + '</button></p>' : "";
   app.innerHTML = "";
-  if (preview && CR.proj && CR.sum) { document.body.classList.add("wide"); app.appendChild($(`<section class="proj stack"><h1>Our class: first advice and later advice</h1><p>${CR.sum.n} groups</p>${classTable(CR.sum)}<p class="ask">If your advice changed: what made you change? If it stayed the same: what made you sure from the start?</p><p><button class="go secondary" data-cproj>Back to the teacher key</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
+  if (preview && CR.proj && CR.sum) { document.body.classList.add("wide"); app.appendChild($(`<section class="proj stack"><h1>Our class: first advice and later advice</h1><p>${CR.sum.n} groups</p>${classTable(CR.sum)}<p class="ask">If your advice changed: what made you change? If it stayed the same: what made you sure from the start?</p><p><button class="go secondary" data-cproj>Back to teacher's page</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
   document.body.classList.remove("wide");
   app.appendChild($(`<header class="top"><div class="brand">What Should the Owner Do?</div><div class="where">Session 1 · ${v.where}${who}${preview ? " · facilitator preview" : ""}</div></header><div class="track" aria-hidden="true">${track}</div>${preview ? teacherKey() : ""}${bar}<section class="stack" id="screen">${v.html}</section>${bar}${back}${preview && id !== "intro" && !looking ? '<p class="small">Facilitator preview: <button class="go secondary" data-skip>Skip to the next screen</button></p>' : ""}`));
   if (looking) app.querySelectorAll("#screen .go, #screen .hint, #screen details").forEach((el) => el.remove());

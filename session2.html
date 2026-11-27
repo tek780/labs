@@ -195,6 +195,7 @@ const SIL_YES = TRUE_MEAN - ANS_YES, N_SIL = 100 - N_ANS;
 .rc.no { background: var(--line); font-weight: 700; }
 .rc.mine { border-color: var(--ink); border-width: 3px; padding: 4px 1px 5px; }
 .rc.drawn { border-color: var(--hot); box-shadow: 0 0 0 2px var(--hot); }
+.nl { margin: 0; } .nl > svg { width: 100%; max-width: 560px; height: auto; display: block; }
 .reveal { text-align: center; }
 .bignum b { font-family: var(--display); font-size: 84px; line-height: 1; display: block; color: var(--hot); font-variant-numeric: tabular-nums; }
 .bignum.after b { color: var(--accent); }
@@ -203,6 +204,7 @@ const SIL_YES = TRUE_MEAN - ANS_YES, N_SIL = 100 - N_ANS;
 .fgrid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 3px; }
 .ft { display: grid; place-items: center; aspect-ratio: 1; border-radius: 5px; font-style: normal; font-size: 11px; font-weight: 700; }
 .ft.yes { background: var(--accent); color: var(--accent-ink); } .ft.no { background: var(--line); color: var(--muted); }
+.ft.ans { background: var(--note); border: 2px solid var(--note-line); color: var(--ink); } .ft.sil { background: var(--surface); border: 2px solid var(--line); }
 .ft.q { border: 2px dashed var(--muted); color: var(--muted); background: var(--surface); }
 @keyframes ftflip { 0% { transform: rotateY(90deg) scale(.6); opacity: 0; } 100% { transform: none; opacity: 1; } }
 .ft.flip { animation: ftflip .45s ease-out both; }
@@ -233,7 +235,7 @@ window.addEventListener("hashchange", () => { preview = location.hash === "#faci
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 const $ = (h) => { const t = document.createElement("template"); t.innerHTML = h.trim(); return t.content; };
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const filled = (k) => (S.a[k] || "").trim().length >= 3;
+const filled = (k) => (S.a[k] || "").trim().length >= 1;
 const follower = () => S.role === "follow";
 const password = (screen) => WORDS[Number(String(S.salt).slice(-1)) || 0][GATED.indexOf(screen)];
 function gate(screen) { let h = 7; for (const c of S.salt + ":" + screen) h = (h * 31 + c.charCodeAt(0)) % 9000; return String(1000 + h); }
@@ -393,16 +395,28 @@ function truthReveal() { /* envelope 3: first the 38 answers, then one button th
   return `<div class="reveal"><div class="bignum${done ? " after" : ""}"><b id="bigshare">${done && !JUSTREV ? TRUE_MEAN : CLAIM}%</b><span id="bigcap">${done && !JUSTREV ? "of all 100 firms use AI" : `of the ${N_ANS} firms that answered use AI`}</span></div>
     <div class="fgroups"><div><p class="rowlabel">The ${N_ANS} that answered</p><div class="fgrid">${ans.map((i, k) => tile(i, true, k)).join("")}</div><p class="small"><b>${ANS_YES} of ${N_ANS}</b> use AI: ${CLAIM}%</p></div>
       <div><p class="rowlabel">The ${N_SIL} that stayed silent</p><div class="fgrid">${sil.map((i, k) => tile(i, done, k)).join("")}</div><p class="small">${done ? `<b>${SIL_YES} of ${N_SIL}</b> use AI: ${Math.round(100 * SIL_YES / N_SIL)}%` : "Nobody has asked them yet."}</p></div></div>
-    ${done ? `<p class="small" style="text-align:left">Blue "AI" = uses AI. Grey "–" = does not. <b>Two of three AI users answered the survey. Only one of seven non-users did.</b></p>`
+    ${done ? `<p class="small" style="text-align:left">Blue "AI" = uses AI. Grey "–" = does not.</p>
+      <h3 style="text-align:left;margin:18px 0 0">Who answered? The same 100 firms, sorted by AI use</h3>
+      <div class="fgroups" style="margin-top:8px"><div><p class="rowlabel">The ${TRUE_MEAN} firms that use AI</p><div class="fgrid">${FIRMS.filter(USES).sort((x, y) => Number(ANSW(y)) - Number(ANSW(x))).map((i) => `<i class="ft ${ANSW(i) ? "ans" : "sil"}">${ANSW(i) ? "✉" : ""}</i>`).join("")}</div><p class="small"><b>${ANS_YES} of ${TRUE_MEAN} answered</b>: two of three</p></div>
+        <div><p class="rowlabel">The ${100 - TRUE_MEAN} firms that do not use AI</p><div class="fgrid">${FIRMS.filter((i) => !USES(i)).sort((x, y) => Number(ANSW(y)) - Number(ANSW(x))).map((i) => `<i class="ft ${ANSW(i) ? "ans" : "sil"}">${ANSW(i) ? "✉" : ""}</i>`).join("")}</div><p class="small"><b>${N_ANS - ANS_YES} of ${100 - TRUE_MEAN} answered</b>: one of seven</p></div></div>
+      <p class="small" style="text-align:left">Yellow ✉ = answered the survey. White = stayed silent. <b>Two of three AI users answered. Only one of seven non-users did.</b> That is why the answers leaned towards "yes".</p>`
       : `<p><button type="button" class="go" data-rev>Now hear the ${N_SIL} silent firms</button></p><p class="small">Maja and Arvid's supervisor made them phone every firm that had not answered.</p>`}</div>`;
 }
-function numberLine(showTruth) { /* 0 to 100%: the 38 answers, the group's ten calls, its lotteries and, at the end, all 100 firms */
-  const seen = {}, lots = S.draws.map((d) => { const l = (seen[d.mean] = (seen[d.mean] || 0) + 1) - 1; return { v: d.mean, l }; }), top = Math.max(0, ...lots.map((d) => d.l));
-  const marks = lots.map((d) => `<i class="dot lot" style="left:${d.v}%;bottom:${4 + d.l * 15}px" title="${d.v}%"></i>`).join("")
-    + (S.eye.length === 10 && !follower() && S.at >= SCREENS.indexOf("p2b") ? `<i class="dot eye" style="left:${eyeMean()}%;bottom:${4 + ((seen[eyeMean()] || 0)) * 15}px"></i>` : "")
-    + `<i class="truth claim" style="left:${CLAIM}%"></i>` + (showTruth ? `<i class="truth" style="left:${TRUE_MEAN}%"></i>` : "");
-  return `<div class="nline"><div class="axis" style="height:${40 + (top + 1) * 15}px">${marks}</div><div class="ticks" style="padding:2px 0 0"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
-    <p class="small">Share of firms that use AI. &nbsp; <i class="key cl"></i> the ${N_ANS} answers: ${CLAIM}% &nbsp; <i class="key eye"></i> your ten calls &nbsp; <i class="key lot"></i> your lotteries${showTruth ? ' &nbsp; <i class="key tr"></i> all 100 firms: ' + TRUE_MEAN + "%" : ""}</p></div>`;
+function numberLine(showTruth) { /* 0 to 100%: the 38 answers, the group's ten calls, its lotteries and, at the end, all 100 firms. Lines are labelled in the picture; the two marks have a legend with the same shape and colour. */
+  const X = (v) => 22 + v * 2.96, BASE = 132, R = 6, seen = {};
+  const dots = S.draws.map((d) => { const l = (seen[d.mean] = (seen[d.mean] || 0) + 1) - 1; return `<circle cx="${X(d.mean)}" cy="${BASE - R - 1 - l * 13}" r="${R}" fill="var(--accent)"><title>A lottery: ${d.mean / 10} of 10</title></circle>`; }).join("");
+  const own = S.eye.length === 10 && !follower() && S.at >= SCREENS.indexOf("p2b");
+  const oy = own ? BASE - 8 - (seen[eyeMean()] || 0) * 13 : 0, ox = own ? X(eyeMean()) : 0;
+  const diamond = (x, y, s) => `<path d="M${x} ${y - s} L${x + s} ${y} L${x} ${y + s} L${x - s} ${y} Z" fill="var(--note-line)" stroke="var(--ink)" stroke-width="1.5"/>`;
+  const ticks = [0, 25, 50, 75, 100].map((v) => `<line x1="${X(v)}" y1="${BASE}" x2="${X(v)}" y2="${BASE + 4}" stroke="var(--muted)"/><text x="${X(v)}" y="${BASE + 17}" text-anchor="middle" fill="var(--muted)">${v}%</text>`).join("");
+  return `<figure class="nl"><svg viewBox="0 0 340 172" role="img" aria-label="Share of firms that use AI, from 0 to 100 percent. The ${N_ANS} answers: ${CLAIM} percent.${showTruth ? " All 100 firms: " + TRUE_MEAN + " percent." : ""}${own ? " Your ten calls: " + eyeMean() + " percent." : ""} Your lotteries: ${S.draws.map((d) => d.mean).join(", ")} percent."><g font-size="11.5" fill="var(--ink)">
+    <line x1="${X(CLAIM)}" y1="32" x2="${X(CLAIM)}" y2="${BASE}" stroke="var(--hot)" stroke-width="2.5" stroke-dasharray="6 4"/><text x="${X(CLAIM)}" y="27" text-anchor="middle" fill="var(--hot)" font-weight="700">the ${N_ANS} answers: ${CLAIM}%</text>
+    ${showTruth ? `<line x1="${X(TRUE_MEAN)}" y1="16" x2="${X(TRUE_MEAN)}" y2="${BASE}" stroke="var(--ink)" stroke-width="2.5"/><text x="${X(TRUE_MEAN)}" y="11" text-anchor="middle" font-weight="700">all 100 firms: ${TRUE_MEAN}%</text>` : ""}
+    <line x1="${X(0)}" y1="${BASE}" x2="${X(100)}" y2="${BASE}" stroke="var(--muted)"/>${ticks}<text x="${X(100)}" y="${BASE + 34}" text-anchor="end" fill="var(--muted)">share of firms that use AI</text>
+    ${dots}${own ? diamond(ox, oy, 7) : ""}</g></svg>
+    <figcaption class="small" style="display:flex;flex-wrap:wrap;gap:4px 18px">
+      <span style="white-space:nowrap"><svg width="14" height="14" viewBox="0 0 14 14" style="vertical-align:-2px"><circle cx="7" cy="7" r="6" fill="var(--accent)"/></svg> blue dot = one lottery of ten firms</span>
+      ${own ? `<span style="white-space:nowrap"><svg width="16" height="16" viewBox="0 0 16 16" style="vertical-align:-3px">${diamond(8, 8, 6.5)}</svg> yellow diamond = your own ten calls</span>` : ""}</figcaption></figure>`;
 }
 function ownRead() { /* shown after envelope 3: reads the group's own numbers, whatever they are */
   if (S.eye.length !== 10 || !S.draws.length) return "";
@@ -662,9 +676,21 @@ const classOut = () => (CR.sum ? `<div class="envelope stack"><div class="tag">C
     <h3 class="tchead">Part 1: the predictions</h3>${classPart1(CR.sum)}<p><button class="go" data-cproj="p1">Show Part 1 on the big screen</button></p>
     <h3 class="tchead">Part 2: eight in ten</h3>${classPart2(CR.sum)}<p><button class="go" data-cproj="p2">Show Part 2 on the big screen</button></p>
     <p><button class="go secondary" data-cclear>Clear the class results</button></p></div>` : "");
-const teacherKey = () => `<div class="card stack"><h2>Teacher key</h2>
-  <p><b>Word that opens the lab for the whole class:</b> <span style="font-size:20px;font-family:var(--display)">${LAB_WORD}</span>. Say it or write it on the board when the lab starts, not before.</p>
-  <p>At a checkpoint a participant tells you the group code and the envelope. Ask your question first (see "What to do at each walk"). Then find the row for the <b>last digit</b> of the group code and give the password for that envelope.</p>
+const runSheet = () => `<div class="card stack entrynote" style="border:2px solid var(--accent)"><h2>Your five jobs, in order</h2>
+  <ol class="tips">
+    <li><b>Start of the session: say "${ENTRY_CODE}".</b> Everyone answers the lunch survey on their own phone, 2 to 3 minutes. Do not say that there are two forms.</li>
+    <li><b>Start of the lab: say "${LAB_WORD}".</b> Check that each group has one scribe and that every participant has a survey slip. Draw the board: Group, Prices prediction, Sure, Estimate, First lottery.</li>
+    <li><b>At every walk: ask, write, then give the password.</b> The questions and the passwords are below. Never comment on an answer.</li>
+    <li><b>When every group has envelope 1: the class count.</b> Eight steps, then the big screen, then say "${CLASS_WORD}".</li>
+    <li><b>After the lab: paste the Excel rows</b> at the bottom of this page, for the class pictures in the reflection.</li>
+  </ol>
+  <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>Word</th><th>When you say it</th><th>What it opens</th></tr></thead><tbody>
+    <tr><td><b>${ENTRY_CODE}</b></td><td>Start of the session</td><td>The page, on every device</td></tr>
+    <tr><td><b>${LAB_WORD}</b></td><td>Start of the lab</td><td>The lab</td></tr>
+    <tr><td><b>${CLASS_WORD}</b></td><td>After the class count</td><td>Steps 4 and 5 of Part 1</td></tr></tbody></table></div>
+  <p><b>The rule to remember: ask, write, password. No comment.</b></p></div>`;
+const teacherKey = () => `${runSheet()}<div class="card stack"><h2>Teacher key</h2>
+  <p>A participant tells you the group code and the envelope. Ask your question first. Then find the row for the <b>last digit</b> of the group code and give the password for that envelope.</p>
   <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>Code ends in</th><th>Envelope 1</th><th>Envelope 2</th><th>Envelope 3</th></tr></thead><tbody>${WORDS.map((w, k) => `<tr><td><b>${k}</b></td><td>${w[0]}</td><td>${w[1]}</td><td>${w[2]}</td></tr>`).join("")}</tbody></table></div>
   <details open><summary>What to do at each walk</summary><div class="stack" style="margin-top:10px">
     <div class="walk"><b>Part 1 · envelope 1</b><span>Comes when the three predictions are locked.</span><span><b>Ask:</b> "The survey question on lunch prices: which form did your group predict gets more answers that the prices are too high? How sure are you?"</span><span><b>Note on the board:</b> "LS-1 higher", "same" or "LS-2 higher", and the percentage.</span></div>

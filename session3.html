@@ -131,7 +131,8 @@ select { width: 100%; font: inherit; padding: .6rem .7rem; border: 1.5px solid #
 .gpair { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-bottom: .7rem; }
 .gblock { background: #fff; border: 1.5px solid #c9ced6; border-radius: 10px; padding: .5rem .6rem; } .gblock p { margin: .2rem 0; }
 .dots { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; margin: .3rem 0; } .dots i { aspect-ratio: 1; border-radius: 50%; background: #c3c8d0; } .dots i.yes { background: #1e7b34; }
-.starbadge { position: fixed; top: .5rem; right: .6rem; z-index: 40; background: #fff7e0; border: 1.5px solid #e2b93b; color: #7a5a00; font-weight: 700; border-radius: 999px; padding: .2rem .7rem; font-size: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+.starrow { display: flex; justify-content: flex-end; margin: 6px 0 2px; }
+.starbadge { display: inline-block; background: #fff7e0; border: 1.5px solid #e2b93b; color: #7a5a00; font-weight: 700; border-radius: 999px; padding: .2rem .7rem; font-size: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
 .startoast { position: fixed; left: 50%; top: 3.2rem; transform: translateX(-50%); z-index: 50; background: #1f4e79; color: #fff; border-radius: 12px; padding: .7rem 1.1rem; font-weight: 700; box-shadow: 0 6px 18px rgba(0,0,0,.25); max-width: 90vw; text-align: center; animation: toastin .35s ease-out, toastout .5s ease-in 3.2s forwards; }
 .startoast small { display: block; font-weight: 400; opacity: .9; margin-top: .15rem; }
 .startoast .st { color: #ffd54a; font-size: 1.3rem; letter-spacing: .1em; }
@@ -203,7 +204,7 @@ function textQ(key, label, rows) {
   return `<div><label for="${key}">${label}</label><textarea id="${key}" data-text="${key}" rows="${rows || 2}" maxlength="240">${esc(S.a[key] || "")}</textarea></div>`;
 }
 const numOK = (k) => S.a[k] !== undefined && S.a[k] !== "" && !isNaN(Number(S.a[k]));
-const textOK = (k) => (S.a[k] || "").trim().length >= 3;
+const textOK = (k) => (S.a[k] || "").trim().length >= 1;
 
 function dotPlot() {
   const W = 560, rowH = 120, x = (v) => 60 + (v - 1) * 72; let h = `<svg viewBox="0 0 ${W} ${rowH * 2 + 40}" role="img" aria-label="Each dot is one customer's rating, for the new process and the old process" style="width:100%;height:auto">`;
@@ -235,19 +236,20 @@ function guestsView() {
   return h + [["own", "Standard orders (50)"], ["party", "Rush orders (50)"]].map(([k, l]) => `<p class="rowlabel hot">${l}</p><div class="gpair">${["Counter", "Table"].map((s) => block(SVC[s], ...G3[k][s])).join("")}</div>`).join("");
 }
 
+function suggestName() { if (!S.sugg) { const L = "ABCDEFGHJKLMNPQRSTUVWXYZ"; S.sugg = L[Math.floor(Math.random() * L.length)] + String(10 + Math.floor(Math.random() * 90)); if (!S.group) S.group = S.sugg; try { save(); } catch (e) {} } return S.sugg; }
 /* ---------- the steps ---------- */
 const STEP = {
   intro: { html: () => `<h1>The Inbox</h1><p>You are the analysts of a company. Three managers send you tickets. Each has a number, and a plan. They need advice they can act on.</p>
       <div class="card stack"><p><b>How it works</b></p><p>Work in pairs or groups of three, with one laptop that has JASP. One of you writes on this page; change who writes at each ticket.</p><p>Each step is locked before the next one opens. Nothing is graded: your answers are used for research on teaching only.</p></div>
-      ${RO ? `<div class="locked"><b>Group code</b>${esc(S.group)}</div>` : `<div><label for="group">Your group code: any three digits</label><input type="text" inputmode="numeric" id="group" data-group maxlength="3" value="${esc(S.group)}" style="max-width:8rem"></div>`}`,
-    ok: () => /^\d{3}$/.test(S.group), go: "Open the first ticket" },
+      ${RO ? `<div class="locked"><b>Group name</b>${esc(S.group)}</div>` : `<div><label for="group">Your group's name: a letter and a number</label><input type="text" id="group" data-group maxlength="12" autocomplete="off" value="${esc(S.group || suggestName())}" style="max-width:10rem"><p class="hint">We suggest <b>${suggestName()}</b>, so that no two groups share a name. You may change it.</p></div>`}`,
+    ok: () => (S.group || "").trim().length >= 2, go: "Open the first ticket" },
   t1a: { mins: "about 3 minutes", html: () => `<h1>Ticket 1: the new returns process</h1><p>The company tests a <b>new process</b> for handling product returns. Ten customers went through the new process and ten through the <b>old process</b>. Each customer answered “How satisfied are you with how your return was handled?” on a scale from <b>1 = very dissatisfied</b> to <b>7 = very satisfied</b>.</p>${SCALE}
       ${owner("“The average rating of the new process is 4.6. The average rating of the old process is 4.0. We roll out the new process to all customers. Agreed?”", QM)}${advice("t1first", "What do you advise, from what the manager has told you?", ["Roll out the new process", "Keep the old process", "Not enough to decide"])}`,
     ok: () => adviceDone("t1first"), go: "Lock our advice and see the data" },
   t1b: { mins: "5–7 minutes", html: () => `<h1>Ticket 1: look at the 20 ratings</h1><div class="card stack"><p><b>With JASP</b></p><p>1. <a href="${CSV_MENU}" download="returns.csv">Download returns.csv</a> and open it in JASP.<br>2. Descriptives → move <b>score</b> to Variables and <b>process</b> to Split.<br>3. Tick Median. Under Basic plots, tick Dot plots.</p>
       <p><b>Without a laptop</b></p>${S.pic || RO ? dotPlot() : `<p><button type="button" class="go secondary" data-pic>Show the picture here</button></p>`}</div>
       ${num("t1mnew", "New process: the rating of the middle customer (the median), from 1 to 7", 1, 7)}${num("t1mold", "Old process: the rating of the middle customer (the median), from 1 to 7", 1, 7)}${pick("t1jasp", "How did you look at the data?", ["In JASP", "On this page", "Both"])}
-      ${advice("t1later", "What do you advise now?", ["Roll out the new process", "Keep the old process", "Not enough to decide"])}`,
+      ${RO || (numOK("t1mnew") && numOK("t1mold") && !!S.a.t1jasp) ? advice("t1later", "What do you advise now?", ["Roll out the new process", "Keep the old process", "Not enough to decide"]) : `<div class="locked"><b>Your new advice opens after the data</b>Fill in the two medians and how you looked at the data first.</div>`}`,
     ok: () => numOK("t1mnew") && numOK("t1mold") && !!S.a.t1jasp && adviceDone("t1later"), go: "Lock and open ticket 2" },
   t2a: { mins: "about 2 minutes", html: () => `<h1>Ticket 2: luck or real?</h1><p>The company has a new design for its ordering app. <b>10 users try both designs</b>, and each one says which they prefer.</p>
       ${owner("“Seven of the ten users chose the new design. Seven out of ten! Our users prefer the new design.”", PM)}
@@ -258,8 +260,8 @@ const STEP = {
       ${num("t2s1", "Round 1: how many of the 10 users picked the new design (red cards)?", 0, 10)}${num("t2s2", "Round 2", 0, 10)}${num("t2s3", "Round 3", 0, 10)}
       <p><b>Now tell the class.</b> One of you puts three crosses on the board, one for each round, above the number you counted.</p>
       <div class="card stack"><p><b>Then let the computer do 1,000 rounds</b></p>${S.sim ? simView(S.sim) : (numOK("t2s1") && numOK("t2s2") && numOK("t2s3") ? `<p><button type="button" class="go secondary" data-sim>Do 1,000 rounds</button></p>` : `<p class="hint">Enter your three counts first.</p>`)}</div>
-      ${pick("t2says", "The product manager said: “Seven out of ten! Our users prefer the new design.” What do you say now?", ['Seven of ten is convincing: launch the new design', 'It could easily be luck: test with more users first', 'It shows that users prefer the old design'])}
-      ${RO ? "" : `<div><label for="word">The class word. Your teacher gives it when the board is full.</label><input type="text" id="word" data-word value="${S.word ? CLASS_WORD : ""}" style="max-width:12rem" autocomplete="off">${S.word ? `<p class="hint">Correct.</p>` : ""}</div>`}`,
+      ${RO || S.sim ? pick("t2says", "The product manager said: “Seven out of ten! Our users prefer the new design.” What do you say now?", ['Seven of ten is convincing: launch the new design', 'It could easily be luck: test with more users first', 'It shows that users prefer the old design']) : `<div class="locked"><b>Your answer to the product manager opens after the 1,000 rounds</b>Do your three rounds with the cards and the 1,000 rounds first.</div>`}
+      ${RO ? "" : `<div><label for="word">The class word opens ticket 3. Your teacher gives it when the board is full.</label><input type="text" id="word" data-word value="${S.word ? CLASS_WORD : ""}" style="max-width:12rem" autocomplete="off">${S.word ? `<p class="hint">Correct.</p>` : ""}</div>`}`,
     ok: () => numOK("t2s1") && numOK("t2s2") && numOK("t2s3") && !!S.sim && !!S.a.t2says && S.word, go: "Lock and open ticket 3" },
   t3a: { mins: "about 3 minutes", html: () => `<h1>Ticket 3: supplier A or supplier B?</h1><p>Two suppliers deliver the same component. Last quarter each of them delivered <b>50 orders</b>. The company wants to work with one supplier only.</p>
       ${owner("“Supplier A: 35 of 50 orders on time, that is 70%. Supplier B: 25 of 50 on time, only 50%. I will drop supplier B and give all orders to A. Agreed?”", SM)}${advice("t3first", "What do you advise, from what the manager has told you?", ["Drop supplier B", "Keep supplier B", "Not enough to decide"])}`,
@@ -326,11 +328,28 @@ function endView() {
   return `<h1>Your case file</h1><div class="rank">${stars(n, STAR_MAX)}<b>${rank}</b>${n} of ${STAR_MAX} stars. Good job: all four tickets are answered.</div><p>The class looks at them together after the break.</p>
     <div class="recap-wrap"><table class="recap"><tr><th></th><th>First advice</th><th>After the data</th></tr>${row("Ticket 1", A.t1first + s("t1first"), A.t1later + s("t1later"))}${row("Ticket 3", A.t3first + s("t3first"), A.t3later + s("t3later"))}</table></div>
     <div class="locked"><b>Ticket 2</b>Our guess: ${esc(A.t2guess)}. Our three rounds: ${esc([A.t2s1, A.t2s2, A.t2s3].join(", "))} of 10 picked the new design. We say: ${esc(A.t2says)}.</div><div class="locked"><b>Our memo</b>${esc(A.memo)}</div>
+    <div class="card stack"><h2>What the four tickets show</h2>
+      <p><b>The one idea:</b> a single number does not speak for itself. Ask what is behind it before you act on it.</p>
+      <p><b>Ticket 1. An average can describe nobody.</b> No customer was "about 4.6": six were at 3 and four at 7. Look at how the answers are spread before you quote one number.</p>
+      <p><b>Ticket 2. Luck alone makes results like this.</b> Ten users with no preference give 7 or more for one design in about 17 of 100 rounds. Ask how often luck would do it.</p>
+      <p><b>Ticket 3. A total can turn around inside the groups.</b> Supplier B was on time more often for standard orders and for rush orders, and still lost overall. Ask who got the hard cases.</p>
+      <p><b>Ticket 4. The question decides the tool.</b> What you compare, and what kind of numbers you have, tell you which analysis fits.</p>
+      <p><b>Bring to the discussion:</b> in your own thesis, which single number will you report, and what could be hiding behind it?</p></div>
     <div class="sendbox stack">${FORM_URL ? `<p><b>Last step: send your case file.</b> The button opens a form with your answers filled in. Scroll down and press <b>Submit</b>.</p><p><a class="go" href="${esc(formLink())}" target="_blank" rel="noopener" data-sent>Open the form with our answers</a></p>${S.sent ? `<p class="hint">Opened. If you pressed Submit in the form, you are done.</p>` : ""}`
       : `<p><b>Last step: keep your case file.</b></p><p><button type="button" class="go" data-copy>Copy our case file</button></p><p class="hint" id="copied"></p>`}</div>`;
 }
 function teacher() {
   return `<h1>The Inbox: teacher view</h1><p class="hint">Remove #facilitator from the address to see the page as participants do.</p>
+  <div class="card stack entrynote" style="border:2px solid var(--accent)"><h2>Your five jobs, in order</h2>
+    <ol style="margin:0;padding-left:22px;display:grid;gap:6px">
+      <li><b>Before the lab.</b> A pile of playing cards for each group, with as many red as black. On the board: the numbers 0 to 10 in a row.</li>
+      <li><b>Start of the lab: say "${ENTRY_CODE}".</b> Pairs or groups of three, one laptop with JASP if they have one.</li>
+      <li><b>Ticket 1: walk around.</b> Ask one question only: "How many customers gave a rating near 4.6?"</li>
+      <li><b>Ticket 2: the cards and the board.</b> When the board is full, circle 7 to 10, count those crosses aloud, then say "${CLASS_WORD}".</li>
+      <li><b>Tickets 3 and 4, and the memo: no help.</b> If a group is stuck on ticket 3: "Who gets the rush orders?"</li>
+    </ol>
+    <div class="recap-wrap"><table class="recap"><tr><th>Word</th><th>When you say it</th><th>What it opens</th></tr><tr><td><b>${ENTRY_CODE}</b></td><td>Start of the lab</td><td>The page, on every device</td></tr><tr><td><b>${CLASS_WORD}</b></td><td>When the board is full</td><td>Ticket 3</td></tr></table></div>
+    <p><b>The rule to remember: ask, do not tell.</b> The page gives the feedback after each lock.</p></div>
   <div class="card stack"><h2>Before the lab</h2><p><b>Per pair or group of three:</b> one laptop with JASP if possible, and a pile of playing cards with as many red as black cards. A full deck per group is best; half a deck (13 red, 13 black) also works.</p><p><b>On the board:</b> the numbers 0 to 10 in a row, with room for crosses above each.</p><p><b>Class word</b> for opening ticket 3: <b>${CLASS_WORD}</b>. Give it when most groups have put their three crosses on the board.</p><p><b>Time:</b> 30–40 minutes for the four tickets and the memo.</p><p><b>Feedback and stars:</b> after each ticket is locked, the page shows what the data said, with up to three stars, 16 in all. Nothing is shown before the group has committed. The stars are for motivation and are not a grade.</p></div>
   <div class="card stack"><h2>What to do at each ticket</h2>
     <p><b>Ticket 1 (8–10 minutes).</b> Walk around. Ask one question only: “How many customers gave a rating near 4.6?” Do not say more.</p>
@@ -347,7 +366,7 @@ function teacher() {
 
 /* ---------- drawing and events ---------- */
 function render() {
-  document.querySelectorAll(".starbadge").forEach((n) => n.remove());
+  document.querySelectorAll(".starrow").forEach((n) => n.remove());
   if (preview) { document.body.classList.add("wide"); app.innerHTML = `<div class="stack">${teacher()}</div>`; return; }
   document.body.classList.remove("wide");
   const id = SCREENS[S.at], furthest = S.max || 0, locked = !!S.fbd[id]; RO = S.at < furthest || locked; stamp(id);
@@ -359,7 +378,7 @@ function render() {
       : locked ? `<p><button type="button" class="go" data-cont>Continue</button></p>` : `<p><button type="button" class="go" data-next ${st.ok() ? "" : "disabled"}>${st.go}</button></p>`;
     if (S.at > 0 && !(locked && S.at === furthest)) foot += `<p><button type="button" class="go secondary" data-back>Back</button></p>`; }
   app.innerHTML = `<header class="top"><span class="brand">The Inbox</span><span class="where">${NAMES[id]}${S.group ? " · group " + esc(S.group) : ""}</span></header>${track}<div class="stack">${body}${foot}</div>`;
-  if (S.group) { const b = document.createElement("div"); b.className = "starbadge"; b.textContent = "★ " + starTotal() + " / " + STAR_MAX; document.body.appendChild(b); }
+  if (S.group) { const b = document.createElement("div"); b.className = "starbadge"; b.textContent = "★ " + starTotal() + " / " + STAR_MAX; const row = document.createElement("div"); row.className = "starrow"; row.appendChild(b); const hd = app.querySelector("header"); if (hd) hd.after(row); else app.prepend(row); }
 }
 function refreshNext() { const b = app.querySelector("[data-next]"); if (b) b.disabled = !STEP[SCREENS[S.at]].ok(); }
 app.addEventListener("click", (e) => {
@@ -381,8 +400,8 @@ app.addEventListener("click", (e) => {
 app.addEventListener("input", (e) => {
   const t = e.target;
   if (t.dataset.sure) { S.a[t.dataset.sure + "Sure"] = Number(t.value); document.getElementById(t.dataset.sure + "-out").textContent = t.value + "%"; }
-  else if (t.hasAttribute("data-group")) { t.value = t.value.replace(/\D/g, "").slice(0, 3); S.group = t.value; }
-  else if (t.dataset.num) { const v = t.value.replace(/[^\d]/g, ""); t.value = v; const n = Number(v); S.a[t.dataset.num] = v === "" || n < Number(t.dataset.min) || n > Number(t.dataset.max) ? "" : n; if (t.dataset.num.startsWith("t2s") && !S.sim && ["t2s1", "t2s2", "t2s3"].every(numOK)) { save(); const pos = t.id; render(); const el = document.getElementById(pos); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } return; } }
+  else if (t.hasAttribute("data-group")) { t.value = t.value.replace(/[^A-Za-z0-9 ]/g, "").slice(0, 12); S.group = t.value.trim(); }
+  else if (t.dataset.num) { const v = t.value.replace(/[^\d]/g, ""); t.value = v; const n = Number(v); S.a[t.dataset.num] = v === "" || n < Number(t.dataset.min) || n > Number(t.dataset.max) ? "" : n; if ((t.dataset.num.startsWith("t2s") && !S.sim && ["t2s1", "t2s2", "t2s3"].every(numOK)) || (t.dataset.num.startsWith("t1m") && numOK("t1mnew") && numOK("t1mold") && S.a.t1jasp && !app.querySelector('[data-choice="t1later"]'))) { save(); const pos = t.id; render(); const el = document.getElementById(pos); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } return; } }
   else if (t.dataset.text) { S.a[t.dataset.text] = t.value; }
   else if (t.dataset.sel) { S.a[t.dataset.sel] = t.value; }
   else if (t.hasAttribute("data-word")) { const ok = t.value.toLowerCase().replace(/[^a-z]/g, "") === CLASS_WORD; if (ok !== S.word) { S.word = ok; save(); if (ok) { render(); return; } } }
