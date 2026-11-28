@@ -96,6 +96,10 @@ table.recap th { color: var(--muted); font-size: 14px; }
 .recap-wrap { overflow-x: auto; }
 .milestone { display: flex; align-items: center; gap: 14px; background: var(--note); border: 1px solid var(--note-line); border-radius: 10px; padding: 12px 16px; }
 body.teacher #app { zoom: 1.18; } body.teacher .walk span, body.teacher .tips li { font-size: 17px; } body.teacher details.card { padding: 12px 16px; } body.teacher details.card > summary { font-weight: 700; color: var(--ink); cursor: pointer; }
+.board { background: #fff; border: 3px solid #8a8f98; border-radius: 10px; padding: 12px 14px; box-shadow: inset 0 0 0 4px #f1f3f6; overflow-x: auto; }
+.board table { border-collapse: collapse; width: 100%; font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive; font-size: 16px; } .board th { text-align: left; border-bottom: 2px solid var(--ink); padding: 4px 10px; color: var(--ink); } .board td { padding: 5px 10px; border-bottom: 1px dashed #c9ced6; color: #5d6673; }
+.board svg { width: 100%; max-width: 640px; height: auto; display: block; margin: 0 auto; font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive; }
+.boardcap { font-size: 13.5px; color: var(--muted); margin-top: 4px; }
 .milestone .stars { color: #E0A100; display: flex; flex: none; }
 .research { background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; font-size: 15px; }
 .research b:first-child { display: block; font-family: var(--display); font-size: 16px; color: var(--accent); margin-bottom: 2px; }
@@ -116,6 +120,7 @@ body.wide main { max-width: 1200px; } .proj p { max-width: none; }
 .tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: var(--ink); }
 .classres td, .classres th { font-size: 15px; } .classres th:first-child, .classres td:first-child { width: 26%; } .classres .big { font-size: 1.35em; }
 .crh { margin: 14px 0 0; } .crq { margin: 2px 0 6px; color: var(--muted); } .crm { margin: 6px 0 0; }
+.bigq { font-family: var(--display); font-size: 30px; font-weight: 800; margin: 18px 0 6px; } .bigrow { display: grid; grid-template-columns: 200px minmax(0, 1fr) 150px; gap: 16px; align-items: center; font-size: 26px; margin: 8px 0; } .bigrow b { font-size: 30px; } .bigtrack { background: #e6e9ee; height: 36px; border-radius: 8px; overflow: hidden; } .bigtrack i { display: block; height: 100%; background: var(--accent); border-radius: 8px; } .bigtrack i.hot { background: var(--hot); } .bigsub { font-size: 22px; color: var(--muted); margin: 0; } .bigtable td, .bigtable th { font-size: 27px; padding: 16px 14px; text-align: left; } .bigtable th { color: var(--muted); font-size: 22px; } .bigline { font-size: 28px; }
 .proj .crh { font-size: 32px; } .proj .crq { font-size: 24px; }
 .proj h1 { font-size: 40px; } .proj .classres td, .proj .classres th { font-size: 26px; padding: 16px 14px; } .proj p { font-size: 24px; }
 .proj .ask { font-family: var(--display); font-weight: 700; font-size: 28px; border-left: 8px solid var(--accent); padding: 14px 18px; background: var(--soft); border-radius: 0 8px 8px 0; }
@@ -251,7 +256,7 @@ const view = {
     <p>Two restaurant owners want your advice. Work as a group of four or five. Everyone can follow on their own device, but <b>one device writes and sends</b> the group's answers. Talk first, then write.</p>
     <div class="card stack">
       <h2>Is this the device that writes for your group?</h2>
-      <div><label for="group">Yes: type your group's name</label><input id="group" type="text" maxlength="40" value="${esc(S.group)}" placeholder="Your own choice" autocomplete="off"></div>
+      <div><label for="group">Yes: type your group's name</label><input id="group" type="text" maxlength="40" value="${esc(S.group)}" placeholder="Your own choice" autocomplete="off"><p class="hint">An idea: build the name from the first letters of everyone's first names.</p></div>
       <button class="go" data-start="scribe" disabled>Start our group's case file</button>
       <p class="hint">The lab has checkpoints. At each one, your group's answers are locked and one of you fetches a password from a teacher. The password opens the next step. One case file per group is accepted.</p>
     </div>
@@ -432,6 +437,11 @@ function classTable(s) {
   return block("Case 1: the ads", "Should the owner double the ad budget?", "Double it", "Do not double it", s.c1f, s.c1l, s.c1fs, s.c1ls, s.c1m)
     + block("Case 2: the neighbours", "Should the owner stop the flyers in the neighbourhood?", "Stop the flyers", "Keep the flyers", s.c2f, s.c2l, s.c2fs, s.c2ls, s.c2m);
 }
+function bigTable(s) { /* the big screen: one question per case, the share before and after, nothing else */
+  const row = (label, p, hot) => (p.n ? `<div class="bigrow"><span>${label}</span><div class="bigtrack"><i class="${hot ? "hot" : ""}" style="width:${Math.round((100 * p.yes) / p.n)}%"></i></div><b>${p.yes} of ${p.n}</b></div>` : `<div class="bigrow"><span>${label}</span><span>no answers</span><b></b></div>`);
+  const block = (q, f, l) => `<p class="bigq">${q}</p>${row("First advice", f, true)}${row("Later advice", l, false)}`;
+  return block("Case 1. Groups that said “double the ad budget”", s.c1f, s.c1l) + block("Case 2. Groups that said “stop the flyers”", s.c2f, s.c2l);
+}
 const classOut = () => (CR.sum ? `<div class="envelope stack"><div class="tag">Class results: ${CR.sum.n} groups</div>${CR.sum.dup ? `<p class="small">${CR.sum.dup} group code${CR.sum.dup > 1 ? "s were" : " was"} sent more than once; the later row was used.</p>` : ""}${classTable(CR.sum)}
     <p><button class="go" data-cproj>Show the class results on the big screen</button></p><p><button class="go secondary" data-cclear>Clear the class results</button></p></div>` : "");
 const teacherKey = () => `<div class="card stack entrynote" style="border:2px solid var(--accent)"><h2>Your four jobs, in order</h2>
@@ -444,7 +454,7 @@ const teacherKey = () => `<div class="card stack entrynote" style="border:2px so
       <p><b>The rule to remember: ask, write, password. No comment.</b></p></div>
     <div class="card stack"><h2>Job 3. At every walk</h2>
       <p>A participant comes to you with the group code and the checkpoint. <b>Ask</b> your question, <b>write</b> the answer on the board, then give the <b>password</b> from the row for the last digit of the group code.</p>
-      <p><b>The board:</b> one row for each group, with five columns: Group, Case 1 advice, Sure, Case 2 advice, Sure.</p>
+      <p><b>The board:</b> draw this table before the lab. One row for each group, five columns.</p><div class="board"><table><tr><th>Group</th><th>Case 1 advice</th><th>Sure</th><th>Case 2 advice</th><th>Sure</th></tr><tr><td>ALMA</td><td>double</td><td>70%</td><td>stop the flyers</td><td>60%</td></tr><tr><td>JOKE</td><td>do not double</td><td>55%</td><td>keep them</td><td>80%</td></tr><tr><td>…</td><td></td><td></td><td></td><td></td></tr></table></div><p class="boardcap">Sketch of the board. The grey rows are examples: one row for each group, filled in as the groups come to you.</p>
         <div class="walk"><b>Checkpoint 1A</b><span>Comes when the first advice on the ads is locked.</span><span><b>Ask:</b> "What did your group advise, and how sure are you?"</span><span><b>Write:</b> "double" or "do not double", and the percentage.</span></div>
         <div class="walk"><b>Checkpoint 1B</b><span>Comes when the weeks are sorted by season.</span><span><b>Ask:</b> "What did you see inside each row?"</span><span><b>Write:</b> nothing. You only check that the group has looked.</span></div>
         <div class="walk"><b>Checkpoint 2</b><span>Comes when the first advice on the flyers is locked.</span><span><b>Ask:</b> "What did your group advise, and how sure are you?"</span><span><b>Write:</b> "stop the flyers" or "keep them", and the percentage.</span></div>
@@ -466,9 +476,9 @@ function render(scroll) {
   const track = SCREENS.slice(1).map((s, i) => `<span class="${i + 1 < S.at ? "done" : i + 1 === S.at ? "now" : ""}"></span>`).join("");
   const who = S.role === "scribe" ? ` · ${esc(S.group)} · group code <b>${S.salt}</b>` : S.role === "follow" ? ` · following group ${esc(S.salt)}` : "";
   const bar = looking ? `<div class="lookbar"><b>Looking back: read only</b><span>${S.look > 1 ? '<button class="go secondary" data-look="prev">Earlier screen</button>' : ""}${S.look < lookMax() ? '<button class="go secondary" data-look="next">Later screen</button>' : ""}<button class="go" data-look="close">Return to where we were</button></span></div>` : "";
-  const back = !looking && S.role && lookMax() >= 1 ? '<p><button class="go secondary" data-look="open">' + (id === "end" ? "Read our earlier screens again" : "Look back at earlier screens") + '</button></p>' : "";
+  const back = !looking && S.role && lookMax() >= 1 ? '<p><button class="go secondary" data-look="open">' + (id === "end" ? "Look back at our earlier screens (read only)" : "Look back at earlier screens") + '</button></p>' : "";
   app.innerHTML = "";
-  if (preview && CR.proj && CR.sum) { document.body.classList.add("wide"); app.appendChild($(`<section class="proj stack"><h1>Our class: first advice and later advice</h1><p>${CR.sum.n} groups</p>${classTable(CR.sum)}<p class="ask">If your advice changed: what made you change? If it stayed the same: what made you sure from the start?</p><p><button class="go secondary" data-cproj>Back to teacher's page</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
+  if (preview && CR.proj && CR.sum) { document.body.classList.add("wide"); app.appendChild($(`<section class="proj stack"><h1>Our class: did the evidence change our advice?</h1><p class="bigsub">${CR.sum.n} groups</p>${bigTable(CR.sum)}<p class="ask">If your advice changed: what changed it?</p><p><button class="go secondary" data-cproj>Back to teacher's page</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
   document.body.classList.remove("wide");
   app.appendChild($(`<header class="top"><div class="brand">What Should the Owner Do?</div><div class="where">Session 1 · ${v.where}${who}${preview ? " · facilitator preview" : ""}</div></header><div class="track" aria-hidden="true">${track}</div>${preview ? teacherKey() + '<details class="card"><summary>For the projector: the screens that participants see</summary>' : ""}${bar}<section class="stack" id="screen">${v.html}</section>${bar}${back}${preview && id !== "intro" && !looking ? '<p class="small"><button class="go secondary" data-skip>Skip to the next screen</button></p>' : ""}${preview ? "</details>" : ""}`));
   document.body.classList.toggle("teacher", !!preview);

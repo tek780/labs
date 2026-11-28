@@ -197,6 +197,9 @@ const SIL_YES = TRUE_MEAN - ANS_YES, N_SIL = 100 - N_ANS;
 .rc.drawn { border-color: var(--hot); box-shadow: 0 0 0 2px var(--hot); }
 .nl { margin: 0; } .nl > svg { width: 100%; max-width: 560px; height: auto; display: block; }
 body.teacher #app { zoom: 1.18; } .tckey { font-weight: 700; color: var(--accent); font-size: 15px; text-transform: none; } body.teacher .tcsay { font-size: 21px; line-height: 1.35; } body.teacher .walk span, body.teacher .tips li { font-size: 17px; } body.teacher details.card { padding: 12px 16px; } body.teacher details.card > summary { font-weight: 700; color: var(--ink); cursor: pointer; }
+.board { background: #fff; border: 3px solid #8a8f98; border-radius: 10px; padding: 12px 14px; box-shadow: inset 0 0 0 4px #f1f3f6; overflow-x: auto; } .board table { border-collapse: collapse; width: 100%; font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive; font-size: 16px; } .board th { text-align: left; border-bottom: 2px solid var(--ink); padding: 4px 10px; color: var(--ink); } .board td { padding: 5px 10px; border-bottom: 1px dashed #c9ced6; color: #5d6673; } .board svg { width: 100%; max-width: 640px; height: auto; display: block; margin: 0 auto; font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive; } .boardcap { font-size: 13.5px; color: var(--muted); margin-top: 4px; }
+.twopanels { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 16px; align-items: start; } .panel { border: 2px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--surface); } .panel + .panel { border-color: var(--accent); } .ptag { font-weight: 800; font-size: 1.1rem; margin: 0 0 2px; color: var(--ink); } .panel + .panel .ptag { color: var(--accent); } .psub { margin: 4px 0 8px; font-size: .95rem; color: var(--muted); } .proj .ptag { font-size: 30px; } .proj .psub { font-size: 21px; }
+.bigq { font-family: var(--display); font-size: 30px; font-weight: 800; margin: 18px 0 6px; } .bigrow { display: grid; grid-template-columns: 200px minmax(0, 1fr) 150px; gap: 16px; align-items: center; font-size: 26px; margin: 8px 0; } .bigrow b { font-size: 30px; } .bigtrack { background: #e6e9ee; height: 36px; border-radius: 8px; overflow: hidden; } .bigtrack i { display: block; height: 100%; background: var(--accent); border-radius: 8px; } .bigtrack i.hot { background: var(--hot); } .bigsub { font-size: 22px; color: var(--muted); margin: 0; } .proj .bigtable td, .proj .bigtable th { font-size: 27px; padding: 16px 14px; text-align: left; } .proj .bigtable th { color: var(--muted); font-size: 22px; } .bigline { font-size: 28px; }
 .reveal { text-align: center; }
 .bignum b { font-family: var(--display); font-size: 84px; line-height: 1; display: block; color: var(--hot); font-variant-numeric: tabular-nums; }
 .bignum.after b { color: var(--accent); }
@@ -485,7 +488,7 @@ const view = {
     <p>Work as a group of four or five. <b>One device writes and sends</b> the group's answers: a laptop is best. Everyone keeps their own phone next to them, open on the survey page with "My survey slip". Talk first, then write.</p>
     <div class="card stack">
       <h2>Is this the device that writes for your group?</h2>
-      <div><label for="group">Yes: choose a name for your group</label><input id="group" type="text" maxlength="40" value="${esc(S.group)}" placeholder="Your own choice" autocomplete="off"></div>
+      <div><label for="group">Yes: choose a name for your group</label><input id="group" type="text" maxlength="40" value="${esc(S.group)}" placeholder="Your own choice" autocomplete="off"><p class="hint">An idea: build the name from the first letters of everyone's first names.</p></div>
       <button class="go" data-start="scribe" disabled>Start our group's case file</button>
       <p class="hint">The lab has checkpoints. At each one, your group's answers are locked and one of you fetches a password from a teacher. The password opens the next step. One case file per group is accepted.</p>
     </div>
@@ -528,6 +531,7 @@ const view = {
     ${S.cw || RO || follower() ? `<p class="step">Step 4. Look at the shares on the two forms, on the big screen.</p>
     ${textQ("p1see", "What do you see? If the two forms differ, what do you think produced the difference? If they do not, what could explain that?")}
     <p class="step">Step 5. A restaurant owner near campus wants to print form LS-1 and hand it to 500 of her guests next week.</p>
+    <details class="slip" data-ls1><summary>Show form LS-1</summary><div style="margin-top:10px">${formView(1, false)}</div></details>
     ${textQ("p1advice", "What do you advise her?")}
     <button class="go" data-next disabled>Lock our answers and start Part 2</button>` : `<div class="locked"><b>Steps 4 and 5 open after the class word</b>They are about the class result, so they wait until it is on the big screen.</div>`}`,
     ready: () => S.cw && filled("p1see") && filled("p1advice") }),
@@ -656,7 +660,7 @@ function classResults(text) {
   const mean = (v) => (v.length ? Math.round(v.reduce((s, x) => s + x, 0) / v.length) : null), has = (k) => rows.map((r) => r[k]).filter((x) => x != null);
   const eye = has("eye"), lot = rows.flatMap((r) => r.draws), off = (v) => Math.abs(v - TRUE_MEAN), gap = Math.abs(CLAIM - TRUE_MEAN);
   return { n: rows.length, dup, pred: [0, 1, 2].map((q) => PRED.map((o) => rows.filter((r) => r.pred[q] === o).length)), ps: mean(has("ps")),
-    eye, lot, eyeHigh: eye.filter((v) => v > TRUE_MEAN).length, eyeNear: eye.filter((v) => Math.abs(v - CLAIM) <= 10).length, lotCloser: lot.filter((v) => off(v) < gap).length,
+    eye, lot, eyeHigh: eye.filter((v) => v > TRUE_MEAN).length, eyeNear: eye.filter((v) => Math.abs(v - CLAIM) < Math.abs(v - TRUE_MEAN)).length, lotCloser: lot.filter((v) => off(v) < gap).length,
     believed: CLOSE.map((o) => rows.filter((r) => r.close === o).length), was: [eye.filter((v) => off(v) <= 10).length, eye.filter((v) => off(v) > 10 && off(v) <= 30).length, eye.filter((v) => off(v) > 30).length], cs: mean(has("cs")),
     method: METHODS.map((o) => rows.filter((r) => r.method === o).length), ms: mean(has("ms")) };
 }
@@ -670,21 +674,47 @@ function dotPlot(s) {
     ${stack(s.eye, 150, "eyed")}${stack(s.lot, 340, "lotd")}<line class="tru" x1="${x(TRUE_MEAN)}" y1="28" x2="${x(TRUE_MEAN)}" y2="352"></line><text class="trul" x="${x(TRUE_MEAN)}" y="20" text-anchor="middle">All 100 firms: ${TRUE_MEAN}%</text><line x1="${x(CLAIM)}" y1="28" x2="${x(CLAIM)}" y2="352" stroke="var(--hot)" stroke-width="3" stroke-dasharray="10 7"></line><text class="trul" x="${x(CLAIM)}" y="20" text-anchor="middle" style="fill:var(--hot)">The ${N_ANS} answers: ${CLAIM}%</text>
     ${ticks.map((v) => `<line class="ax" x1="${x(v)}" y1="340" x2="${x(v)}" y2="348"></line><text class="tick" x="${x(v)}" y="374" text-anchor="middle">${v}</text>`).join("")}<text class="tick" x="${W - R}" y="398" text-anchor="end">firms that use AI (%)</text></svg>`;
 }
-function classPart1(s) {
+function classPart1(s) { /* two panels side by side: 1 = what the groups predicted, 2 = what the class answered in the survey */
   const tc = validCounts(S.tc) ? S.tc : null, sh = (q, f) => Math.round(100 * Number(tc[q + f]) / Number(tc["n" + f]));
-  return `<div class="recap-wrap"><table class="recap classres"><thead><tr><th>Groups that predicted</th><th>Higher on LS‑1</th><th>About the same</th><th>Higher on LS‑2</th>${tc ? "<th>The class count</th>" : ""}</tr></thead><tbody>
-    ${[["a", "Lunch prices too high"], ["b", "Screen time over 2½ hours"], ["c", "Satisfaction 4 or lower"]].map(([q, name], k) => `<tr><td><b>${name}</b></td>${s.pred[k].map((c) => `<td>${c} of ${s.n}</td>`).join("")}${tc ? `<td>LS-1 ${sh(q, 1)}%, LS-2 ${sh(q, 2)}%</td>` : ""}</tr>`).join("")}</tbody></table></div>
-    <p>How sure the groups were of their predictions, on average: <b>${s.ps == null ? "no answers" : s.ps + "%"}</b>.</p>`;
+  const Q = [["a", "Lunch prices too high"], ["b", "Screen time over 2½ hours"], ["c", "Satisfaction 4 or lower"]];
+  const higher = (q) => { const d = sh(q, 1) - sh(q, 2); return d > 0 ? "LS-1" : d < 0 ? "LS-2" : "the same"; };
+  return `<div class="twopanels">
+    <div class="panel"><p class="ptag">1 · What the GROUPS predicted</p><p class="psub">Before the count. Counted in <b>groups</b>: ${s.n}. Source: the groups' answers in the lab.</p>
+      <div class="recap-wrap"><table class="recap classres"><thead><tr><th>Which form gets the higher share?</th><th>LS‑1</th><th>The same</th><th>LS‑2</th></tr></thead><tbody>
+      ${Q.map(([q, name], k) => `<tr><td><b>${name}</b></td>${s.pred[k].map((c) => `<td>${c} of ${s.n}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
+      <p class="psub">How sure the groups were, on average: <b>${s.ps == null ? "no answers" : s.ps + "%"}</b>.</p></div>
+    <div class="panel"><p class="ptag">2 · What the CLASS answered</p>${tc ? `<p class="psub">The class count. Counted in <b>participants</b>: ${tc.n1} with form LS-1 and ${tc.n2} with form LS-2. Source: the survey on the phones.</p>
+      <div class="recap-wrap"><table class="recap classres"><thead><tr><th>Share who answered this</th><th>LS‑1</th><th>LS‑2</th><th>Higher on</th></tr></thead><tbody>
+      ${Q.map(([q, name]) => `<tr><td><b>${name}</b></td><td>${sh(q, 1)}%</td><td>${sh(q, 2)}%</td><td><b>${higher(q)}</b></td></tr>`).join("")}</tbody></table></div>
+      <p class="psub">Compare row by row: panel 1 is the prediction, panel 2 is what happened.</p>` : `<p class="psub">The class count is not on this device. Type the eight counts under “Job 4. The class count” and this panel fills in.</p>`}</div></div>`;
 }
 function classPart2(s) {
   const e = s.eye.length, l = s.lot.length;
-  return `${e || l ? dotPlot(s) : ""}<p><b>Estimates before the calls:</b> ${e ? `${s.eyeHigh} of ${e} groups above ${TRUE_MEAN}, and ${s.eyeNear} of ${e} within 10 of the ${CLAIM} they had been told` : "no answers"}. <b>Lotteries of ten:</b> ${l ? `${s.lotCloser} of ${l} came closer to ${TRUE_MEAN}% than the ${N_ANS} answers did` : "no answers"}.</p>
+  return `${e || l ? dotPlot(s) : ""}<p><b>The groups' estimates, before the calls</b> (how many of the 100 firms use AI; the true number is ${TRUE_MEAN}): ${e ? `<b>${s.eyeHigh} of ${e}</b> groups guessed above ${TRUE_MEAN}. <b>${s.eyeNear} of ${e}</b> guessed closer to the survey's ${CLAIM} than to the true ${TRUE_MEAN}` : "no answers"}.</p>
+    <p><b>The lotteries of ten firms:</b> ${l ? `<b>${s.lotCloser} of ${l}</b> landed closer to the true ${TRUE_MEAN}% than the survey's ${CLAIM}% did` : "no answers"}.</p>
     <div class="recap-wrap"><table class="recap classres"><thead><tr><th>The sentence "${CLAIM}% of firms use AI"</th>${CLOSE.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>
     <tr><td><b>Advice before the calls</b></td>${s.believed.map((c) => `<td>${c} of ${s.n}</td>`).join("")}</tr></tbody></table></div>
     <p>How sure the groups were of that first advice, on average: <b>${s.cs == null ? "no answers" : s.cs + "%"}</b>. Advice at the end: ${METHODS.map((m, k) => `<b>${s.method[k]}</b> “${m.toLowerCase()}”`).join(", ")}.</p>`;
 }
+/* ---------- the big screen: the main message only ---------- */
+const BIGQ = [["a", "Lunch prices are too high"], ["b", "Screen time: more than 2½ hours"], ["c", "Satisfaction: 4 or lower"]];
+function bigCount(c) {
+  const pct = (q, f) => Math.round(100 * Number(c[q + f]) / Number(c["n" + f]));
+  return BIGQ.map(([q, name]) => `<p class="bigq">${name}</p>${[1, 2].map((f) => `<div class="bigrow"><span>Form LS-${f}</span><div class="bigtrack"><i class="${f === 1 ? "hot" : ""}" style="width:${pct(q, f)}%"></i></div><b>${pct(q, f)}%</b></div>`).join("")}`).join("");
+}
+function bigP1(s) {
+  const tc = validCounts(S.tc) ? S.tc : null, sh = (q, f) => Math.round(100 * Number(tc[q + f]) / Number(tc["n" + f])), OPT = ["LS-1", "the same", "LS-2"];
+  const top = (k) => { const m = Math.max(...s.pred[k]); return m ? OPT.filter((o, i) => s.pred[k][i] === m).join(" / ") + ` <span class="bigsub" style="display:inline">(${m} of ${s.n})</span>` : "no answers"; };
+  const was = (q) => { const a = sh(q, 1), b = sh(q, 2); return (a > b ? "LS-1" : a < b ? "LS-2" : "the same") + ` <span class="bigsub" style="display:inline">(${a}% and ${b}%)</span>`; };
+  return `<div class="recap-wrap"><table class="recap bigtable"><thead><tr><th>Which form gets the higher share?</th><th>Most groups predicted</th><th>The class answered</th></tr></thead><tbody>
+    ${BIGQ.map(([q, name], k) => `<tr><td><b>${name}</b></td><td>${top(k)}</td><td>${tc ? was(q) : "–"}</td></tr>`).join("")}</tbody></table></div>`;
+}
+function bigP2(s) {
+  const l = s.lot.length;
+  return `${s.eye.length || l ? dotPlot(s) : ""}${l ? `<p class="bigline"><b>${s.lotCloser} of ${l}</b> lotteries of ten firms landed closer to the truth than the survey did.</p>` : ""}`;
+}
 const classOut = () => (CR.sum ? `<div class="envelope stack"><div class="tag">Class results: ${CR.sum.n} groups</div>${CR.sum.dup ? `<p class="small">${CR.sum.dup} group code${CR.sum.dup > 1 ? "s were" : " was"} sent more than once; the later row was used.</p>` : ""}
-    <h3 class="tchead">Part 1: the predictions</h3>${classPart1(CR.sum)}<p><button class="go" data-cproj="p1">Show Part 1 on the big screen</button></p>
+    <h3 class="tchead">Part 1: the predictions (panel 1) next to the class count (panel 2)</h3>${classPart1(CR.sum)}<p><button class="go" data-cproj="p1">Show Part 1 on the big screen</button></p>
     <h3 class="tchead">Part 2: eight in ten</h3>${classPart2(CR.sum)}<p><button class="go" data-cproj="p2">Show Part 2 on the big screen</button></p>
     <p><button class="go secondary" data-cclear>Clear the class results</button></p></div>` : "");
 const SURVEY_ADDR = "tek780.github.io/labs/session2-survey.html", LAB_ADDR = "tek780.github.io/labs/session2.html";
@@ -719,7 +749,7 @@ const teacherKey = () => `<div class="card stack entrynote" style="border:2px so
   <p><b>The rule to remember: ask, write, password. No comment.</b></p></div>
 <div class="card stack"><h2>Job 3. At every walk</h2>
   <p>A participant comes to you with the group code and the checkpoint number. <b>Ask</b> your question, <b>write</b> the answer on the board, then give the <b>password</b> from the row for the last digit of the group code.</p>
-  <p><b>The board:</b> one row for each group, with five columns: Group, Which form? (prices question), Sure, Estimate (of 100), First lottery (times ten).</p>
+  <p><b>The board:</b> draw this table before the lab. One row for each group, five columns. “Which form?” is about the prices question.</p><div class="board"><table><tr><th>Group</th><th>Which form?</th><th>Sure</th><th>Estimate (of 100)</th><th>First lottery × 10</th></tr><tr><td>MASK</td><td>LS-1</td><td>70%</td><td>75</td><td>40</td></tr><tr><td>TEAM</td><td>same</td><td>50%</td><td>60</td><td>50</td></tr><tr><td>…</td><td></td><td></td><td></td><td></td></tr></table></div><p class="boardcap">Sketch of the board. The grey rows are examples. Checkpoint 1 fills “Which form?” and “Sure”, checkpoint 2 the estimate, checkpoint 3 the first lottery.</p>
   <div class="walk"><b>Checkpoint 1</b><span>Comes when the group has locked its three predictions.</span><span><b>Ask:</b> "The opinion question about lunch prices: which form did your group predict gets more answers that the prices are too high? How sure are you?"</span><span><b>Write:</b> "LS-1", "same" or "LS-2", and the percentage.</span></div>
   <div class="walk"><b>Checkpoint 2</b><span>Comes when the group has locked its advice on the sentence, its estimate and its ten firms to phone.</span><span><b>Ask:</b> "How many of the 100 firms does your group think use AI?"</span><span><b>Write:</b> the number, from 0 to 100.</span></div>
   <div class="walk"><b>Checkpoint 3</b><span>Comes when the group has made its five lotteries.</span><span><b>Ask:</b> "In your first lottery, how many of the ten firms use AI?"</span><span><b>Write:</b> that number times ten, next to the estimate. Example: 4 of 10 becomes 40.</span></div>
@@ -759,12 +789,12 @@ function render(scroll) {
   const track = S.lab ? SCREENS.slice(1).map((s, i) => `<span class="${i + 1 < S.at ? "done" : i + 1 === S.at ? "now" : ""}"></span>`).join("") : "";
   const who = S.role === "scribe" ? ` · ${esc(S.group)} · group code <b>${S.salt}</b>` : S.role === "follow" ? ` · following group ${esc(S.salt)}` : "";
   const bar = looking ? `<div class="lookbar"><b>Looking back: read only</b><span>${S.look > 1 ? '<button class="go secondary" data-look="prev">Earlier screen</button>' : ""}${S.look < lookMax() ? '<button class="go secondary" data-look="next">Later screen</button>' : ""}<button class="go" data-look="close">Return to where we were</button></span></div>` : "";
-  const back = !looking && S.lab && S.role && id !== "end" && lookMax() >= 1 ? '<p><button class="go secondary" data-look="open">Look back at earlier screens</button></p>' : "";
+  const back = !looking && S.lab && S.role && lookMax() >= 1 ? '<p><button class="go secondary" data-look="open">' + (id === "end" ? "Look back at our earlier screens (read only)" : "Look back at earlier screens") + '</button></p>' : "";
   const slip = "";
   app.innerHTML = "";
-  document.body.classList.toggle("wide", !!(preview && CR.proj && CR.sum)); document.body.classList.toggle("teacher", !!preview);
-  if (preview && CR.proj && CR.sum) { app.appendChild($(`<section class="proj stack"><h1>${CR.proj === "p1" ? "Our class: what the groups predicted" : "Our class: eight in ten?"}</h1><p>${CR.sum.n} groups</p>${CR.proj === "p1" ? classPart1(CR.sum) : classPart2(CR.sum)}<p class="ask">${CR.proj === "p1" ? "If the class count differs from what you predicted: what in the two forms could explain it?" : "Where are the estimates, and where are the lotteries? What do you think pulled each of them there?"}</p><p><button class="go secondary" data-cproj="">Back to teacher's page</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
-  if (preview && S.proj && validCounts(S.tc)) { app.appendChild($(`<section class="proj stack"><h1>Our class: how the two forms answered</h1>${barsFor(S.tc, false)}<p class="projword">Class word: <b>${CLASS_WORD}</b></p><p><button class="go secondary" data-proj>Back to teacher's page</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
+  document.body.classList.toggle("wide", !!(preview && ((CR.proj && CR.sum) || (S.proj && validCounts(S.tc))))); document.body.classList.toggle("teacher", !!preview);
+  if (preview && CR.proj && CR.sum) { app.appendChild($(`<section class="proj stack"><h1>${CR.proj === "p1" ? "Our class: what the groups predicted, and what happened" : "Our class: eight in ten?"}</h1><p class="bigsub">${CR.sum.n} groups</p>${CR.proj === "p1" ? bigP1(CR.sum) : bigP2(CR.sum)}<p class="ask">${CR.proj === "p1" ? "If a row differs: what in the two forms could explain it?" : "Why is the survey at 79, and the lotteries around 45?"}</p><p><button class="go secondary" data-cproj="">Back to teacher's page</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
+  if (preview && S.proj && validCounts(S.tc)) { app.appendChild($(`<section class="proj stack"><h1>Our class: one survey, two forms</h1><p class="bigsub">Your own answers this morning: ${S.tc.n1} of you had form LS-1, ${S.tc.n2} had form LS-2.</p>${bigCount(S.tc)}<p class="projword">Class word: <b>${CLASS_WORD}</b></p><p><button class="go secondary" data-proj>Back to teacher's page</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
   app.appendChild($(`<header class="top"><div class="brand">${MODE === "lab" ? "The Lunch Survey: the lab" : "Lunch survey"}</div><div class="where">Session 2 · ${v.where}${who}${preview ? " · facilitator preview" : ""}</div></header>${S.lab ? `<div class="track" aria-hidden="true">${track}</div>` : ""}${preview ? teacherKey() + '<details class="card"><summary>For the projector: the screens that participants see</summary>' : ""}${bar}<section class="stack" id="screen">${v.html}</section>${bar}${slip}${back}${preview && id !== "intro" && !looking ? '<p class="small"><button class="go secondary" data-skip>Skip to the next screen</button></p>' : ""}${preview ? "</details>" : ""}`));
   if (looking) { app.querySelectorAll("#screen .go, #screen .hint, #screen details").forEach((el) => el.remove()); app.querySelectorAll("#screen input, #screen textarea, #screen button").forEach((el) => { el.disabled = true; }); }
   if (follower() && !S.pick && !looking) { const b = app.querySelector("[data-next]"); if (b) b.textContent = GATED.includes(SCREENS[S.at + 1]) ? "Continue to the checkpoint" : "Continue"; }

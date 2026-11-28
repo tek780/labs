@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Rollout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: one narrow working column, one step on screen at a time; the cards sit in a ruled "table top" panel. */
+:root {
+  --bg: #F3F5F8; --surface: #FFFFFF; --ink: #18222F; --muted: #5B6878; --line: #D5DBE3;
+  --accent: #1F4E79; --accent-ink: #FFFFFF; --hot: #B5402A; --soft: #E6ECF3; --note: #FFF6DA; --note-line: #E3C96B;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #11161D; --surface: #1A222C; --ink: #E8EDF3; --muted: #9BA8B8; --line: #334050;
+    --accent: #7FB2E0; --accent-ink: #0E1620; --hot: #EE8A72; --soft: #232E3B; --note: #2E2A18; --note-line: #7A6A2A;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #11161D; --surface: #1A222C; --ink: #E8EDF3; --muted: #9BA8B8; --line: #334050;
+  --accent: #7FB2E0; --accent-ink: #0E1620; --hot: #EE8A72; --soft: #232E3B; --note: #2E2A18; --note-line: #7A6A2A;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.5; }
+main { max-width: 860px; margin: 0 auto; padding: 20px 16px 64px; display: flex; flex-direction: column; gap: 18px; }
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+.brand { font-family: var(--display); font-weight: 700; font-size: 20px; color: var(--accent); }
+.where { color: var(--muted); font-size: 15px; }
+.track { display: flex; gap: 4px; }
+.track span { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
+.track span.done { background: var(--accent); }
+.track span.now { background: var(--hot); }
+h1 { font-family: var(--display); font-size: 30px; line-height: 1.15; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-size: 21px; margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 68ch; }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+.quote { background: var(--note); border: 1px solid var(--note-line); border-radius: 10px; padding: 14px 16px; }
+.quote .who { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+.envelope { border: 2px dashed var(--hot); border-radius: 10px; padding: 16px; background: var(--surface); }
+.envelope .tag { font-family: var(--display); color: var(--hot); font-weight: 700; margin-bottom: 6px; }
+.step { font-weight: 700; }
+.mins { color: var(--muted); font-weight: 400; font-size: 15px; }
+label { font-weight: 700; display: block; margin-bottom: 6px; }
+textarea { width: 100%; min-height: 64px; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px; resize: vertical; }
+input[type=text] { width: 100%; max-width: 360px; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+textarea:focus-visible, button:focus-visible, input:focus-visible, a.go:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.choices { display: flex; flex-wrap: wrap; gap: 10px; }
+.choice { font: inherit; padding: 12px 16px; border-radius: 8px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; flex: 1 1 220px; text-align: left; }
+.choice[aria-pressed="true"] { border-color: var(--accent); background: var(--soft); font-weight: 700; }
+.sure { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sure input[type=range] { flex: 1 1 220px; accent-color: var(--accent); }
+.sure output { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 4.5ch; }
+a.go { display: inline-block; }
+.go { font: inherit; font-weight: 700; padding: 13px 18px; border-radius: 8px; border: 0; background: var(--accent); color: var(--accent-ink); cursor: pointer; align-self: flex-start; }
+.go[disabled] { background: var(--line); color: var(--muted); cursor: not-allowed; }
+.go.secondary { background: var(--surface); color: var(--accent); border: 2px solid var(--accent); }
+.hint { color: var(--muted); font-size: 15px; }
+.table-top { background: var(--soft); border-radius: 10px; padding: 14px; overflow-x: auto; }
+.rowlabel { font-size: 14px; font-weight: 700; color: var(--muted); margin: 0 0 6px; }
+.rowlabel.hot { color: var(--hot); }
+.weeks { display: flex; gap: 4px; align-items: flex-end; min-width: max-content; }
+.week { width: 44px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 2px; text-align: center; font-size: 12.5px; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.week b { display: block; font-family: var(--display); font-size: 17px; color: var(--accent); }
+.week.hot { border-color: var(--hot); } .week.hot b { color: var(--hot); }
+.week .bar { height: 70px; display: flex; align-items: flex-end; justify-content: center; margin: 4px 0; }
+.week .bar i { display: block; width: 18px; background: var(--accent); border-radius: 3px 3px 0 0; }
+.week.hot .bar i { background: var(--hot); }
+.week small { display: block; color: var(--muted); font-size: 11px; }
+.piles { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(118px, 1fr); gap: 8px; min-width: max-content; }
+.pile { display: flex; flex-direction: column; gap: 6px; }
+.pile h3 { margin: 0; font-size: 14px; color: var(--muted); text-align: center; }
+.guest { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 13px; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.guest b { font-size: 16px; }
+.guest.reg { border-color: var(--hot); border-width: 2px; }
+.guest .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 9px; background: var(--hot); color: var(--surface); margin-left: 4px; }
+.guest.other { color: var(--muted); }
+.pile .foot { font-size: 14px; text-align: center; font-weight: 700; padding-top: 4px; border-top: 2px solid var(--line); font-variant-numeric: tabular-nums; }
+.pile .foot span { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
+.loose { display: flex; flex-wrap: wrap; gap: 6px; }
+.loose .guest { width: 118px; }
+.stats { display: flex; gap: 12px; flex-wrap: wrap; }
+.stat { flex: 1 1 200px; background: var(--soft); border-radius: 8px; padding: 12px; }
+.stat b { font-family: var(--display); font-size: 30px; display: block; font-variant-numeric: tabular-nums; }
+table.recap { width: 100%; border-collapse: collapse; font-size: 16px; }
+table.recap th, table.recap td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+table.recap th { color: var(--muted); font-size: 14px; }
+.recap-wrap { overflow-x: auto; }
+.milestone { display: flex; align-items: center; gap: 14px; background: var(--note); border: 1px solid var(--note-line); border-radius: 10px; padding: 12px 16px; }
+.milestone .stars { color: #E0A100; display: flex; flex: none; }
+.research { background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; font-size: 15px; }
+.research b:first-child { display: block; font-family: var(--display); font-size: 16px; color: var(--accent); margin-bottom: 2px; }
+.lookbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; background: var(--note); border: 1px solid var(--note-line); border-radius: 10px; padding: 10px 14px; }
+.lookbar span { display: flex; flex-wrap: wrap; gap: 8px; }
+.lookbar .go { padding: 9px 14px; }
+.sendbox { border: 3px solid var(--hot); border-radius: 10px; padding: 18px; background: var(--surface); }
+.sendsteps { margin: 0; padding-left: 0; list-style: none; counter-reset: s; display: flex; flex-direction: column; gap: 8px; }
+.sendsteps li { counter-increment: s; position: relative; padding: 10px 12px 10px 48px; border-radius: 8px; background: var(--soft); }
+.sendsteps li::before { content: counter(s); position: absolute; left: 12px; top: 9px; width: 26px; height: 26px; border-radius: 50%; background: var(--muted); color: var(--surface); font-weight: 700; text-align: center; line-height: 26px; }
+.sendsteps li.now { background: var(--note); outline: 2px solid var(--hot); }
+.sendsteps li.now::before { background: var(--hot); }
+.sendsteps li.done::before { content: "\2713"; background: var(--accent); color: var(--accent-ink); }
+.keytable th, .keytable td { padding: 6px 6px; font-size: 14px; } .keytable td:first-child { width: 22%; }
+body.wide main { max-width: 1200px; } .proj p { max-width: none; }
+.walk { display: grid; gap: 3px; padding: 10px 12px; background: var(--soft); border-radius: 8px; font-size: 15px; color: var(--ink); }
+.walk > b { font-family: var(--display); color: var(--accent); }
+.tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: var(--ink); }
+.classres td, .classres th { font-size: 15px; }
+.proj h1 { font-size: 40px; } .proj .classres td, .proj .classres th { font-size: 26px; padding: 16px 14px; } .proj p { font-size: 24px; }
+.proj .ask { font-family: var(--display); font-weight: 700; font-size: 28px; border-left: 8px solid var(--accent); padding: 14px 18px; background: var(--soft); border-radius: 0 8px 8px 0; }
+.locked { border-left: 0; background: var(--soft); border-radius: 8px; padding: 10px 12px; font-size: 15px; }
+.locked b { color: var(--muted); font-size: 13px; display: block; }
+details { font-size: 15px; color: var(--muted); }
+details button { font: inherit; }
+.small { font-size: 14px; color: var(--muted); }
+@media (max-width: 480px) { h1 { font-size: 25px; } body { font-size: 16px; } }
+@media (prefers-reduced-motion: no-preference) { .week, .guest { transition: border-color .2s; } }
+select { width: 100%; font: inherit; padding: .6rem .7rem; border: 1.5px solid #c9ced6; border-radius: 10px; background: #fff; }
+.simbars { display: flex; gap: .5rem; align-items: flex-end; height: 170px; padding-top: .5rem; }
+.simcol { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; font-size: .9rem; }
+.simcol i { display: block; width: 100%; background: #9aa1ab; border-radius: 6px 6px 0 0; }
+.simcol.hot i { background: #d9622b; } .simcol b { margin-top: .25rem; } .simcol.hot span { font-weight: 700; color: #b24a1a; }
+.gpair { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-bottom: .7rem; }
+.gblock { background: #fff; border: 1.5px solid #c9ced6; border-radius: 10px; padding: .5rem .6rem; } .gblock p { margin: .2rem 0; }
+.dots { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; margin: .3rem 0; } .dots i { aspect-ratio: 1; border-radius: 50%; background: #c3c8d0; } .dots i.yes { background: #1e7b34; }
+.starrow { display: flex; justify-content: flex-end; margin: 6px 0 2px; }
+.starbadge { display: inline-block; background: #fff7e0; border: 1.5px solid #e2b93b; color: #7a5a00; font-weight: 700; border-radius: 999px; padding: .2rem .7rem; font-size: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+.startoast { position: fixed; left: 50%; top: 3.2rem; transform: translateX(-50%); z-index: 50; background: #1f4e79; color: #fff; border-radius: 12px; padding: .7rem 1.1rem; font-weight: 700; box-shadow: 0 6px 18px rgba(0,0,0,.25); max-width: 90vw; text-align: center; animation: toastin .35s ease-out, toastout .5s ease-in 8s forwards; font-size: 1.1rem; cursor: pointer; }
+.startoast small { display: block; font-weight: 400; opacity: .9; margin-top: .15rem; }
+.startoast .st { color: #ffd54a; font-size: 1.3rem; letter-spacing: .1em; }
+@keyframes toastin { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+body.teacher #app { zoom: 1.18; } body.teacher .walk span { font-size: 19px; }
+.board { background: #fff; border: 3px solid #8a8f98; border-radius: 10px; padding: 12px 14px; box-shadow: inset 0 0 0 4px #f1f3f6; overflow-x: auto; }
+.board table { border-collapse: collapse; width: 100%; font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive; font-size: 16px; } .board th { text-align: left; border-bottom: 2px solid var(--ink); padding: 4px 10px; color: var(--ink); } .board td { padding: 5px 10px; border-bottom: 1px dashed #c9ced6; color: #5d6673; }
+.board svg { width: 100%; max-width: 640px; height: auto; display: block; margin: 0 auto; font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive; }
+.boardcap { font-size: 13.5px; color: var(--muted); margin-top: 4px; }
+@keyframes toastout { to { opacity: 0; visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) { .startoast { animation: toastout .01s linear 8.5s forwards; } }
+.feedback { background: #fff7e0; border: 1.5px solid #e2b93b; border-radius: 12px; padding: .9rem 1rem; }
+.feedback h2 { margin: 0 0 .4rem; font-size: 1.15rem; color: #7a5a00; } .feedback p { margin: .35rem 0; }
+.feedback .st { color: #e0a800; font-size: 1.6rem; letter-spacing: .12em; } .feedback .st i { color: #d9d3bd; font-style: normal; }
+.fbline { display: flex; gap: .5rem; align-items: baseline; } .fbline b.ok { color: #1e7b34; } .fbline b.no { color: #b24a1a; }
+.rank { text-align: center; background: #fff7e0; border: 1.5px solid #e2b93b; border-radius: 14px; padding: 1rem; } .rank .st { color: #e0a800; font-size: 1.8rem; letter-spacing: .1em; } .rank .st i { color: #d9d3bd; font-style: normal; } .rank b { font-size: 1.3rem; display: block; margin-top: .3rem; }
+.rank .st { font-size: 1.25rem; letter-spacing: 0; display: block; line-height: 1.3; word-break: break-all; }
+header.top { padding-right: 5.6rem; }
+.pic { margin: 0; } .pic > svg { width: 100%; max-width: 560px; height: auto; display: block; margin: 0 auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 6px; } .legend span { white-space: nowrap; }
+.pop { animation: popin .9s ease-out; } @keyframes popin { from { opacity: 0; } to { opacity: 1; } }
+.hbars { display: grid; gap: 8px; } .hbar { display: grid; grid-template-columns: minmax(7rem, 9.5rem) 1fr auto; gap: 10px; align-items: center; }
+.hbar .ht { background: #eceff3; border-radius: 6px; height: 26px; overflow: hidden; } .hbar .ht i { display: block; height: 100%; border-radius: 6px; } .hbar b { white-space: nowrap; }
+.gpair .hbar { grid-template-columns: 1fr; gap: 2px; } .gpair .hbar .ht { height: 18px; }
+.sortrow { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border: 1.5px solid #c9ced6; border-radius: 10px; background: #fff; }
+.sortrow .choices { display: flex; gap: 6px; flex-wrap: nowrap; } .sortrow .choice { min-width: 2.6rem; padding: .45rem .6rem; }
+.items { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 2px; counter-reset: q; } .items li { counter-increment: q; } .items li::before { content: "Q" counter(q) ". "; font-weight: 700; }
+.heat { border-collapse: separate; border-spacing: 3px; margin: 0 auto; } .heat th { font-weight: 700; padding: 4px 6px; text-align: center; } .heat td { width: 3rem; height: 2.5rem; text-align: center; border-radius: 6px; font-weight: 700; font-variant-numeric: tabular-nums; } .heat td.diag { background: repeating-linear-gradient(45deg, #eceff3, #eceff3 4px, #fff 4px, #fff 8px); }
+@media (max-width: 520px) { .sortrow { grid-template-columns: 1fr; } .heat td { width: 2.4rem; height: 2.2rem; font-size: .9rem; } }
+body.teacher .keytable td, body.teacher .keytable th { font-size: 15.5px; line-height: 1.4; }
+.board { background: #fff; border: 3px solid #8a8f98; border-radius: 10px; padding: 12px 14px; box-shadow: inset 0 0 0 4px #f1f3f6; overflow-x: auto; }
+.board table { border-collapse: collapse; width: 100%; font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive; font-size: 16px; } .board th { text-align: left; border-bottom: 2px solid var(--ink); padding: 4px 10px; color: var(--ink); } .board td { padding: 5px 10px; border-bottom: 1px dashed #c9ced6; color: #5d6673; }
+.board svg { width: 100%; max-width: 640px; height: auto; display: block; margin: 0 auto; font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive; }
+.boardcap { font-size: 13.5px; color: var(--muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+/* Session 4 lab: The Rollout. One step on screen at a time; an answer is locked before the next step opens. */
+const KEY = "rollout-s4-v1";
+/* Paste the pre-filled Microsoft Forms link here (dummy answers Q1 ... Q27). Empty = offer "Copy our case file" instead. */
+const FORM_URL = "";
+const CLASS_WORD = "domino";
+/* Decision 1: 16 teams. x = remote days per week (team average), y = % of tasks delivered on time. Constructed so that the slopes are exactly +6 and -6 and the line through all 16 is flat at 72. */
+const RX = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4];
+const EST = [65, 64, 67, 74, 77, 76, 79, 86], NEW = [79, 80, 77, 70, 67, 68, 65, 58];
+/* Decision 2: 24 stores. m = last-minute shift changes per employee per month, y = staff who quit per 100 per year. Without the app y = 3m + 3, with the app y = 3m - 3. */
+const M0 = [6, 7, 8, 8, 9, 9, 9, 9, 10, 10, 11, 12], M1 = M0.map((m) => m - 4);
+const Q0 = M0.map((m) => 3 * m + 3), Q1 = M1.map((m) => 3 * m - 3);
+const mean = (a) => a.reduce((s, x) => s + x, 0) / a.length;
+const TOTAL = mean(Q0) - mean(Q1), A_PATH = mean(M0) - mean(M1), B_PATH = 3, IND = A_PATH * B_PATH, DIR = TOTAL - IND;
+/* Decision 3: six survey questions, in the order of the survey. W = the work itself, S = support. */
+const ITEMS = ["My tasks are meaningful to me.", "Someone listens when I raise a concern.", "I can use my skills in my work.", "I am treated fairly here.", "I learn new things in my job.", "I get useful feedback on my work."];
+const IDEA = ["W", "S", "W", "S", "W", "S"];
+const R = [[1, .12, .68, .09, .62, .18], [.12, 1, .10, .70, .08, .61], [.68, .10, 1, .14, .66, .21], [.09, .70, .14, 1, .11, .64], [.62, .08, .66, .11, 1, .24], [.18, .61, .21, .64, .24, 1]];
+const PILES = ["A", "B", "C"];
+const SCREENS = ["intro", "d1a", "d1b", "d2a", "d2b", "d2c", "d2d", "d3a", "d3b", "d3c", "memo", "end"];
+const NAMES = { intro: "Start", d1a: "Decision 1", d1b: "Decision 1", d2a: "Decision 2", d2b: "Decision 2", d2c: "Decision 2", d2d: "Decision 2", d3a: "Decision 3", d3b: "Decision 3", d3c: "Decision 3", memo: "Memo", end: "Case file" };
+let S = { at: 0, a: {}, group: "", t: {}, col: false, re: false, word: false, sent: null, fbd: {}, starsSeen: 0 };
+try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
+let preview = location.hash === "#facilitator";
+window.addEventListener("hashchange", () => { preview = location.hash === "#facilitator"; render(); });
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const clean = (v) => (v == null ? "" : String(v)).replace(/\s+/g, " ").replace(/"/g, "'").trim();
+const stamp = (id) => { if (!S.t[id]) S.t[id] = Date.now(); };
+const minutes = (a, b) => (S.t[a] && S.t[b] ? Math.max(1, Math.round((S.t[b] - S.t[a]) / 60000)) : "");
+function checkCode(list) { let h = 5381; for (const c of list.join("|")) h = (h * 33 + c.charCodeAt(0)) % 2147483647; return h.toString(36).toUpperCase(); }
+const app = document.getElementById("app");
+let RO = false; /* a step that is already locked is shown read-only */
+
+/* ---------- building blocks ---------- */
+const owner = (t, who) => `<div class="quote">${t}<div class="who">${who}</div></div>`;
+const COO = "The chief operating officer", HRD = "The HR director";
+function advice(key, label, options) {
+  const v = S.a[key], sure = S.a[key + "Sure"];
+  if (RO) return `<div class="locked"><b>${label}</b>${esc(v || "")}${sure == null ? "" : " (" + sure + "% sure)"}</div>`;
+  return `<div class="stack"><div><label>${label}</label><div class="choices" role="group" aria-label="${label}">${options.map((o) => `<button type="button" class="choice" data-choice="${key}" data-val="${esc(o)}" aria-pressed="${v === o}">${esc(o)}</button>`).join("")}</div></div>
+    <div><label for="${key}-sure">How sure are you, from 0 to 100%?</label><div class="sure"><input id="${key}-sure" type="range" min="0" max="100" step="5" value="${sure == null ? 50 : sure}" data-sure="${key}"><output id="${key}-out">${sure == null ? "move the slider" : sure + "%"}</output></div></div></div>`;
+}
+const adviceDone = (k) => !!S.a[k] && S.a[k + "Sure"] != null;
+function pick(key, label, options) {
+  if (RO) return `<div class="locked"><b>${label}</b>${esc(S.a[key] || "")}</div>`;
+  return `<div><label>${label}</label><div class="choices" role="group" aria-label="${label}">${options.map((o) => `<button type="button" class="choice" data-choice="${key}" data-val="${esc(o)}" aria-pressed="${S.a[key] === o}">${esc(o)}</button>`).join("")}</div></div>`;
+}
+function num(key, label, min, max, hint) {
+  if (RO) return `<div class="locked"><b>${label}</b>${esc(S.a[key] == null ? "" : S.a[key])}</div>`;
+  return `<div><label for="${key}">${label}</label><input type="text" inputmode="numeric" id="${key}" data-num="${key}" data-min="${min}" data-max="${max}" value="${esc(S.a[key] == null ? "" : S.a[key])}" style="max-width:8rem">${hint ? `<p class="hint">${hint}</p>` : ""}</div>`;
+}
+function textQ(key, label, rows) {
+  if (RO) return `<div class="locked"><b>${label}</b>${esc(S.a[key] || "")}</div>`;
+  return `<div><label for="${key}">${label}</label><textarea id="${key}" data-text="${key}" rows="${rows || 2}" maxlength="240">${esc(S.a[key] || "")}</textarea></div>`;
+}
+const numOK = (k) => S.a[k] !== undefined && S.a[k] !== "" && !isNaN(Number(S.a[k]));
+const textOK = (k) => (S.a[k] || "").trim().length >= 1;
+
+/* ---------- pictures ---------- */
+function frame(o, inner, label) { /* axes for a scatter picture; returns the svg and the two scale functions through o */
+  const W = 340, H = 262, L = 44, Rr = 12, T = 28, B = 42;
+  o.X = (x) => L + ((x - o.x0) / (o.x1 - o.x0)) * (W - L - Rr); o.Y = (y) => H - B - ((y - o.y0) / (o.y1 - o.y0)) * (H - T - B);
+  const xt = o.xt.map((x) => `<line x1="${o.X(x)}" y1="${H - B}" x2="${o.X(x)}" y2="${H - B + 4}" stroke="var(--muted)"/><text x="${o.X(x)}" y="${H - B + 17}" text-anchor="middle">${x}</text>`).join("");
+  const yt = o.yt.map((y) => `<line x1="${L}" y1="${o.Y(y)}" x2="${W - Rr}" y2="${o.Y(y)}" stroke="var(--line)"/><text x="${L - 6}" y="${o.Y(y) + 4}" text-anchor="end">${y}</text>`).join("");
+  return `<figure class="pic"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}"><g font-size="11.5" fill="var(--ink)">${yt}${xt}<line x1="${L}" y1="${H - B}" x2="${W - Rr}" y2="${H - B}" stroke="var(--muted)"/><line x1="${L}" y1="${T}" x2="${L}" y2="${H - B}" stroke="var(--muted)"/>
+    <text x="${(L + W - Rr) / 2}" y="${H - 6}" text-anchor="middle" fill="var(--muted)">${o.xl}</text><text x="${L - 34}" y="${T - 14}" fill="var(--muted)">${o.yl}</text>${inner(o)}</g></svg>`;
+}
+const dot = (x, y, c) => `<circle cx="${x}" cy="${y}" r="5.5" fill="${c}" stroke="#fff" stroke-width="1"/>`;
+const sq = (x, y, c) => `<rect x="${x - 5}" y="${y - 5}" width="10" height="10" fill="${c}" stroke="#fff" stroke-width="1"/>`;
+const swDot = (c) => `<svg width="14" height="14" viewBox="0 0 14 14" style="vertical-align:-2px"><circle cx="7" cy="7" r="6" fill="${c}"/></svg>`;
+const swSq = (c) => `<svg width="14" height="14" viewBox="0 0 14 14" style="vertical-align:-2px"><rect x="1" y="1" width="12" height="12" fill="${c}"/></svg>`;
+const swLine = (c, dash) => `<svg width="26" height="14" viewBox="0 0 26 14" style="vertical-align:-2px"><line x1="1" y1="7" x2="25" y2="7" stroke="${c}" stroke-width="3" ${dash ? 'stroke-dasharray="5 4"' : ""}/></svg>`;
+const BLUE = "var(--accent)", ORANGE = "var(--hot)", GREY = "#7b838f";
+function teamsPic(split) {
+  const o = { x0: 0, x1: 4.5, y0: 50, y1: 90, xt: [0, 1, 2, 3, 4], yt: [50, 60, 70, 80, 90], xl: "remote days per week (team average)", yl: "tasks delivered on time, %" };
+  const svg = frame(o, (o) => {
+    if (!split) return `<line x1="${o.X(0.3)}" y1="${o.Y(72)}" x2="${o.X(4.2)}" y2="${o.Y(72)}" stroke="${GREY}" stroke-width="3"/>` + RX.map((x, i) => dot(o.X(x), o.Y(EST[i]), GREY) + dot(o.X(x), o.Y(NEW[i]), GREY)).join("");
+    return `<line x1="${o.X(0.3)}" y1="${o.Y(72)}" x2="${o.X(4.2)}" y2="${o.Y(72)}" stroke="${GREY}" stroke-width="2" stroke-dasharray="5 4"/>
+      <g class="pop"><line x1="${o.X(0.3)}" y1="${o.Y(60 + 6 * 0.3)}" x2="${o.X(4.2)}" y2="${o.Y(60 + 6 * 4.2)}" stroke="${BLUE}" stroke-width="3"/><line x1="${o.X(0.3)}" y1="${o.Y(84 - 6 * 0.3)}" x2="${o.X(4.2)}" y2="${o.Y(84 - 6 * 4.2)}" stroke="${ORANGE}" stroke-width="3"/></g>` + RX.map((x, i) => dot(o.X(x), o.Y(EST[i]), BLUE) + sq(o.X(x), o.Y(NEW[i]), ORANGE)).join("");
+  }, split ? "Sixteen teams in two colours: one line rises, one line falls." : "Sixteen teams as grey dots with a flat line.");
+  const cap = split ? `<span>${swDot(BLUE)} blue circle = established team (8)</span><span>${swSq(ORANGE)} orange square = new team (8)</span><span>${swLine(GREY, true)} grey dashed = the line through all 16</span>` : `<span>${swDot(GREY)} grey circle = one team (16)</span><span>${swLine(GREY)} grey line = the analyst's line through all 16</span>`;
+  return svg + `<figcaption class="small legend">${cap}</figcaption></figure>`;
+}
+function bars(rows, unit, max) { /* horizontal bars: [label, value, colour] */
+  return `<div class="hbars">${rows.map(([l, v, c]) => `<div class="hbar"><span class="hl">${l}</span><span class="ht"><i style="width:${(100 * v) / max}%;background:${c}"></i></span><b>${v}${unit}</b></div>`).join("")}</div>`;
+}
+function spread(ms) { /* stores with the same number of shift changes are drawn side by side */
+  const seen = {}, n = {}; ms.forEach((m) => { n[m] = (n[m] || 0) + 1; });
+  return ms.map((m) => { const k = seen[m] = (seen[m] || 0) + 1; return m + (k - (n[m] + 1) / 2) * 0.22; });
+}
+function storesPic(mode) { /* "b": only the stores without the app. "all": both groups, with the two routes drawn in. */
+  const o = { x0: 0, x1: 13, y0: 0, y1: 42, xt: [0, 2, 4, 6, 8, 10, 12], yt: [0, 10, 20, 30, 40], xl: "last-minute shift changes per employee per month", yl: "staff who quit, per 100 per year" };
+  const x0 = spread(M0), x1 = spread(M1);
+  const svg = frame(o, (o) => {
+    let h = `<line x1="${o.X(5)}" y1="${o.Y(18)}" x2="${o.X(12.6)}" y2="${o.Y(40.8)}" stroke="${GREY}" stroke-width="2.5"/>` + M0.map((m, i) => dot(o.X(x0[i]), o.Y(Q0[i]), GREY)).join("");
+    if (mode === "all") h += `<line x1="${o.X(1.4)}" y1="${o.Y(1.2)}" x2="${o.X(9)}" y2="${o.Y(24)}" stroke="${BLUE}" stroke-width="2.5"/>` + M1.map((m, i) => sq(o.X(x1[i]), o.Y(Q1[i]), BLUE)).join("")
+      + `<g class="pop"><defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="${ORANGE}"/></marker></defs>
+        <line x1="${o.X(9)}" y1="${o.Y(30)}" x2="${o.X(5.15)}" y2="${o.Y(18.45)}" stroke="${ORANGE}" stroke-width="3" marker-end="url(#ah)"/><line x1="${o.X(5)}" y1="${o.Y(18)}" x2="${o.X(5)}" y2="${o.Y(12.7)}" stroke="${ORANGE}" stroke-width="3" stroke-dasharray="4 3" marker-end="url(#ah)"/>
+        <text x="${o.X(6.6)}" y="${o.Y(27.5)}" text-anchor="end" fill="${ORANGE}" font-weight="700">along the line: ${IND} fewer</text><text x="${o.X(4.35)}" y="${o.Y(14.2)}" text-anchor="end" fill="${ORANGE}" font-weight="700">down: ${DIR} fewer</text></g>`;
+    return h;
+  }, mode === "all" ? "Stores with and without the app lie on two parallel lines, 6 apart." : "Twelve stores without the app: more shift changes go with more staff who quit.");
+  const cap = mode === "all" ? `<span>${swDot(GREY)} grey circle = store without the app (12)</span><span>${swSq(BLUE)} blue square = store with the app (12)</span><span>${swLine(ORANGE)} orange arrow = along the line: fewer shift changes</span><span>${swLine(ORANGE, true)} orange dashed arrow = straight down: everything else</span>` : `<span>${swDot(GREY)} grey circle = one store without the app (12)</span>`;
+  return svg + `<figcaption class="small legend">${cap}</figcaption></figure>`;
+}
+function pathPic() {
+  return `<figure class="pic"><svg viewBox="0 0 340 172" role="img" aria-label="The app lowers shift changes by 4, each change adds 3 quits, and 6 quits fewer come by other routes."><defs><marker id="pa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--ink)"/></marker></defs><g font-size="12" fill="var(--ink)">
+    <rect x="6" y="96" width="92" height="44" rx="8" fill="var(--surface)" stroke="var(--ink)"/><text x="52" y="122" text-anchor="middle" font-weight="700">The app</text>
+    <rect x="124" y="8" width="92" height="44" rx="8" fill="var(--surface)" stroke="var(--ink)"/><text x="170" y="27" text-anchor="middle" font-weight="700">Last-minute</text><text x="170" y="43" text-anchor="middle" font-weight="700">shift changes</text>
+    <rect x="242" y="96" width="92" height="44" rx="8" fill="var(--surface)" stroke="var(--ink)"/><text x="288" y="122" text-anchor="middle" font-weight="700">Staff who quit</text>
+    <line x1="70" y1="94" x2="134" y2="56" stroke="var(--ink)" stroke-width="2" marker-end="url(#pa)"/><line x1="206" y1="56" x2="270" y2="94" stroke="var(--ink)" stroke-width="2" marker-end="url(#pa)"/><line x1="100" y1="118" x2="238" y2="118" stroke="var(--ink)" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#pa)"/>
+    <text x="64" y="68" text-anchor="middle">${A_PATH} fewer</text><text x="282" y="68" text-anchor="middle">${B_PATH} quits each</text><text x="170" y="110" text-anchor="middle">other routes: ${DIR} fewer</text><text x="170" y="164" text-anchor="middle" fill="var(--muted)">${A_PATH} × ${B_PATH} = ${IND}, and ${IND} + ${DIR} = ${TOTAL}</text></g></svg></figure>`;
+}
+function heat(order) {
+  const shade = (r) => `background:rgba(31,78,121,${(0.08 + 0.85 * r).toFixed(2)});color:${r > 0.45 ? "#fff" : "var(--ink)"}`;
+  return `<div class="recap-wrap"><table class="heat"><tr><th></th>${order.map((j) => `<th>Q${j + 1}</th>`).join("")}</tr>${order.map((i) => `<tr><th>Q${i + 1}</th>${order.map((j) => (i === j ? `<td class="diag"></td>` : `<td style="${shade(R[i][j])}">${R[i][j].toFixed(2).slice(1)}</td>`)).join("")}</tr>`).join("")}</table></div>
+    <p class="small">Dark = the two questions go together strongly. Light = hardly at all. 0 means no connection, 1 means the answers always move together.</p>`;
+}
+const itemList = () => `<ol class="items">${ITEMS.map((t) => `<li>${t}</li>`).join("")}</ol>`;
+const pileText = () => PILES.map((p) => { const q = ITEMS.map((t, i) => (S.a["d3p" + i] === p ? "Q" + (i + 1) : "")).filter(Boolean); return q.length ? "pile " + p + ": " + q.join(", ") : ""; }).filter(Boolean).join(" · ");
+const pilesUsed = () => new Set(ITEMS.map((t, i) => S.a["d3p" + i])).size;
+function regionsPic() {
+  const row = (name, w, s) => `<div class="gblock"><p class="rowlabel">${name}</p>${bars([["All six questions", 60, GREY], ["The work itself", w, BLUE], ["Support", s, ORANGE]], "%", 100)}</div>`;
+  return `<div class="gpair">${row("Region North", 80, 40)}${row("Region South", 40, 80)}</div><p class="small">Each bar: the share of answers that agree with the statements (5, 6 or 7 on the scale from 1 to 7).</p>`;
+}
+
+/* ---------- the steps ---------- */
+const STEP = {
+  intro: { html: () => `<h1>The Rollout</h1><p>You are the analysts of a Nordic retail group: a head office with 16 teams and many stores. Three managers each want to roll something out to everyone. They ask for advice they can act on.</p>
+      <div class="card stack"><p><b>How it works</b></p><p>Work in groups of three or four, with one laptop. One of you writes on this page; change who writes at each decision.</p><p>Each step is locked before the next one opens. Nothing is graded: your answers are used for research on teaching only.</p><p class="small">All numbers are constructed for this lab, so that the arithmetic comes out exactly.</p></div>
+      ${RO ? `<div class="locked"><b>Group name</b>${esc(S.group)}</div>` : `<div><label for="group">Choose a name for your group</label><input type="text" id="group" data-group maxlength="40" autocomplete="off" value="${esc(S.group)}" placeholder="Your own choice" style="max-width:22rem"><p class="hint">An idea: build the name from the first letters of everyone's first names.</p></div>`}`,
+    ok: () => (S.group || "").trim().length >= 1, go: "Open the first decision" },
+  d1a: { mins: "3–4 minutes", html: () => `<h1>Decision 1: everyone back to the office?</h1><p>The head office has <b>16 teams</b>. Each team chose its own number of remote days. The analyst plotted, for each team, the remote days per week and the share of tasks delivered on time.</p>${teamsPic(false)}
+      ${owner("“The line is flat. Remote days make no difference to on-time delivery. So I bring every team back to the office four days a week: we lose nothing. Agreed?”", COO)}
+      ${advice("d1first", "What do you advise, from what you see?", ["Agree: everyone back", "Disagree: keep it as it is", "Not enough to decide"])}${textQ("d1ask", "What else would you want to know about these 16 teams? Write one thing.")}`,
+    ok: () => adviceDone("d1first") && textOK("d1ask"), go: "Lock our advice and look closer" },
+  d1b: { mins: "6–8 minutes", html: () => `<h1>Decision 1: the same 16 teams, looked at again</h1><p>HR adds one fact about each team. Eight are <b>established teams</b>: most members have worked together for more than two years. Eight are <b>new teams</b>: most members joined in the last year.</p>
+      ${S.col || RO ? teamsPic(true) : teamsPic(false) + `<p><button type="button" class="go secondary" data-flag="col">Colour the teams by this fact</button></p>`}
+      ${S.col || RO ? `<p>Both kinds of team are spread over the same range of remote days, from ½ to 4.</p>
+        ${pick("d1est", "Established teams (blue circles): with one more remote day per week, on-time delivery is…", ["About 6 points lower", "About the same", "About 6 points higher"])}
+        ${pick("d1new", "New teams (orange squares): with one more remote day per week, on-time delivery is…", ["About 6 points lower", "About the same", "About 6 points higher"])}
+        ${advice("d1later", "What do you advise now?", ["Everyone back to the office", "Free choice for every team", "Different rules for the two kinds of team", "Not enough to decide"])}` : `<div class="locked"><b>The questions open after the colours</b>Press the button above first.</div>`}`,
+    ok: () => !!S.col && !!S.a.d1est && !!S.a.d1new && adviceDone("d1later"), go: "Lock our answers" },
+  d2a: { mins: "3–4 minutes", html: () => `<h1>Decision 2: the shift-planning app</h1><p>The group has many stores. Last year <b>12 stores</b> got a shift-planning app. <b>12 similar stores</b> did not. HR counted the staff who quit, per 100 employees, over the year.</p>
+      ${bars([["Without the app", mean(Q0), GREY], ["With the app", mean(Q1), BLUE]], " quit per 100", 40)}
+      ${owner(`“The app prevents ${TOTAL} of every 100 employees from quitting. Rolling it out to the other 60 stores costs SEK 2 million a year. Agreed?”`, HRD)}
+      <p>Store managers say what changed most with the app: <b>far fewer last-minute shift changes</b>.</p>
+      ${num("d2guess", `Your guess: of the ${TOTAL} fewer quits, how many come through fewer last-minute shift changes?`, 0, TOTAL, `A whole number from 0 to ${TOTAL}. Nobody knows yet: guess.`)}
+      ${advice("d2first", "What do you advise, from what you know now?", ["Roll out the app", "Do not roll out the app", "Not enough to decide"])}`,
+    ok: () => numOK("d2guess") && adviceDone("d2first"), go: "Lock our guess and advice" },
+  d2b: { mins: "5–7 minutes", html: () => (S.word || RO ? `<h1>Decision 2: two links</h1><p>Take the claim apart in two links: what the app does to shift changes, and what shift changes do to quitting.</p>
+      <div class="card stack"><p><b>Link 1. The app and shift changes</b></p><p>Last-minute shift changes per employee per month, on average:</p>${bars([["Without the app", mean(M0), GREY], ["With the app", mean(M1), BLUE]], " changes", 12)}
+        ${num("d2a", "How many fewer shift changes per month in the stores with the app?", 0, 20)}</div>
+      <div class="card stack"><p><b>Link 2. Shift changes and quitting</b></p><p>Only the 12 stores <b>without</b> the app, so that the app plays no part:</p>${storesPic("b")}
+        ${num("d2b", "Among these stores: one more shift change per month goes with how many more quits per 100?", 0, 20, "Read two stores from the picture, for example at 6 and at 8 shift changes.")}</div>`
+      : `<h1>Decision 2: your guess on the board</h1><div class="card stack"><p><b>Now, away from the screen</b></p><p>One of you walks to the board and puts a cross above your group's number, <b>${esc(S.a.d2guess)}</b>, on the line from 0 to ${TOTAL}.</p><p>When every group has its cross on the board, your teacher gives the <b>class word</b>.</p>
+        <div><label for="word">Class word</label><input type="text" id="word" data-word autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="One word" style="max-width:12rem"></div></div>
+        <div class="locked"><b>The next steps open with the class word</b>Nothing more to do on this screen until then.</div>`),
+    ok: () => !!S.word && numOK("d2a") && numOK("d2b"), go: "Lock our two numbers" },
+  d2c: { mins: "3–4 minutes", html: () => `<h1>Decision 2: put the links together</h1><div class="locked"><b>The two links</b>The app goes with ${A_PATH} fewer shift changes per month. One shift change per month goes with ${B_PATH} more quits per 100.</div>
+      ${num("d2ind", `Fewer quits that come through fewer shift changes: ${A_PATH} × ${B_PATH} = ?`, 0, 40)}
+      ${num("d2dir", `The stores with the app have ${TOTAL} fewer quits in total. How many are left for everything else the app does?`, 0, 40)}`,
+    ok: () => numOK("d2ind") && numOK("d2dir"), go: "Lock our two numbers" },
+  d2d: { mins: "3–4 minutes", html: () => `<h1>Decision 2: a rule that costs nothing</h1><p>The operations manager has tried something else in a few stores: <b>a rule that the rota is fixed two weeks ahead</b>. It costs nothing. It cut last-minute shift changes by ${A_PATH} per month, the same as the app.</p>
+      <div class="locked"><b>What you found</b>Of the ${TOTAL} fewer quits with the app, ${IND} come through fewer shift changes and ${DIR} through everything else the app does.</div>
+      ${advice("d2later", "What do you advise now?", ["The app only", "The rule only", "The app and the rule", "Not enough to decide"])}${textQ("d2why", "Why? One sentence.")}`,
+    ok: () => adviceDone("d2later") && textOK("d2why"), go: "Lock our advice" },
+  d3a: { mins: "3–4 minutes", html: () => `<h1>Decision 3: one score for engagement?</h1><p>Every year, 900 employees answer six statements, each from <b>1 = disagree strongly</b> to <b>7 = agree strongly</b>.</p>
+      ${owner("“We count the answers that agree, over all six statements, and get one engagement score for each region. A region with a low score gets our leadership course.”", HRD)}
+      <p><b>Before any data:</b> which statements ask about the same underlying idea? Put each statement in a pile. Use one, two or three piles.</p>
+      ${ITEMS.map((t, i) => (RO ? `<div class="locked"><b>Q${i + 1}. ${t}</b>Pile ${esc(S.a["d3p" + i] || "")}</div>` : `<div class="sortrow"><span><b>Q${i + 1}.</b> ${t}</span><span class="choices" role="group" aria-label="Pile for question ${i + 1}">${PILES.map((p) => `<button type="button" class="choice" data-choice="d3p${i}" data-val="${p}" aria-pressed="${S.a["d3p" + i] === p}">${p}</button>`).join("")}</span></div>`)).join("")}`,
+    ok: () => ITEMS.every((t, i) => !!S.a["d3p" + i]), go: "Lock our piles and see the answers" },
+  d3b: { mins: "4–6 minutes", html: () => `<h1>Decision 3: what the 900 answers say</h1><p>The table shows, for each pair of statements, how strongly the answers go together.</p>${itemList()}
+      ${S.re || RO ? `<p><b>The same table, with the statements that go together placed next to each other:</b></p>` + heat([0, 2, 4, 1, 3, 5]) : heat([0, 1, 2, 3, 4, 5]) + `<p><button type="button" class="go secondary" data-flag="re">Put the statements that go together next to each other</button></p>`}
+      ${S.re || RO ? `<div class="locked"><b>Your piles, before the data</b>${esc(pileText())}</div>
+        ${pick("d3n", "How many underlying ideas do the 900 answers show?", ["1", "2", "3"])}${pick("d3fb", "Q6, “I get useful feedback on my work”, goes with…", ["Q1, Q3 and Q5", "Q2 and Q4", "Neither group"])}` : `<div class="locked"><b>The questions open after the table is reordered</b>Press the button above first.</div>`}`,
+    ok: () => !!S.re && !!S.a.d3n && !!S.a.d3fb, go: "Lock our answers" },
+  d3c: { mins: "3–4 minutes", html: () => `<h1>Decision 3: two regions, one score</h1><p>Two regions have the same engagement score: 60% of the answers agree. The bars also show the two groups of statements you found: <b>the work itself</b> (Q1, Q3, Q5) and <b>support</b> (Q2, Q4, Q6).</p>${regionsPic()}
+      ${owner("“Both regions score 60%. Same score, same medicine: both get the leadership course.”", HRD)}
+      ${advice("d3later", "What do you advise?", ["The same course for both regions", "A different action in each region", "Not enough to decide"])}${textQ("d3what", "What would you do in each region? One sentence.")}`,
+    ok: () => adviceDone("d3later") && textOK("d3what"), go: "Lock our advice" },
+  memo: { mins: "2–3 minutes", html: () => `<h1>Memo: your own question</h1><p>Think of your thesis, or of a workplace you know. Write <b>one question</b> that begins in one of these three ways:</p>
+      <div class="card stack"><p><b>For whom…</b> does it work, and for whom not?</p><p><b>Through what…</b> does it work?</p><p><b>Is it one idea or two…</b> that we are measuring?</p></div>${textQ("memo", "Our question", 3)}`,
+    ok: () => textOK("memo"), go: "Lock our question and finish" },
+};
+
+/* ---------- instant feedback: shown after a step is locked, never before ---------- */
+const PRAISE = ["Good job!", "Well done!", "Nice work!", "Great teamwork!", "Keep going!"];
+const stars = (n, max) => `<span class="st" aria-label="${n} of ${max} stars">${"★".repeat(n)}<i>${"★".repeat(max - n)}</i></span>`;
+const line = (ok, t) => `<p class="fbline"><b class="${ok ? "ok" : "no"}">${ok ? "✓" : "✗"}</b><span>${t}</span></p>`;
+const HI = "About 6 points higher", LO = "About 6 points lower";
+const FB = {
+  d1a: () => ({ n: 1, max: 1, quick: "Advice locked, now look closer" }),
+  d1b: () => { const a = S.a.d1est === HI, b = S.a.d1new === LO; return { n: 1 + a + b, max: 3, title: "Decision 1: the flat line was two lines",
+    html: line(a, `Established teams: the picture gives about 6 points <b>higher</b> for each extra remote day. You chose: ${esc(S.a.d1est)}.`) + line(b, `New teams: the picture gives about 6 points <b>lower</b> for each extra remote day. You chose: ${esc(S.a.d1new)}.`)
+      + `<p><b>What it means.</b> “No difference” was true for no team. It was the average of a rising line and a falling line. Four office days for everyone would cost the established teams about 12 to 18 points.</p><p>The question changed from “do remote days matter?” to <b>“for whom?”</b>. This is <b>moderation</b>: the kind of team changes what remote days do.</p>
+      <p class="small">A caution from Session 1: these are 16 teams that chose for themselves, not an experiment. Your advice: ${esc(S.a.d1later)}.</p>` }; },
+  d2a: () => ({ n: 1, max: 1, quick: "Guess locked, now put it on the board" }),
+  d2b: () => { const a = Number(S.a.d2a) === A_PATH, b = Number(S.a.d2b) === B_PATH; return { n: a + b, max: 2, title: "Decision 2: the two links",
+    html: line(a, `Link 1: ${mean(M0)} − ${mean(M1)} = <b>${A_PATH} fewer</b> shift changes per month with the app. You wrote ${esc(S.a.d2a)}.`) + line(b, `Link 2: from 6 to 8 shift changes, quits rise from 21 to 27. That is <b>${B_PATH} more quits</b> for each shift change. You wrote ${esc(S.a.d2b)}.`) + `<p>The next step uses ${A_PATH} and ${B_PATH}.</p>` }; },
+  d2c: () => { const a = Number(S.a.d2ind) === IND, b = Number(S.a.d2dir) === DIR; return { n: a + b, max: 2, title: `Decision 2: ${IND} of the ${TOTAL} go through shift changes`,
+    html: line(a, `Through fewer shift changes: ${A_PATH} × ${B_PATH} = <b>${IND}</b>. You wrote ${esc(S.a.d2ind)}.`) + line(b, `Everything else the app does: ${TOTAL} − ${IND} = <b>${DIR}</b>. You wrote ${esc(S.a.d2dir)}.`)
+      + `<p>Your guess before the numbers was ${esc(S.a.d2guess)}. The numbers give ${IND}.</p>${storesPic("all")}<p><b>How to read the picture.</b> The stores with the app sit ${A_PATH} shift changes to the left. Following the line, that alone means ${IND} fewer quits. They also sit ${DIR} lower at the same number of shift changes: compare the squares and circles at 6, 7 and 8.</p>${pathPic()}
+      <p>This is <b>mediation</b>: the app works <b>through</b> something. Two thirds of its effect is the effect of calmer rotas.</p>` }; },
+  d2d: () => ({ n: 1, max: 1, title: "Decision 2: knowing the route changes the decision",
+    html: `<p>Your advice: ${esc(S.a.d2later)}. There is no single right answer. This is what the numbers say:</p>
+      <p><b>The rule alone</b> would give about ${IND} of the ${TOTAL} fewer quits, for nothing, if fewer shift changes really cause fewer quits.</p><p><b>The app</b> adds about ${DIR} more through its other routes, for SEK 2 million a year.</p>
+      <p><b>The app and the rule together</b> do not give ${TOTAL} + ${IND}. Both work through the same route, and the same shift change cannot be removed twice.</p><p>Asking <b>“through what?”</b> showed a cheaper way to most of the effect.</p>` }),
+  d3a: () => ({ n: 1, max: 1, quick: "Piles locked, now see the answers" }),
+  d3b: () => { const a = S.a.d3n === "2", b = S.a.d3fb === "Q2 and Q4"; return { n: a + b, max: 2, title: "Decision 3: six statements, two ideas",
+    html: line(a, `The reordered table has <b>two</b> dark blocks: Q1, Q3, Q5 go together, and Q2, Q4, Q6 go together. Between the blocks the table is light. You chose ${esc(S.a.d3n)}.`) + line(b, `Q6 goes with <b>Q2 and Q4</b> (.61 and .64) and hardly with Q1, Q3 and Q5 (.18 to .24). You chose: ${esc(S.a.d3fb)}.`)
+      + `<p>Before the data, you used ${pilesUsed()} ${pilesUsed() === 1 ? "pile" : "piles"}: ${esc(pileText())}.</p><p><b>What it means.</b> The six statements measure two things that have little to do with each other: <b>the work itself</b> and <b>support</b>. An idea that you cannot see directly, but that several questions share, is called a <b>latent variable</b>.</p>` }; },
+  d3c: () => ({ n: 1, max: 1, title: "Decision 3: one score hid two different problems",
+    html: `<p>Your advice: ${esc(S.a.d3later)}.</p><p><b>What the bars say.</b> Region North is content with the work and short of support. Region South has support and finds the work thin. One score of 60% made them look the same.</p>
+      <p>A leadership course fits North. South needs something else, for example broader tasks or training on the job.</p><p>One score is right only if the questions measure <b>one idea</b>. Round 4 shows how <b>SEM</b> tests this: a model with one idea against a model with two, on the same answers.</p>` }),
+  memo: () => ({ n: 1, max: 1, quick: "Question locked, the lab is done" }),
+};
+const fbOf = (id) => (FB[id] && S.fbd[id] ? FB[id]() : null);
+const starTotal = () => Object.keys(FB).reduce((n, id) => n + (S.fbd[id] ? FB[id]().n : 0), 0);
+const STAR_MAX = 15;
+function toast(n, text) {
+  document.querySelectorAll(".startoast").forEach((x) => x.remove()); const t = document.createElement("div"); t.className = "startoast"; t.setAttribute("role", "status");
+  const one = String(text).replace(/[.!?]+$/, ""); t.innerHTML = `<span class="st">${"★".repeat(Math.max(1, Math.min(3, n)))}</span> ${PRAISE[starTotal() % PRAISE.length].replace("!", "")}: ${one.charAt(0).toLowerCase() + one.slice(1)}.`; document.body.appendChild(t); t.addEventListener("click", () => t.remove());
+}
+function fbCard(id) { const f = fbOf(id); if (!f || f.quick) return ""; return `<div class="feedback" role="status"><h2>${stars(f.n, f.max)} ${f.title}</h2>${f.html}</div>`; }
+const FIELDS = () => {
+  const A = S.a;
+  const f = [S.group, A.d1first, A.d1firstSure, A.d1ask, A.d1est, A.d1new, A.d1later, A.d1laterSure, A.d2guess, A.d2first, A.d2firstSure, A.d2a, A.d2b, A.d2ind, A.d2dir, A.d2later, A.d2laterSure, A.d2why,
+    ITEMS.map((t, i) => A["d3p" + i] || "").join(""), A.d3n, A.d3fb, A.d3later, A.d3laterSure, A.d3what, A.memo, minutes("d1a", "end"), starTotal()].map(clean);
+  f.push(checkCode(f)); return f;
+};
+function formLink() { const f = FIELDS(); let u = FORM_URL; for (let i = f.length; i >= 1; i--) u = u.replace(new RegExp("=Q" + i + "(?=&|$)"), "=" + encodeURIComponent(f[i - 1])); return u; }
+function notesText() {
+  const A = S.a, s = (k) => (A[k + "Sure"] == null ? "" : " (" + A[k + "Sure"] + "% sure)");
+  return ["The Rollout, Session 4: group " + S.group, "", "DECISION 1: everyone back to the office?", "First advice: " + (A.d1first || "") + s("d1first"), "We wanted to know: " + (A.d1ask || ""), "Established teams: " + (A.d1est || "") + ". New teams: " + (A.d1new || ""), "Advice after the colours: " + (A.d1later || "") + s("d1later"), "",
+    "DECISION 2: the shift-planning app", "Our guess: " + A.d2guess + " of " + TOTAL + ". The numbers gave: " + IND, "First advice: " + (A.d2first || "") + s("d2first"), "Advice after the two links: " + (A.d2later || "") + s("d2later"), "Why: " + (A.d2why || ""), "",
+    "DECISION 3: one score for engagement?", "Our piles before the data: " + pileText(), "Ideas in the answers: " + (A.d3n || ""), "Advice: " + (A.d3later || "") + s("d3later"), "In each region: " + (A.d3what || ""), "", "OUR QUESTION", A.memo || ""].join("\n");
+}
+function endView() {
+  const A = S.a, row = (l, a, b) => `<tr><th>${l}</th><td>${esc(a || "")}</td><td>${esc(b || "")}</td></tr>`, s = (k) => (A[k + "Sure"] == null ? "" : " (" + A[k + "Sure"] + "%)");
+  const n = starTotal(), rank = n >= 13 ? "Head of people analytics" : n >= 9 ? "Senior analyst" : "Analyst";
+  return `<h1>Your case file</h1><div class="rank">${stars(n, STAR_MAX)}<b>${rank}</b>${n} of ${STAR_MAX} stars. Good job: all three decisions are answered.</div><p>The class looks at them together after the break.</p>
+    <div class="recap-wrap"><table class="recap"><tr><th></th><th>First advice</th><th>After the data</th></tr>${row("Decision 1", A.d1first + s("d1first"), A.d1later + s("d1later"))}${row("Decision 2", A.d2first + s("d2first"), A.d2later + s("d2later"))}${row("Decision 3", "Piles: " + pileText(), A.d3later + s("d3later"))}</table></div>
+    <div class="locked"><b>Our question</b>${esc(A.memo)}</div>
+    <div class="card stack"><h2>What the three decisions show</h2>
+      <p><b>The one idea:</b> “it works” is half an answer. Ask for whom, through what, and whether you measured one thing.</p>
+      <p><b>Decision 1. For whom?</b> The flat line was a rising line and a falling line. A third variable, the kind of team, changed what remote days do. That is <b>moderation</b>.</p>
+      <p><b>Decision 2. Through what?</b> Of ${TOTAL} fewer quits, ${IND} came through fewer shift changes. Knowing the route showed a cheaper way. That is <b>mediation</b>.</p>
+      <p><b>Decision 3. One idea or two?</b> Six statements measured two ideas, and one score hid two different problems. Ideas behind the questions are <b>latent variables</b>, and <b>SEM</b> tests how many there are.</p>
+      <p><b>Bring to the discussion:</b> the question you wrote in your memo.</p></div>
+    <div class="sendbox stack">${FORM_URL ? `<p><b>Last step: send your case file.</b> The button opens a form with your answers filled in. Scroll down and press <b>Submit</b>.</p><p><a class="go" href="${esc(formLink())}" target="_blank" rel="noopener" data-sent>Open the form with our answers</a></p>${S.sent ? `<p class="hint">Opened. If you pressed Submit in the form, you are done.</p>` : ""}`
+      : `<p><b>Last step: keep your case file.</b></p><p><button type="button" class="go" data-copy>Copy our case file</button></p><p class="hint" id="copied"></p>`}</div>`;
+}
+function teacher() {
+  return `<h1>The Rollout: teacher view</h1>
+  <div class="card stack entrynote" style="border:2px solid var(--accent)"><h2>Your five jobs, in order</h2>
+    <ol style="margin:0;padding-left:22px;display:grid;gap:6px">
+      <li><b>Before the lab: the board.</b> Draw a line with the numbers 0 to ${TOTAL}, with room for crosses above. Write above it: “Of ${TOTAL}, how many through shift changes?” The sketch is under Job 4.</li>
+      <li><b>Start of the lab: say "${ENTRY_CODE}".</b> Groups of three or four, one laptop per group. The lab takes 30 to 40 minutes.</li>
+      <li><b>Decision 1: walk around.</b> Ask one question only: “What else do you know about these 16 teams?”</li>
+      <li><b>Decision 2: the crosses on the board.</b> When every group has its cross, read the lowest and the highest guess aloud, then say "${CLASS_WORD}".</li>
+      <li><b>Decision 3 and the memo: no help.</b> If a group is stuck on the piles: “Which statements would the same person answer alike?”</li>
+    </ol>
+    <div class="recap-wrap"><table class="recap"><tr><th>Word you say</th><th>When</th><th>What it opens</th></tr><tr><td><b>${ENTRY_CODE}</b></td><td>Start of the lab</td><td>The page, on every device</td></tr><tr><td><b>${CLASS_WORD}</b></td><td>When every group has a cross on the board</td><td>The two links of Decision 2</td></tr></table></div>
+    <p><b>The rule to remember: ask, do not tell.</b> The page gives the feedback and the stars after each lock.</p></div>
+  <div class="card stack"><h2>Job 4. Decision 2: the crosses on the board</h2>
+    <div class="board"><svg viewBox="0 0 640 190" role="img" aria-label="Sketch of the board: a number line from 0 to 18 with crosses above the numbers."><text x="30" y="22" font-size="17" fill="var(--ink)">Of 18, how many through shift changes?</text><line x1="20" y1="150" x2="620" y2="150" stroke="var(--ink)" stroke-width="2"/><line x1="30.0" y1="145" x2="30.0" y2="155" stroke="var(--ink)" stroke-width="2"/><text x="30.0" y="174" text-anchor="middle" font-size="15" fill="var(--ink)">0</text><line x1="62.2" y1="145" x2="62.2" y2="155" stroke="var(--ink)" stroke-width="2"/><text x="62.2" y="174" text-anchor="middle" font-size="15" fill="var(--ink)">1</text><line x1="94.4" y1="145" x2="94.4" y2="155" stroke="var(--ink)" stroke-width="2"/><text x="94.4" y="174" text-anchor="middle" font-size="15" fill="var(--ink)">2</text><line x1="126.7" y1="145" x2="126.7" y2="155" stroke="var(--ink)" stroke-width="2"/><text x="126.7" y="174" text-anchor="middle" font-size="15" fill="var(--ink)">3</text><line x1="158.9" y1="145" x2="158.9" y2="155" stroke="var(--ink)" stroke-width="2"/><text x="158.9" y="174" text-anchor="middle" font-size="15" fill="var(--ink)">4</text><line x1="191.1" y1="145" x2="191.1" y2="155" stroke="var(--ink)" stroke-width="2"/><text x="191.1" y="174" text-anchor="middle" font-size="15" fill="var(--ink)">5</text><line x1="223.3" y1="145" x2="223.3" y2="155" stroke="var(--ink)" stroke-width="2"/><text x="223.3" y="174" text-anchor="middle" font-size="15" fill="var(--ink)">6</text><line x1="255.6" y1="145" x2="255.6" y2="155" stroke="var(--ink)" stroke-width="2"/><text x="255.6" y="174" text-anchor="middle" font-size="15" fill="var(--ink)">7</text><line x1="287.8" y1="145" x2="287.8" y2="155" stroke="var(--ink)" stroke-width="2"/><text x="287.8" y="174" text-anchor="middle" font-size="15" fill="var(--ink)">8</text><line x1="320.0" y1="145" x2="320.0" y2="155" stroke="var(--ink)" stroke-width="2"/><text x="320.0" y="174" text-anchor="middle" font-size="15" fill="var(--ink)">9</text><line x1="352.2" y1="145" x2="352.2" y2="155" stroke="var(--ink)" stroke-width="2"/><text x="352.2" y="174" text-anchor="middle" font-size="15" fill="var(--ink)">10</text><line x1="384.4" y1="145" x2="384.4" y2="155" stroke="var(--ink)" stroke-width="2"/><text x="384.4" y="174" text-anchor="middle" font-size="15" fill="var(--ink)">11</text><line x1="416.7" y1="145" x2="416.7" y2="155" stroke="var(--ink)" stroke-width="2"/><text x="416.7" y="174" text-anchor="middle" font-size="15" fill="var(--ink)">12</text><line x1="448.9" y1="145" x2="448.9" y2="155" stroke="var(--ink)" stroke-width="2"/><text x="448.9" y="174" text-anchor="middle" font-size="15" fill="var(--ink)">13</text><line x1="481.1" y1="145" x2="481.1" y2="155" stroke="var(--ink)" stroke-width="2"/><text x="481.1" y="174" text-anchor="middle" font-size="15" fill="var(--ink)">14</text><line x1="513.3" y1="145" x2="513.3" y2="155" stroke="var(--ink)" stroke-width="2"/><text x="513.3" y="174" text-anchor="middle" font-size="15" fill="var(--ink)">15</text><line x1="545.6" y1="145" x2="545.6" y2="155" stroke="var(--ink)" stroke-width="2"/><text x="545.6" y="174" text-anchor="middle" font-size="15" fill="var(--ink)">16</text><line x1="577.8" y1="145" x2="577.8" y2="155" stroke="var(--ink)" stroke-width="2"/><text x="577.8" y="174" text-anchor="middle" font-size="15" fill="var(--ink)">17</text><line x1="610.0" y1="145" x2="610.0" y2="155" stroke="var(--ink)" stroke-width="2"/><text x="610.0" y="174" text-anchor="middle" font-size="15" fill="var(--ink)">18</text><text x="126.7" y="138" text-anchor="middle" font-size="19" fill="#5d6673">×</text><text x="191.1" y="138" text-anchor="middle" font-size="19" fill="#5d6673">×</text><text x="223.3" y="138" text-anchor="middle" font-size="19" fill="#5d6673">×</text><text x="223.3" y="119" text-anchor="middle" font-size="19" fill="#5d6673">×</text><text x="287.8" y="138" text-anchor="middle" font-size="19" fill="#5d6673">×</text><text x="320.0" y="138" text-anchor="middle" font-size="19" fill="#5d6673">×</text><text x="320.0" y="119" text-anchor="middle" font-size="19" fill="#5d6673">×</text><text x="320.0" y="100" text-anchor="middle" font-size="19" fill="#5d6673">×</text><text x="352.2" y="138" text-anchor="middle" font-size="19" fill="#5d6673">×</text><text x="416.7" y="138" text-anchor="middle" font-size="19" fill="#5d6673">×</text><text x="416.7" y="119" text-anchor="middle" font-size="19" fill="#5d6673">×</text><text x="481.1" y="138" text-anchor="middle" font-size="19" fill="#5d6673">×</text><text x="513.3" y="138" text-anchor="middle" font-size="19" fill="#5d6673">×</text><circle cx="416.7" cy="169" r="15" fill="none" stroke="var(--hot)" stroke-width="2.5" stroke-dasharray="6 4"/><text x="435.7" y="189" text-anchor="start" font-size="13" fill="var(--hot)">circle 12 after the lab</text></svg></div><p class="boardcap">Sketch of the board. The grey crosses are examples: one for each group. The red circle at 12 comes after the lab, not before.</p><div class="walk"><b>1. The crosses arrive</b><span>Each group locks a guess from 0 to ${TOTAL}. One member walks to the board and puts a cross above that number.</span></div>
+    <div class="walk"><b>2. Read the board</b><span><b>Say:</b> “Your guesses run from … to …. Now find out.”</span><span>Do not say the answer. It is ${IND}.</span></div>
+    <div class="walk"><b>3. Open the next step</b><span><b>Say:</b> "${CLASS_WORD}".</span></div>
+    <div class="walk"><b>4. After the lab</b><span>Draw a circle at ${IND} on the board. The crosses stay up for the reflection.</span></div></div>
+  <div class="card stack"><h2>Answer key, for the reflection</h2><table class="keytable"><tr><th>Decision</th><th>What groups find</th><th>What it means</th><th>For the manager</th></tr>
+    <tr><td>1. Everyone back to the office? (9 to 12 minutes)</td><td>All 16 teams: a flat line at 72%. Established teams: about 6 points higher for each extra remote day. New teams: about 6 points lower.</td><td><b>Moderation: for whom?</b> The kind of team changes what remote days do. The average effect of zero is true for no team. Keyword: the dimmer switch, here even a reversal.</td><td>Different rules for the two kinds of team. Four office days for everyone costs the established teams 12 to 18 points.</td></tr>
+    <tr><td>2. The shift-planning app (14 to 19 minutes)</td><td>Link 1: 9 − 5 = ${A_PATH} fewer shift changes. Link 2: ${B_PATH} more quits for each shift change. Through shift changes: ${A_PATH} × ${B_PATH} = ${IND}. Everything else: ${TOTAL} − ${IND} = ${DIR}.</td><td><b>Mediation: through what?</b> Total effect ${TOTAL} = indirect ${IND} + direct ${DIR}. Keyword: the dominoes. In your slides: c = a × b + c′.</td><td>A rota fixed two weeks ahead gives about ${IND} of the ${TOTAL} for nothing. The app adds about ${DIR} for SEK 2 million. Together they do not add up: same route.</td></tr>
+    <tr><td>3. One score for engagement? (10 to 14 minutes, with the memo)</td><td>The reordered table has two dark blocks: Q1, Q3, Q5 (the work itself) and Q2, Q4, Q6 (support). North: 80% and 40%. South: 40% and 80%. Both: 60% overall.</td><td><b>Latent variables: one idea or two?</b> One score assumes one idea. This is the question your trust-in-AI case answers with SEM: one factor against two.</td><td>A leadership course fits North only. South needs richer work. The single score would have sent both the same course.</td></tr></table></div>`;
+}
+/* ---------- drawing and events ---------- */
+function render() {
+  document.querySelectorAll(".starrow").forEach((n) => n.remove());
+  if (preview) { document.body.classList.add("wide"); document.body.classList.add("teacher"); app.innerHTML = `<div class="stack">${teacher()}</div>`; return; }
+  document.body.classList.remove("wide"); document.body.classList.remove("teacher");
+  const id = SCREENS[S.at], furthest = S.max || 0, locked = !!S.fbd[id]; RO = S.at < furthest || locked; stamp(id);
+  const track = `<div class="track" aria-hidden="true">${SCREENS.map((s, i) => `<span class="${i < S.at ? "done" : i === S.at ? "now" : ""}"></span>`).join("")}</div>`;
+  let body, foot = "";
+  if (id === "end") { body = endView(); foot = `<p><button type="button" class="go secondary" data-back>Look back at our earlier screens (read only)</button></p>`; }
+  else { const st = STEP[id]; body = st.html() + (st.mins && !RO ? `<p class="mins">${st.mins}</p>` : "") + fbCard(id);
+    foot = S.at < furthest ? `<div class="lookbar"><span>Locked. You are looking back.</span><button type="button" class="go" data-fwd>Forward</button></div>`
+      : locked ? `<p><button type="button" class="go" data-cont>Continue</button></p>` : `<p><button type="button" class="go" data-next ${st.ok() ? "" : "disabled"}>${st.go}</button></p>`;
+    if (S.at > 0 && !(locked && S.at === furthest)) foot += `<p><button type="button" class="go secondary" data-back>Back</button></p>`; }
+  app.innerHTML = `<header class="top"><span class="brand">The Rollout</span><span class="where">${NAMES[id]}${S.group ? " · group " + esc(S.group) : ""}</span></header>${track}<div class="stack">${body}${foot}</div>`;
+  if (S.group) { const b = document.createElement("div"); b.className = "starbadge"; b.textContent = "★ " + starTotal() + " / " + STAR_MAX; const row = document.createElement("div"); row.className = "starrow"; row.appendChild(b); const hd = app.querySelector("header"); if (hd) hd.after(row); else app.prepend(row); }
+}
+function refreshNext() { const b = app.querySelector("[data-next]"); if (b) b.disabled = !STEP[SCREENS[S.at]].ok(); }
+const advance = () => { S.at++; S.max = Math.max(S.max || 0, S.at); save(); render(); window.scrollTo(0, 0); };
+app.addEventListener("click", (e) => {
+  const t = e.target.closest("button, a"); if (!t) return;
+  if (t.dataset.choice) { S.a[t.dataset.choice] = t.dataset.val; save(); render(); }
+  else if (t.dataset.flag) { S[t.dataset.flag] = true; save(); render(); }
+  else if (t.hasAttribute("data-next")) { const id = SCREENS[S.at]; if (!STEP[id].ok()) return;
+    if (FB[id]) { S.fbd[id] = true; const f = FB[id](); if (f.quick) { advance(); toast(f.n, f.quick); }
+      else { save(); render(); toast(f.n, f.title); const c = app.querySelector(".feedback"); if (c) { c.scrollIntoView({ block: "start" }); window.scrollBy(0, -120); } } }
+    else advance(); }
+  else if (t.hasAttribute("data-cont")) advance();
+  else if (t.hasAttribute("data-back")) { S.at = Math.max(0, S.at - 1); save(); render(); window.scrollTo(0, 0); }
+  else if (t.hasAttribute("data-fwd")) { S.at = Math.min(S.max || 0, S.at + 1); save(); render(); window.scrollTo(0, 0); }
+  else if (t.hasAttribute("data-sent")) { S.sent = Date.now(); save(); setTimeout(render, 300); }
+  else if (t.hasAttribute("data-copy")) { const txt = notesText(); (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => { document.getElementById("copied").textContent = "Copied. Paste it into your notes."; }, () => { document.getElementById("copied").textContent = txt; }); }
+});
+app.addEventListener("input", (e) => {
+  const t = e.target;
+  if (t.dataset.sure) { S.a[t.dataset.sure + "Sure"] = Number(t.value); document.getElementById(t.dataset.sure + "-out").textContent = t.value + "%"; }
+  else if (t.hasAttribute("data-group")) { t.value = t.value.replace(/[\t\n"<>]/g, "").slice(0, 40); S.group = t.value.trim(); }
+  else if (t.dataset.num) { const v = t.value.replace(/[^\d]/g, ""); t.value = v; const n = Number(v); S.a[t.dataset.num] = v === "" || n < Number(t.dataset.min) || n > Number(t.dataset.max) ? "" : n; }
+  else if (t.dataset.text) { S.a[t.dataset.text] = t.value; }
+  else if (t.hasAttribute("data-word")) { const ok = t.value.toLowerCase().replace(/[^a-z]/g, "") === CLASS_WORD; if (ok !== S.word) { S.word = ok; save(); if (ok) { render(); window.scrollTo(0, 0); return; } } }
+  save(); refreshNext();
+});
+/* Entry lock: the address can be shared before class; the page opens with a code the teacher gives when it is time to start.
+   To change the code: put the new word (letters only) through btoa() and paste the result here. */
+const ENTRY_CODE = atob("cGlsb3Q=");
+const LKEY = KEY + "-open";
+let OPENED = false; try { OPENED = localStorage.getItem(LKEY) === "1"; } catch (e) {}
+const lockOn = () => !OPENED && !preview;
+const lockNorm = (s) => String(s).toLowerCase().replace(/[^a-z]/g, "");
+const _renderOpen = render;
+render = function () {
+  if (!lockOn()) { _renderOpen.apply(null, arguments); return; }
+  document.body.classList.remove("wide"); document.body.classList.remove("teacher");
+  app.innerHTML = `<section class="stack"><h1>The Rollout</h1><div class="card stack"><h2>This page opens in class</h2>
+    <p>Your teacher gives the entry code when it is time to start.</p>
+    <div><label for="entrycode">Entry code</label><input id="entrycode" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="One word"></div>
+    <button class="go" data-entry>Open the page</button><p class="small" id="entrymsg" role="status"></p></div></section>`;
+};
+function tryEntry() {
+  const el = app.querySelector("#entrycode"); if (!el) return;
+  if (lockNorm(el.value) === lockNorm(ENTRY_CODE)) { OPENED = true; try { localStorage.setItem(LKEY, "1"); } catch (e) {} render(true); try { save(); } catch (e) {} window.scrollTo(0, 0); return; }
+  app.querySelector("#entrymsg").textContent = el.value.trim() ? "That is not the entry code. Check the spelling, or ask your teacher." : "Type the entry code first.";
+}
+app.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("[data-entry]")) tryEntry(); });
+app.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.id === "entrycode") tryEntry(); });
+render();
+
+</script>
+</body>
+</html>
