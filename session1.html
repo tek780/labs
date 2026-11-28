@@ -138,8 +138,8 @@ const KEY = "casefiles-s1-v3";
 /* Paste the pre-filled Microsoft Forms link here (dummy answers Q1 ... Q20). Empty = offer "Copy our case file" instead. */
 const FORM_URL = "https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=ZXoUKW1T-UO4AuChtc-dv4SG9gvTFfxJkQXWBLPPwb1UQkIxS0EzRjczRUsxWTIwNEpLRTJVTlVLWC4u&r10cd1eaa10b14f08b318a362bf06914a=Q1&r543d082a51c34deb89878a3d0f5e5c2a=Q2&r4529444dd39d46b2872d8cc183a61590=Q3&r2b2eb9e2a68846f4b0809d69dfd89431=Q4&r557b7c2ff2bc4b3abd4b150bfa98f1f9=Q5&ra4859b5ac8614b38af5fbf00bb25a117=Q6&r15c3c349afc74eccba7f6a7f70b27077=Q7&rd2488199b1aa4a7d8016e79804c10c37=Q8&r2db6ea31f5d1454ea0b4604064f2907b=Q9&r60ed736aaf1e428e82f4d166cfb2ae97=Q10&r6b3e1629d7e84c1ab2b6817148e514d8=Q11&rc6d74fdf14a64e199451c66fde6bd1cd=Q12&r0600be7bc27a41d79a7fdd427621bf45=Q13&rbbe903f07b4c4b5ba3b15469b8489ed8=Q14&rfc4acfda51574fb0a343519691da05e6=Q15&rbda34bbfc3ca4195b798a969c6c21f74=Q16&r97b660017e0143ec90ae837cfe29f80f=Q17&rde0369aaa198479fa061b581f1171aee=Q18&rbd7c406861ef435a9a632f24a8b6fba6=Q19&re331fcbcca99471c99d9253be312e112=Q20&rc6f7db9903714c06b35b93230d42b304=Q21&r6e78317d7f0b4016ab621163ce46604f=Q22&rd7e0af34969943c98e7bf78050a95fb4=Q23&r32ee661a17a242838ee08c30a3340521=Q24&r05cded9581c44862b1cbfa540eb4e6e1=Q25&r77a14c88d7674e12894c7cdc13992bde=Q26&r18d25b3126d045a6acac9e7da0d6e9f9=Q27";
 const GATED = ["c1c", "c1d", "c2c"];
-const ENV = { c1c: "envelope 1A", c1d: "envelope 1B", c2c: "envelope 2" };
-/* Teacher key: row = last digit of the group code, column = envelope. All passwords are keywords of quantitative research. */
+const ENV = { c1c: "checkpoint 1A", c1d: "checkpoint 1B", c2c: "checkpoint 2" };
+/* Teacher key: row = last digit of the group code, column = checkpoint. All passwords are keywords of quantitative research. */
 const WORDS = [["variable", "sample", "mean"], ["hypothesis", "population", "median"], ["validity", "survey", "variance"], ["reliability", "scale", "correlation"], ["causality", "experiment", "regression"],
   ["measurement", "random", "outlier"], ["replication", "bias", "histogram"], ["indicator", "census", "scatter"], ["theory", "interval", "ratio"], ["deduction", "nominal", "ordinal"]];
 const norm = (s) => String(s).toLowerCase().replace(/[^a-z]/g, "");
@@ -253,7 +253,7 @@ const view = {
       <h2>Is this the device that writes for your group?</h2>
       <div><label for="group">Yes: type your group's name</label><input id="group" type="text" maxlength="40" value="${esc(S.group)}" placeholder="Your own choice" autocomplete="off"></div>
       <button class="go" data-start="scribe" disabled>Start our group's case file</button>
-      <p class="hint">Each case has sealed envelopes. Once your group has written its advice, it is locked, and one of you fetches the password for the next envelope from a teacher. One case file per group is accepted.</p>
+      <p class="hint">The lab has checkpoints. At each one, your group's answers are locked and one of you fetches a password from a teacher. The password opens the next step. One case file per group is accepted.</p>
     </div>
     <div class="card stack">
       <h2>No: I am following along</h2>
@@ -279,25 +279,25 @@ const view = {
     ${adviceQ("c1first", "Should the owner double the ad budget?", C1)}
     <p class="step">Step 3.</p>
     ${textQ("c1want", "What would you want to know about these 16 weeks that is not on the cards? Write one thing.")}
-    <button class="go" data-next disabled>Lock our advice and fetch envelope 1A</button>
+    <button class="go" data-next disabled>Lock our advice and go to checkpoint 1A</button>
     ${follower() ? "" : '<p class="hint">After this you cannot change what you wrote in steps 1 to 3.</p>'}`,
     ready: () => adviceDone("c1first") && filled("c1want") }),
 
   c1c: () => ({ where: "Case 1, step 4", html: `
-    <h2>Case 1. Envelope 1A</h2>
-    <div class="envelope stack"><div class="tag">Envelope 1A: from the restaurant's calendar</div>
+    <h2>Case 1. Checkpoint 1A</h2>
+    <div class="envelope stack"><div class="tag">Checkpoint 1A: from the restaurant's calendar</div>
       <p>Weeks <b>E, G, I, J, L and O</b> were the six weeks before Christmas: the julbord season, when companies book their Christmas dinners.</p>
       <p>The other ten weeks were ordinary autumn weeks. Every year, the owner raises the ad budget for the julbord season.</p></div>
     <p>The six julbord cards have been moved up, so that you now have two rows.</p>
     ${weeksView("rows")}
     <p class="step">Step 4. Look inside each row on its own.</p>
     ${textQ("c1rows", "Inside a row, do the weeks with more ad spend have higher sales? Write what you see.")}
-    <button class="go" data-next disabled>Lock our answer and fetch envelope 1B</button>`,
+    <button class="go" data-next disabled>Lock our answer and go to checkpoint 1B</button>`,
     ready: () => filled("c1rows") }),
 
   c1d: () => ({ where: "Case 1, step 5", html: `
-    <h2>Case 1. Envelope 1B</h2>
-    <div class="envelope stack"><div class="tag">Envelope 1B: memo on the switch-off test</div>
+    <h2>Case 1. Checkpoint 1B</h2>
+    <div class="envelope stack"><div class="tag">Checkpoint 1B: memo on the switch-off test</div>
       <p>Last spring the owner ran a test over eight ordinary weeks. A lottery picked four of the eight weeks in which the Google ads were <b>switched off</b>. In the other four weeks the ads ran as usual.</p>
       <div class="stats"><div class="stat">Average weekly sales, the 4 weeks <b>with</b> ads<b>462 kSEK</b></div><div class="stat">Average weekly sales, the 4 weeks <b>without</b> ads<b>458 kSEK</b></div></div>
       <p>In the weeks without ads, guests still found the restaurant in the ordinary Google results, which cost nothing.</p></div>
@@ -325,13 +325,13 @@ const view = {
     ${adviceQ("c2first", "What should the owner do?", C2)}
     <p class="step">Step 3.</p>
     ${textQ("c2want", "What else would you want to know before she decides? Write one thing.")}
-    <button class="go" data-next disabled>Lock our advice and fetch envelope 2</button>
+    <button class="go" data-next disabled>Lock our advice and go to checkpoint 2</button>
     ${follower() ? "" : '<p class="hint">After this you cannot change what you wrote in steps 1 to 3.</p>'}`,
     ready: () => adviceDone("c2first") && filled("c2want") }),
 
   c2c: () => ({ where: "Case 2, steps 4 and 5", html: `
-    <h2>Case 2. Envelope 2</h2>
-    <div class="envelope stack"><div class="tag">Envelope 2: the other 15 club members</div>
+    <h2>Case 2. Checkpoint 2</h2>
+    <div class="envelope stack"><div class="tag">Checkpoint 2: the other 15 club members</div>
       <p>These 15 cards are the club members from the opening party who did <b>not</b> become regulars. They have been added to your piles, so you now see all 25 club members.</p></div>
     ${pilesView(true, true)}
     ${adviceLine("Your first advice", "c2first")}
@@ -354,11 +354,11 @@ const view = {
     const tell = nxt === "c1d" ? "tells the teacher what your group saw inside each row" : "tells the teacher what your group advised and how sure you are";
     return { where: "Checkpoint", html: `
     <h1>Fetch ${ENV[nxt]}</h1>
-    <p>Your answers so far are locked. The next envelope opens with a password that only a teacher has.</p>
+    <p>Your answers so far are locked. The next checkpoint opens with a password that only a teacher has.</p>
     <div class="envelope stack"><div class="tag">Take this to a teacher</div>
       <p style="font-size:22px;font-family:var(--display)">Group code <b>${esc(S.salt)}</b> · ${ENV[nxt]}</p>
       ${ours}
-      <p><b>One</b> of you walks to a teacher, says the group code and the envelope, and ${tell}. The teacher gives you a password: one word. Remember it and bring it back.</p></div>
+      <p><b>One</b> of you walks to a teacher, says the group code and the checkpoint, and ${tell}. The teacher gives you a password: one word. Remember it and bring it back.</p></div>
     <div class="card stack"><label for="pw">Password for ${ENV[nxt]}</label><input id="pw" type="text" maxlength="24" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="one word">
       <button class="go" data-open disabled>Open ${ENV[nxt]}</button><p class="small" id="pwmsg" role="status"></p></div>`, ready: () => true };
   },
@@ -443,13 +443,13 @@ const teacherKey = () => `<div class="card stack entrynote" style="border:2px so
       </ol>
       <p><b>The rule to remember: ask, write, password. No comment.</b></p></div>
     <div class="card stack"><h2>Job 3. At every walk</h2>
-      <p>A participant comes to you with the group code and the envelope. <b>Ask</b> your question, <b>write</b> the answer on the board, then give the <b>password</b> from the row for the last digit of the group code.</p>
+      <p>A participant comes to you with the group code and the checkpoint. <b>Ask</b> your question, <b>write</b> the answer on the board, then give the <b>password</b> from the row for the last digit of the group code.</p>
       <p><b>The board:</b> one row for each group, with five columns: Group, Case 1 advice, Sure, Case 2 advice, Sure.</p>
-        <div class="walk"><b>Envelope 1A</b><span>Comes when the first advice on the ads is locked.</span><span><b>Ask:</b> "What did your group advise, and how sure are you?"</span><span><b>Write:</b> "double" or "do not double", and the percentage.</span></div>
-        <div class="walk"><b>Envelope 1B</b><span>Comes when the weeks are sorted by season.</span><span><b>Ask:</b> "What did you see inside each row?"</span><span><b>Write:</b> nothing. You only check that the group has looked.</span></div>
-        <div class="walk"><b>Envelope 2</b><span>Comes when the first advice on the flyers is locked.</span><span><b>Ask:</b> "What did your group advise, and how sure are you?"</span><span><b>Write:</b> "stop the flyers" or "keep them", and the percentage.</span></div>
-      <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>Group code ends in</th><th>Envelope 1A</th><th>Envelope 1B</th><th>Envelope 2</th></tr></thead><tbody>${WORDS.map((w, k) => `<tr><td><b>${k}</b></td><td>${w[0]}</td><td>${w[1]}</td><td>${w[2]}</td></tr>`).join("")}</tbody></table></div>
-        <ul class="tips"><li>A participant who cannot answer goes back to the group. If someone asks whether an answer is right: "Open the envelope and see."</li><li>A group still in Case 1 after 18 minutes: "Lock your advice and come for the envelope."</li></ul></div>
+        <div class="walk"><b>Checkpoint 1A</b><span>Comes when the first advice on the ads is locked.</span><span><b>Ask:</b> "What did your group advise, and how sure are you?"</span><span><b>Write:</b> "double" or "do not double", and the percentage.</span></div>
+        <div class="walk"><b>Checkpoint 1B</b><span>Comes when the weeks are sorted by season.</span><span><b>Ask:</b> "What did you see inside each row?"</span><span><b>Write:</b> nothing. You only check that the group has looked.</span></div>
+        <div class="walk"><b>Checkpoint 2</b><span>Comes when the first advice on the flyers is locked.</span><span><b>Ask:</b> "What did your group advise, and how sure are you?"</span><span><b>Write:</b> "stop the flyers" or "keep them", and the percentage.</span></div>
+      <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>Group code ends in</th><th>Checkpoint 1A</th><th>Checkpoint 1B</th><th>Checkpoint 2</th></tr></thead><tbody>${WORDS.map((w, k) => `<tr><td><b>${k}</b></td><td>${w[0]}</td><td>${w[1]}</td><td>${w[2]}</td></tr>`).join("")}</tbody></table></div>
+        <ul class="tips"><li>A participant who cannot answer goes back to the group. If someone asks whether an answer is right: "Pass the checkpoint and see."</li><li>A group still in Case 1 after 18 minutes: "Lock your advice and come to the checkpoint."</li></ul></div>
     <div class="card stack"><h2>Job 4. After the lab: the class results</h2><div class="stack"><div class="stack">
 
         <p>This fills the table "Our class: first advice and later advice" for you. Nothing is sent anywhere: the numbers are worked out on this device.</p>
@@ -522,12 +522,12 @@ app.addEventListener("click", (e) => {
   if (t.dataset.start === "follow") { S.role = "follow"; S.salt = app.querySelector("#join").value.trim(); go(); return; }
   if (t.hasAttribute("data-open")) {
     if (norm(app.querySelector("#pw").value) === password(S.pick)) { stamp("opened-" + S.pick); go(); }
-    else { S.tries[S.pick] = (S.tries[S.pick] || 0) + 1; save(); const typed = app.querySelector("#pw").value; render(false); app.querySelector("#pw").value = typed; refresh(); app.querySelector("#pwmsg").textContent = "That password does not open this envelope. Check the group code and the envelope with your teacher."; }
+    else { S.tries[S.pick] = (S.tries[S.pick] || 0) + 1; save(); const typed = app.querySelector("#pw").value; render(false); app.querySelector("#pw").value = typed; refresh(); app.querySelector("#pwmsg").textContent = "That password does not open this checkpoint. Check the group code and the checkpoint with your teacher."; }
     return;
   }
   if (t.hasAttribute("data-gate")) {
     if (app.querySelector("#gate").value.trim() === gate(S.pick)) go();
-    else app.querySelector("#gatemsg").textContent = "That code does not open this envelope. Check the screen code on your scribe's screen.";
+    else app.querySelector("#gatemsg").textContent = "That code does not open this checkpoint. Check the screen code on your scribe's screen.";
     return;
   }
   if (t.hasAttribute("data-notes")) { const text = notesText(), msg = app.querySelector("#notesmsg"); try { navigator.clipboard.writeText(text).then(() => { msg.textContent = "Copied. Paste it into your group's chat."; }, () => { msg.textContent = text; }); } catch (err) { msg.textContent = text; } return; }

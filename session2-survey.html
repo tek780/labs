@@ -223,8 +223,8 @@ const LAB_WORD = "lunch";
 const CLASS_WORD = "count";
 const SCREENS = ["intro", "p1a", "p1b", "p1c", "p2a", "p2b", "p2c", "end"];
 const GATED = ["p1c", "p2b", "p2c"];
-const ENV = { p1c: "envelope 1", p2b: "envelope 2", p2c: "envelope 3" };
-/* Teacher key: row = last digit of the group code, column = envelope. All passwords are keywords of quantitative research. */
+const ENV = { p1c: "checkpoint 1", p2b: "checkpoint 2", p2c: "checkpoint 3" };
+/* Teacher key: row = last digit of the group code, column = checkpoint. All passwords are keywords of quantitative research. */
 const WORDS = [["variable", "sample", "mean"], ["hypothesis", "population", "median"], ["validity", "survey", "variance"], ["reliability", "scale", "correlation"], ["causality", "experiment", "regression"],
   ["measurement", "random", "outlier"], ["replication", "bias", "histogram"], ["indicator", "census", "scatter"], ["theory", "interval", "ratio"], ["deduction", "nominal", "ordinal"]];
 const norm = (s) => String(s).toLowerCase().replace(/[^a-z]/g, "");
@@ -396,7 +396,7 @@ function firmGrid(mode) { /* "pick": the scribe chooses ten firms to phone; "sho
     return `<button type="button" class="rc${cls}" ${mode === "pick" ? `data-rc="${i}"` : "disabled"}><small>${i + 1}</small>${k ? (USES(i) ? "AI" : "no") : ANSW(i) ? "✉" : "&nbsp;"}</button>`;
   }).join("")}</div></div>`;
 }
-function truthReveal() { /* envelope 3: first the 38 answers, then one button that lets the 62 silent firms speak */
+function truthReveal() { /* checkpoint 3: first the 38 answers, then one button that lets the 62 silent firms speak */
   const done = !!S.rev || RO, by = (a, b) => Number(USES(b)) - Number(USES(a));
   const ans = FIRMS.filter(ANSW).sort(by), sil = FIRMS.filter((i) => !ANSW(i)).sort(by);
   const tile = (i, known, k) => `<i class="ft ${known ? (USES(i) ? "yes" : "no") : "q"}${known && JUSTREV && !ANSW(i) ? " flip" : ""}"${known && JUSTREV && !ANSW(i) ? ` style="animation-delay:${k * 32}ms"` : ""}>${known ? (USES(i) ? "AI" : "–") : "?"}</i>`;
@@ -426,7 +426,7 @@ function numberLine(showTruth) { /* 0 to 100%: the 38 answers, the group's ten c
       <span style="white-space:nowrap"><svg width="14" height="14" viewBox="0 0 14 14" style="vertical-align:-2px"><circle cx="7" cy="7" r="6" fill="var(--accent)"/></svg> blue dot = one lottery of ten firms</span>
       ${own ? `<span style="white-space:nowrap"><svg width="16" height="16" viewBox="0 0 16 16" style="vertical-align:-3px">${diamond(8, 8, 6.5)}</svg> yellow diamond = your own ten calls</span>` : ""}</figcaption></figure>`;
 }
-function ownRead() { /* shown after envelope 3: reads the group's own numbers, whatever they are */
+function ownRead() { /* shown after checkpoint 3: reads the group's own numbers, whatever they are */
   if (S.eye.length !== 10 || !S.draws.length) return "";
   const r = eyeAns(), x = eyeMean() / 10, ms = S.draws.map((d) => d.mean / 10), closer = S.draws.filter((d) => Math.abs(d.mean - TRUE_MEAN) < Math.abs(CLAIM - TRUE_MEAN)).length;
   const mix = r <= 1 ? `You phoned ${r === 0 ? "only" : "almost only"} firms that had stayed silent, and <b>${x} of your 10</b> use AI. That is what the silent firms look like: very different from the ${N_ANS} that answered.`
@@ -487,7 +487,7 @@ const view = {
       <h2>Is this the device that writes for your group?</h2>
       <div><label for="group">Yes: choose a name for your group</label><input id="group" type="text" maxlength="40" value="${esc(S.group)}" placeholder="Your own choice" autocomplete="off"></div>
       <button class="go" data-start="scribe" disabled>Start our group's case file</button>
-      <p class="hint">There are sealed envelopes. Once your group has written its answer, it is locked, and one of you fetches the password for the next envelope from a teacher. One case file per group is accepted.</p>
+      <p class="hint">The lab has checkpoints. At each one, your group's answers are locked and one of you fetches a password from a teacher. The password opens the next step. One case file per group is accepted.</p>
     </div>
     <div class="card stack">
       <h2>No: I am following along</h2>
@@ -512,14 +512,14 @@ const view = {
     <p class="step">Step 2. For each line, on which form do you expect the higher share of the class?</p>
     ${ROWS.map(([q, pk, label, how]) => choiceQ(pk, label, PRED)).join("")}
     ${sureQ("predSure", "How sure are you about your three predictions, from 0 to 100%?")}
-    <button class="go" data-next disabled>Lock our predictions and fetch envelope 1</button>
+    <button class="go" data-next disabled>Lock our predictions and go to checkpoint 1</button>
     ${follower() ? "" : '<p class="hint">After this you cannot change what you wrote in steps 1 and 2.</p>'}
     <details><summary>Show the two forms again</summary>${bothForms()}</details>`,
     ready: () => S.a.predA && S.a.predB && S.a.predC && S.a.predSure != null }),
 
   p1c: () => ({ where: "Part 1, steps 3 to 5", html: `
-    <h2>Part 1. Envelope 1</h2>
-    <div class="envelope stack"><div class="tag">Envelope 1: the class count</div>
+    <h2>Part 1. Checkpoint 1</h2>
+    <div class="envelope stack"><div class="tag">Checkpoint 1: the class count</div>
       <p>Your teacher now counts the class, one form at a time. Take your phone: on the survey page, open "In the lab: the class count". It tells you when to stand up.</p>
       <p>When the count is done, your teacher shows the class result on the big screen and gives the whole class one word.</p></div>
     <p class="step">Step 3. When the count is done, look at the class result on the big screen.${follower() ? "" : " Type the class word here to continue."}</p>
@@ -546,13 +546,13 @@ const view = {
     <p class="step">Step 3. Before the seminar ends you may phone ten firms. Choose the ten you would phone.</p>
     ${firmGrid(follower() || RO ? "show" : "pick")}
     ${follower() ? `<div class="locked"><b>Your scribe taps the ten firms</b>Decide together whom to phone.</div>` : `<div class="stats"><div class="stat" id="eyeout">Chosen: <b>${S.eye.length} of 10</b></div></div>`}
-    <button class="go" data-next disabled>Lock our answers and fetch envelope 2</button>
+    <button class="go" data-next disabled>Lock our answers and go to checkpoint 2</button>
     ${follower() ? "" : '<p class="hint">After this you cannot change your advice, your estimate or your ten firms.</p>'}`,
     ready: () => S.a.close && S.a.closeSure != null && S.a.est != null && S.a.est !== "" && S.eye.length === 10 }),
 
   p2b: () => ({ where: "Part 2, step 4", html: `
-    <h2>Part 2. Envelope 2</h2>
-    <div class="envelope stack"><div class="tag">Envelope 2: the phone calls</div>
+    <h2>Part 2. Checkpoint 2</h2>
+    <div class="envelope stack"><div class="tag">Checkpoint 2: the phone calls</div>
       <p>You phoned your ten firms. Each of them told you whether it uses AI in its daily operations.</p>
       ${follower() ? "" : `<div class="stats"><div class="stat">Your ten calls<b>${eyeMean() / 10} of 10 use AI</b>You phoned ${eyeAns()} that had answered the survey and ${10 - eyeAns()} that had stayed silent.</div></div>`}
       <p>There is a second way to choose whom to phone: <b>let chance decide</b>. In a lottery, every firm on the list has the same chance of being drawn, whether it answered the survey or not.</p>
@@ -562,12 +562,12 @@ const view = {
       <div class="stats"><div class="stat">Firms that use AI in each lottery of ten: <b>${S.draws.length ? S.draws.map((d) => d.mean / 10).join(", ") : "none yet"}</b>The ${N_ANS} answers said ${CLAIM}%: that would be about 8 of 10.</div></div>${numberLine(false)}</div>`}
     <p class="step">Step 4. Look at your ten calls and your five lotteries next to the ${CLAIM}% of the ${N_ANS} answers.</p>
     ${textQ("p2see", "What do you see?")}
-    <button class="go" data-next disabled>Lock our answer and fetch envelope 3</button>`,
+    <button class="go" data-next disabled>Lock our answer and go to checkpoint 3</button>`,
     ready: () => S.draws.length >= 5 && filled("p2see") }),
 
   p2c: () => ({ where: "Part 2, steps 5 and 6", html: `
-    <h2>Part 2. Envelope 3</h2>
-    <div class="envelope stack"><div class="tag">Envelope 3: all 100 firms</div>${truthReveal()}</div>
+    <h2>Part 2. Checkpoint 3</h2>
+    <div class="envelope stack"><div class="tag">Checkpoint 3: all 100 firms</div>${truthReveal()}</div>
     ${S.rev || RO || follower() ? `${follower() ? "" : `${numberLine(true)}${ownRead()}`}
     <p class="step">Step 5. The ${N_ANS} answers said ${CLAIM}%. All 100 firms say ${TRUE_MEAN}%.</p>
     <p>On the board, your teacher wrote two numbers for each group: its estimate and its first lottery. Look at them too.</p>
@@ -575,7 +575,7 @@ const view = {
     <p class="step">Step 6. Maja and Arvid hand in their thesis in two weeks.</p>
     ${choiceQ("method", "What do you advise them to do?", METHODS)}
     ${sureQ("methodSure", "How sure are you, from 0 to 100%?")}
-    <button class="go" data-next disabled>Lock our advice and finish</button>` : `<div class="locked"><b>Steps 5 and 6 open after the silent firms</b>Press the button in the envelope first.</div>`}`,
+    <button class="go" data-next disabled>Lock our advice and finish</button>` : `<div class="locked"><b>Steps 5 and 6 open after the silent firms</b>Press the button above first.</div>`}`,
     ready: () => !!S.rev && filled("p2compare") && S.a.method && S.a.methodSure != null }),
 
   pickup: () => {
@@ -589,11 +589,11 @@ const view = {
     const tell = nxt === "p1c" ? "tells the teacher your group's prediction for the opinion question about lunch prices: which form gets more answers that the prices are too high, and how sure you are" : nxt === "p2b" ? "tells the teacher your group's estimate: how many of the 100 firms use AI" : "tells the teacher how many of the ten firms in your first lottery use AI";
     return { where: "Checkpoint", html: `
     <h1>Fetch ${ENV[nxt]}</h1>
-    <p>Your answers so far are locked. The next envelope opens with a password that only a teacher has.</p>
+    <p>Your answers so far are locked. The next checkpoint opens with a password that only a teacher has.</p>
     <div class="envelope stack"><div class="tag">Take this to a teacher</div>
       <p style="font-size:22px;font-family:var(--display)">Group code <b>${esc(S.salt)}</b> · ${ENV[nxt]}</p>
       ${ours}
-      <p><b>One</b> of you walks to a teacher, says the group code and the envelope, and ${tell}. The teacher gives you a password: one word. Remember it and bring it back.</p></div>
+      <p><b>One</b> of you walks to a teacher, says the group code and the checkpoint, and ${tell}. The teacher gives you a password: one word. Remember it and bring it back.</p></div>
     <div class="card stack"><label for="pw">Password for ${ENV[nxt]}</label><input id="pw" type="text" maxlength="24" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="one word">
       <button class="go" data-open disabled>Open ${ENV[nxt]}</button><p class="small" id="pwmsg" role="status"></p></div>` };
   },
@@ -619,7 +619,7 @@ const view = {
     ${star("Both parts are closed", "Second milestone reached. Well done.", 2)}
     <h1>Your case file</h1>
     <p>${esc(S.group)}: keep this screen open. Your teacher will ask what each group found.</p>
-    <div class="card recap-wrap"><table class="recap"><thead><tr><th></th><th>Before the envelope</th><th>After the envelope</th></tr></thead><tbody>
+    <div class="card recap-wrap"><table class="recap"><thead><tr><th></th><th>Before the checkpoint</th><th>After the checkpoint</th></tr></thead><tbody>
       <tr><td><b>Part 1: the opinion question about lunch prices</b></td><td>We predicted: ${esc(S.a.predA)}<br><span class="small">${S.a.predSure}% sure about our three predictions</span></td><td>${S.a.p1see ? "We saw: " + esc(S.a.p1see) : ""}</td></tr>
       <tr><td><b>Part 2: eight in ten</b></td><td>Our estimate: ${esc(S.a.est)} of 100 use AI<br><span class="small">Our advice on the sentence: ${esc(S.a.close)} (${S.a.closeSure}% sure)</span></td><td>All 100 firms: ${TRUE_MEAN} use AI<br><span class="small">Our ten calls: ${eyeMean() / 10} of 10. Our lotteries: ${S.draws.map((d) => d.mean / 10).join(", ")} of 10</span></td></tr></tbody></table></div>
     ${send}
@@ -709,7 +709,7 @@ const teacherKey = () => `<div class="card stack entrynote" style="border:2px so
     <li><b>Start of the session: the survey, on phones.</b> Show the survey address and say "${atob("c3VydmV5")}". Everyone answers alone, 2 to 3 minutes. Do not say that there are two forms.</li>
     <li><b>Start of the lab: the lab page, on one laptop per group.</b> Show the lab address and say "${LAB_WORD}". Each participant keeps the phone open on the survey slip.</li>
     <li><b>At every walk: ask, write, then give the password.</b> Never comment on an answer.</li>
-    <li><b>When every group has envelope 1: the class count.</b> Eight counts, then the big screen, then say "${CLASS_WORD}".</li>
+    <li><b>When every group has passed checkpoint 1: the class count.</b> Eight counts, then the big screen, then say "${CLASS_WORD}".</li>
     <li><b>After the lab: paste the Excel rows</b> for the class pictures.</li>
   </ol>
   <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>When</th><th>Device</th><th>Address</th><th>Word you say</th></tr></thead><tbody>
@@ -718,15 +718,15 @@ const teacherKey = () => `<div class="card stack entrynote" style="border:2px so
     <tr><td>After the class count</td><td>The group's laptop</td><td>same page</td><td><b>${CLASS_WORD}</b></td></tr></tbody></table></div>
   <p><b>The rule to remember: ask, write, password. No comment.</b></p></div>
 <div class="card stack"><h2>Job 3. At every walk</h2>
-  <p>A participant comes to you with the group code and the envelope number. <b>Ask</b> your question, <b>write</b> the answer on the board, then give the <b>password</b> from the row for the last digit of the group code.</p>
+  <p>A participant comes to you with the group code and the checkpoint number. <b>Ask</b> your question, <b>write</b> the answer on the board, then give the <b>password</b> from the row for the last digit of the group code.</p>
   <p><b>The board:</b> one row for each group, with five columns: Group, Which form? (prices question), Sure, Estimate (of 100), First lottery (times ten).</p>
-  <div class="walk"><b>Envelope 1</b><span>Comes when the group has locked its three predictions.</span><span><b>Ask:</b> "The opinion question about lunch prices: which form did your group predict gets more answers that the prices are too high? How sure are you?"</span><span><b>Write:</b> "LS-1", "same" or "LS-2", and the percentage.</span></div>
-  <div class="walk"><b>Envelope 2</b><span>Comes when the group has locked its advice on the sentence, its estimate and its ten firms to phone.</span><span><b>Ask:</b> "How many of the 100 firms does your group think use AI?"</span><span><b>Write:</b> the number, from 0 to 100.</span></div>
-  <div class="walk"><b>Envelope 3</b><span>Comes when the group has made its five lotteries.</span><span><b>Ask:</b> "In your first lottery, how many of the ten firms use AI?"</span><span><b>Write:</b> that number times ten, next to the estimate. Example: 4 of 10 becomes 40.</span></div>
-  <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>Group code ends in</th><th>Envelope 1</th><th>Envelope 2</th><th>Envelope 3</th></tr></thead><tbody>${WORDS.map((w, k) => `<tr><td><b>${k}</b></td><td>${w[0]}</td><td>${w[1]}</td><td>${w[2]}</td></tr>`).join("")}</tbody></table></div>
-  <ul class="tips"><li>A participant who cannot answer goes back to the group. If someone asks whether an answer is right: "Open the envelope and see."</li><li>A group still in Part 1 after 18 minutes: "Lock your answers and move on to Part 2."</li></ul></div>
+  <div class="walk"><b>Checkpoint 1</b><span>Comes when the group has locked its three predictions.</span><span><b>Ask:</b> "The opinion question about lunch prices: which form did your group predict gets more answers that the prices are too high? How sure are you?"</span><span><b>Write:</b> "LS-1", "same" or "LS-2", and the percentage.</span></div>
+  <div class="walk"><b>Checkpoint 2</b><span>Comes when the group has locked its advice on the sentence, its estimate and its ten firms to phone.</span><span><b>Ask:</b> "How many of the 100 firms does your group think use AI?"</span><span><b>Write:</b> the number, from 0 to 100.</span></div>
+  <div class="walk"><b>Checkpoint 3</b><span>Comes when the group has made its five lotteries.</span><span><b>Ask:</b> "In your first lottery, how many of the ten firms use AI?"</span><span><b>Write:</b> that number times ten, next to the estimate. Example: 4 of 10 becomes 40.</span></div>
+  <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>Group code ends in</th><th>Checkpoint 1</th><th>Checkpoint 2</th><th>Checkpoint 3</th></tr></thead><tbody>${WORDS.map((w, k) => `<tr><td><b>${k}</b></td><td>${w[0]}</td><td>${w[1]}</td><td>${w[2]}</td></tr>`).join("")}</tbody></table></div>
+  <ul class="tips"><li>A participant who cannot answer goes back to the group. If someone asks whether an answer is right: "Pass the checkpoint and see."</li><li>A group still in Part 1 after 18 minutes: "Lock your answers and move on to Part 2."</li></ul></div>
 <div class="card stack"><h2>Job 4. The class count</h2>
-  <p><b>When:</b> every group has fetched the password for envelope 1.</p>${countSteps()}</div>
+  <p><b>When:</b> every group has fetched the password for checkpoint 1.</p>${countSteps()}</div>
 <div class="card stack"><h2>Job 5. After the lab: the class results</h2>
     <p>For the reflection: the predictions of Part 1, and a picture of the groups' estimates and lotteries in Part 2. Nothing is sent anywhere: the numbers are worked out on this device.</p>
     <ol class="tips"><li>In Forms, open <b>Responses</b> and click <b>Open in Excel</b>.</li><li>Click any cell, select everything (Cmd+A, or Ctrl+A on Windows) and copy (Cmd+C or Ctrl+C).</li><li>Click in the box below and paste (Cmd+V or Ctrl+V).</li></ol>
@@ -852,12 +852,12 @@ app.addEventListener("click", (e) => {
   if (t.dataset.start === "follow") { S.role = "follow"; S.salt = app.querySelector("#join").value.trim(); go(); return; }
   if (t.hasAttribute("data-open")) {
     if (norm(app.querySelector("#pw").value) === password(S.pick)) { stamp("opened-" + S.pick); go(); }
-    else { S.tries[S.pick] = (S.tries[S.pick] || 0) + 1; save(); app.querySelector("#pwmsg").textContent = "That password does not open this envelope. Check the group code and the envelope with your teacher."; }
+    else { S.tries[S.pick] = (S.tries[S.pick] || 0) + 1; save(); app.querySelector("#pwmsg").textContent = "That password does not open this checkpoint. Check the group code and the checkpoint with your teacher."; }
     return;
   }
   if (t.hasAttribute("data-gate")) {
     if (app.querySelector("#gate").value.trim() === gate(S.pick)) go();
-    else app.querySelector("#gatemsg").textContent = "That code does not open this envelope. Check the screen code on your scribe's screen.";
+    else app.querySelector("#gatemsg").textContent = "That code does not open this checkpoint. Check the screen code on your scribe's screen.";
     return;
   }
   if (t.hasAttribute("data-notes")) { const text = notesText(), msg = app.querySelector("#notesmsg"); try { navigator.clipboard.writeText(text).then(() => { msg.textContent = "Copied. Paste it into your group's chat."; }, () => { msg.textContent = text; }); } catch (err) { msg.textContent = text; } return; }
