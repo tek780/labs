@@ -95,6 +95,7 @@ table.recap th, table.recap td { text-align: left; vertical-align: top; padding:
 table.recap th { color: var(--muted); font-size: 14px; }
 .recap-wrap { overflow-x: auto; }
 .milestone { display: flex; align-items: center; gap: 14px; background: var(--note); border: 1px solid var(--note-line); border-radius: 10px; padding: 12px 16px; }
+body.teacher #app { zoom: 1.18; } body.teacher .walk span, body.teacher .tips li { font-size: 17px; } body.teacher details.card { padding: 12px 16px; } body.teacher details.card > summary { font-weight: 700; color: var(--ink); cursor: pointer; }
 .milestone .stars { color: #E0A100; display: flex; flex: none; }
 .research { background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; font-size: 15px; }
 .research b:first-child { display: block; font-family: var(--display); font-size: 16px; color: var(--accent); margin-bottom: 2px; }
@@ -250,7 +251,7 @@ const view = {
     <p>Two restaurant owners want your advice. Work as a group of four or five. Everyone can follow on their own device, but <b>one device writes and sends</b> the group's answers. Talk first, then write.</p>
     <div class="card stack">
       <h2>Is this the device that writes for your group?</h2>
-      <div><label for="group">Yes: type your group's name</label><input id="group" type="text" maxlength="40" value="${esc(S.group)}" placeholder="For example: Group C" autocomplete="off"></div>
+      <div><label for="group">Yes: type your group's name</label><input id="group" type="text" maxlength="40" value="${esc(S.group)}" placeholder="Your own choice" autocomplete="off"></div>
       <button class="go" data-start="scribe" disabled>Start our group's case file</button>
       <p class="hint">Each case has sealed envelopes. Once your group has written its advice, it is locked, and one of you fetches the password for the next envelope from a teacher. One case file per group is accepted.</p>
     </div>
@@ -433,19 +434,28 @@ function classTable(s) {
 }
 const classOut = () => (CR.sum ? `<div class="envelope stack"><div class="tag">Class results: ${CR.sum.n} groups</div>${CR.sum.dup ? `<p class="small">${CR.sum.dup} group code${CR.sum.dup > 1 ? "s were" : " was"} sent more than once; the later row was used.</p>` : ""}${classTable(CR.sum)}
     <p><button class="go" data-cproj>Show the class results on the big screen</button></p><p><button class="go secondary" data-cclear>Clear the class results</button></p></div>` : "");
-const teacherKey = () => `<div class="card stack"><h2>Teacher key</h2><p>A participant tells you the group code and the envelope. Ask your question first (see the table below). Then find the row for the <b>last digit</b> of the group code and give the password for that envelope.</p>
-      <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>Code ends in</th><th>Envelope 1A</th><th>Envelope 1B</th><th>Envelope 2</th></tr></thead><tbody>${WORDS.map((w, k) => `<tr><td><b>${k}</b></td><td>${w[0]}</td><td>${w[1]}</td><td>${w[2]}</td></tr>`).join("")}</tbody></table></div>
-      <details open><summary>What to do at each walk</summary><div class="stack" style="margin-top:10px">
-        <div class="walk"><b>Case 1 · envelope 1A</b><span>Comes when the first advice on the ads is locked.</span><span><b>Ask:</b> "What did your group advise, and how sure are you?"</span><span><b>Note on the board:</b> "double" or "do not double", and the percentage.</span></div>
-        <div class="walk"><b>Case 1 · envelope 1B</b><span>Comes when the weeks are sorted by season.</span><span><b>Ask:</b> "What did you see inside each row?"</span><span><b>Note on the board:</b> nothing. You only check that the group has looked.</span></div>
-        <div class="walk"><b>Case 2 · envelope 2</b><span>Comes when the first advice on the flyers is locked.</span><span><b>Ask:</b> "What did your group advise, and how sure are you?"</span><span><b>Note on the board:</b> "stop the flyers" or "keep them", and the percentage.</span></div>
-        <p><b>The board:</b> one row for each group, with five columns: Group, Case 1 advice, Sure, Case 2 advice, Sure.</p>
-        <ul class="tips"><li>Give the password only after the answer. A participant who cannot answer goes back to the group.</li><li>Do not comment and do not hint, whatever the advice is. If a participant asks whether it is right: "Open the envelope and see."</li><li>In the first 2 to 3 minutes, check that every group has one scribe and has started Case 1.</li><li>A group still in Case 1 after 18 minutes: "Lock your advice and come for the envelope."</li></ul></div></details>
-      <details${CR.sum ? " open" : ""}><summary>After the lab: the class results from Excel</summary><div class="stack" style="margin-top:10px">
+const teacherKey = () => `<div class="card stack entrynote" style="border:2px solid var(--accent)"><h2>Your four jobs, in order</h2>
+      <ol class="tips">
+        <li><b>Start of the lab: open the page.</b> Show the address and say "${ENTRY_CODE}". One device per group writes; a laptop is best.</li>
+        <li><b>First 2 to 3 minutes: walk around.</b> Check that every group has one scribe and has started Case 1.</li>
+        <li><b>At every walk: ask, write, then give the password.</b> Never comment on an answer.</li>
+        <li><b>After the lab: paste the Excel rows</b> for the class table.</li>
+      </ol>
+      <p><b>The rule to remember: ask, write, password. No comment.</b></p></div>
+    <div class="card stack"><h2>Job 3. At every walk</h2>
+      <p>A participant comes to you with the group code and the envelope. <b>Ask</b> your question, <b>write</b> the answer on the board, then give the <b>password</b> from the row for the last digit of the group code.</p>
+      <p><b>The board:</b> one row for each group, with five columns: Group, Case 1 advice, Sure, Case 2 advice, Sure.</p>
+        <div class="walk"><b>Envelope 1A</b><span>Comes when the first advice on the ads is locked.</span><span><b>Ask:</b> "What did your group advise, and how sure are you?"</span><span><b>Write:</b> "double" or "do not double", and the percentage.</span></div>
+        <div class="walk"><b>Envelope 1B</b><span>Comes when the weeks are sorted by season.</span><span><b>Ask:</b> "What did you see inside each row?"</span><span><b>Write:</b> nothing. You only check that the group has looked.</span></div>
+        <div class="walk"><b>Envelope 2</b><span>Comes when the first advice on the flyers is locked.</span><span><b>Ask:</b> "What did your group advise, and how sure are you?"</span><span><b>Write:</b> "stop the flyers" or "keep them", and the percentage.</span></div>
+      <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>Group code ends in</th><th>Envelope 1A</th><th>Envelope 1B</th><th>Envelope 2</th></tr></thead><tbody>${WORDS.map((w, k) => `<tr><td><b>${k}</b></td><td>${w[0]}</td><td>${w[1]}</td><td>${w[2]}</td></tr>`).join("")}</tbody></table></div>
+        <ul class="tips"><li>A participant who cannot answer goes back to the group. If someone asks whether an answer is right: "Open the envelope and see."</li><li>A group still in Case 1 after 18 minutes: "Lock your advice and come for the envelope."</li></ul></div>
+    <div class="card stack"><h2>Job 4. After the lab: the class results</h2><div class="stack"><div class="stack">
+
         <p>This fills the table "Our class: first advice and later advice" for you. Nothing is sent anywhere: the numbers are worked out on this device.</p>
         <ol class="tips"><li>In Forms, open <b>Responses</b> and click <b>Open in Excel</b>.</li><li>Click any cell, select everything (Cmd+A, or Ctrl+A on Windows) and copy (Cmd+C or Ctrl+C).</li><li>Click in the box below and paste (Cmd+V or Ctrl+V).</li></ol>
         <label for="cpaste">Paste the Excel rows here</label><textarea id="cpaste" rows="3" placeholder="Click here, then paste" autocomplete="off" spellcheck="false"></textarea>
-        <p class="small" id="cmsg" role="status"></p><div id="cout">${classOut()}</div></div></details></div>`;
+        <p class="small" id="cmsg" role="status"></p><div id="cout">${classOut()}</div></div></div></div>`;
 const lookMax = () => (S.pick ? S.at : S.at - 1); /* the latest screen that is already behind the group */
 function render(scroll) {
   const looking = S.look != null;
@@ -460,7 +470,8 @@ function render(scroll) {
   app.innerHTML = "";
   if (preview && CR.proj && CR.sum) { document.body.classList.add("wide"); app.appendChild($(`<section class="proj stack"><h1>Our class: first advice and later advice</h1><p>${CR.sum.n} groups</p>${classTable(CR.sum)}<p class="ask">If your advice changed: what made you change? If it stayed the same: what made you sure from the start?</p><p><button class="go secondary" data-cproj>Back to teacher's page</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
   document.body.classList.remove("wide");
-  app.appendChild($(`<header class="top"><div class="brand">What Should the Owner Do?</div><div class="where">Session 1 · ${v.where}${who}${preview ? " · facilitator preview" : ""}</div></header><div class="track" aria-hidden="true">${track}</div>${preview ? teacherKey() : ""}${bar}<section class="stack" id="screen">${v.html}</section>${bar}${back}${preview && id !== "intro" && !looking ? '<p class="small">Facilitator preview: <button class="go secondary" data-skip>Skip to the next screen</button></p>' : ""}`));
+  app.appendChild($(`<header class="top"><div class="brand">What Should the Owner Do?</div><div class="where">Session 1 · ${v.where}${who}${preview ? " · facilitator preview" : ""}</div></header><div class="track" aria-hidden="true">${track}</div>${preview ? teacherKey() + '<details class="card"><summary>For the projector: the screens that participants see</summary>' : ""}${bar}<section class="stack" id="screen">${v.html}</section>${bar}${back}${preview && id !== "intro" && !looking ? '<p class="small"><button class="go secondary" data-skip>Skip to the next screen</button></p>' : ""}${preview ? "</details>" : ""}`));
+  document.body.classList.toggle("teacher", !!preview);
   if (looking) app.querySelectorAll("#screen .go, #screen .hint, #screen details").forEach((el) => el.remove());
   if (follower() && !S.pick && !looking) { const b = app.querySelector("[data-next]"); if (b) b.textContent = GATED.includes(SCREENS[S.at + 1]) ? "Continue to the checkpoint" : "Continue"; }
   refresh();

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Lunch Survey</title>
+<title>The Lunch Survey: the lab (Session 2)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap" rel="stylesheet">
@@ -196,6 +196,7 @@ const SIL_YES = TRUE_MEAN - ANS_YES, N_SIL = 100 - N_ANS;
 .rc.mine { border-color: var(--ink); border-width: 3px; padding: 4px 1px 5px; }
 .rc.drawn { border-color: var(--hot); box-shadow: 0 0 0 2px var(--hot); }
 .nl { margin: 0; } .nl > svg { width: 100%; max-width: 560px; height: auto; display: block; }
+body.teacher #app { zoom: 1.18; } .tckey { font-weight: 700; color: var(--accent); font-size: 15px; text-transform: none; } body.teacher .tcsay { font-size: 21px; line-height: 1.35; } body.teacher .walk span, body.teacher .tips li { font-size: 17px; } body.teacher details.card { padding: 12px 16px; } body.teacher details.card > summary { font-weight: 700; color: var(--ink); cursor: pointer; }
 .reveal { text-align: center; }
 .bignum b { font-family: var(--display); font-size: 84px; line-height: 1; display: block; color: var(--hot); font-variant-numeric: tabular-nums; }
 .bignum.after b { color: var(--accent); }
@@ -214,7 +215,8 @@ const SIL_YES = TRUE_MEAN - ANS_YES, N_SIL = 100 - N_ANS;
 .key.cl { width: 3px; background: repeating-linear-gradient(var(--hot) 0 4px, transparent 4px 6px); }
 `; document.head.appendChild(st); })();
 const LUNCHES = 25000;
-const KEY = "casefiles-s2-v1";
+const MODE = "lab"; /* "survey": the lunch survey, on each participant's phone. "lab": the lab, on the group's laptop or phone. */
+const KEY = MODE === "survey" ? "lunchsurvey-s2-v1" : "casefiles-s2-v2";
 /* Paste the pre-filled Microsoft Forms link here (dummy answers Q1 ... Q28). Empty = offer "Copy our case file" instead. */
 const FORM_URL = "https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=ZXoUKW1T-UO4AuChtc-dv4SG9gvTFfxJkQXWBLPPwb1URTJLTFNKUTI1MlhFQTNGSFdaVVZLNDkxUi4u&rad24921ec80a48fc934be31801ff376d=Q1&r592f42b31b5d46cea13042e9f2ef8808=Q2&r1c16d9e0e0ec497b8b7fe7068b8f6560=Q3&r15aaa74a65de45688ee8fc73308305ef=Q4&r33da5116e2ea46edae0226c2b90c921f=Q5&rdcf97c9e88554398931d07dc7d04c9b0=Q6&r56d11a9bf8174e6bad70e39a279a232e=Q7&rb181761f7cf74a05a7615f36ad1c8420=Q8&r9daab44681744fa2973ddd310388339b=Q9&rc678423f49584b128b3b5482bcc37436=Q10&ra4a20cb7f90a4e2d94739da0fd2f1c6b=Q11&rc7cf8c6183da4206ae7ba9dc567dabaa=Q12&r809b4c962ee24a32bc5406299c91c262=Q13&r93a783cfb20b47c49cd06a157419c739=Q14&r5bbe3f2dcde0450e95b102234379a0f9=Q15&r6e9788b6617f40808c0fbe2d941ca402=Q16&rd6c6ff63cc77447f9c55a69e0e447341=Q17&r650ca7118aaf4aa8833cae060ef38fb0=Q18&rc46f4c25bc454c72a280f97974f1e297=Q19&r8b258130b6fa484a836844352bf5f3ed=Q20&r976cacbc2b85496082d6bf23360f37ff=Q21&rb2232907ef744be7899ec32df542d747=Q22&rb3da839e95b746bea383409fed541d93=Q23&r93ad76f129a646719418fd6714a0ae6a=Q24&r992121a51dca4bc381034187fc90eb0f=Q25&re00e1665593d48a08029a2aed7450185=Q26&re290dd3442674fb89179df36505654c2=Q27&r6da5cf2539e14ce58fbfe050ab6d1666=Q28";
 const LAB_WORD = "lunch";
@@ -230,8 +232,9 @@ const blank = () => ({ at: 0, a: {}, ui: {}, role: null, group: "", salt: "", se
   form: Math.random() < 0.5 ? 1 : 2, sv: {}, handed: false, lab: false, eye: [], draws: [], cc: {}, tc: {} });
 let S = blank();
 try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
-let preview = location.hash === "#facilitator";
-window.addEventListener("hashchange", () => { preview = location.hash === "#facilitator"; render(false); });
+S.lab = MODE === "lab";
+let preview = MODE === "lab" && location.hash === "#facilitator";
+window.addEventListener("hashchange", () => { preview = MODE === "lab" && location.hash === "#facilitator"; render(false); });
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 const $ = (h) => { const t = document.createElement("template"); t.innerHTML = h.trim(); return t.content; };
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -333,15 +336,20 @@ const surveyDone = () => surveyItems(S.form).every((it) => S.sv[it.k] != null &&
 function formView(form, live) {
   return surveyItems(form).map((it, n) => `<div class="sq"><p><b>${n + 1}.</b> ${it.q}</p><div class="opts${it.o.length === 7 ? " seven" : ""}">${it.o.map((o) => live
     ? `<button type="button" class="opt" data-sv="${it.k}" data-val="${esc(o)}" aria-pressed="${String(S.sv[it.k]) === String(o)}">${esc(o)}</button>` : `<span class="opt ghost">${esc(o)}</span>`).join("")}</div>
-    ${it.extra ? (live ? `<p style="margin-top:8px"><label for="times" style="display:inline;font-weight:400">In your answer, "regularly" means at least </label><input id="times" type="text" inputmode="numeric" maxlength="2" style="width:64px;display:inline-block" value="${esc(S.sv.times == null ? "" : S.sv.times)}"> times a month.</p>` : `<p class="small">In your answer, "regularly" means at least ___ times a month.</p>`) : ""}</div>`).join("");
+    ${it.extra ? (live ? `<p style="margin-top:8px"><label for="times" style="display:inline;font-weight:400">When you answer, the word "regularly" means at least </label><input id="times" type="text" inputmode="numeric" maxlength="2" style="width:64px;display:inline-block" value="${esc(S.sv.times == null ? "" : S.sv.times)}"> times a month.</p>` : `<p class="small">When you answer, the word "regularly" means at least ___ times a month.</p>`) : ""}</div>`).join("");
 }
-function slipView(count) {
-  if (!S.handed) return `<p class="small">This device has no survey slip. Your slip is on the device where you answered the survey, for example your phone: look at that one.</p>`;
+function slipView() { /* survey page only: the participant's own answers */
   const rows = surveyItems(S.form).map((it, n) => `<tr><td>${n + 1}. ${it.q}</td><td><b>${esc(S.sv[it.k])}</b>${it.extra ? "<br>at least " + esc(S.sv.times) + " times a month" : ""}</td></tr>`).join("");
-  const A = S.form === 1, yes = (b) => (b ? '<span class="do">stand up</span>' : "stay seated");
-  const stand = count ? `<div class="locked"><b>For the class count: what you do when your teacher calls form LS-${S.form}</b>
-    <ul class="standlist"><li>Lunch prices: ${yes(S.sv.price === (A ? "Yes" : "Too high"))}</li><li>Screen time: ${yes(A ? S.sv.screen === SCALE_LOW[5] : S.sv.screen !== SCALE_HIGH[0])}</li><li>Overall satisfaction: ${yes(Number(S.sv.overall) <= 4)}</li></ul></div>` : "";
-  return `${stand}<div class="recap-wrap"><table class="recap"><tbody>${rows}</tbody></table></div><p class="small" style="text-align:right">LS-${S.form}</p>`;
+  return `<div class="recap-wrap"><table class="recap"><tbody>${rows}</tbody></table></div><p class="small" style="text-align:right">LS-${S.form}</p>`;
+}
+function standView() { /* survey page only: what this participant does at each of the teacher's four calls */
+  const A = S.form === 1, a = S.sv.price === (A ? "Yes" : "Too high"), b = A ? S.sv.screen === SCALE_LOW[5] : S.sv.screen !== SCALE_HIGH[0], c = Number(S.sv.overall) <= 4;
+  const act = (on, yes, no) => `<span class="${on ? "do" : ""}">${on ? yes : no}</span>`;
+  return `<p>Your teacher counts the class, one form at a time. <b>Your form is LS-${S.form}.</b> When your teacher calls the other form, stay seated.</p>
+    <div class="locked"><b>When your teacher calls form LS-${S.form}</b>
+    <ol class="standlist" style="padding-left:22px"><li>"Everyone with form LS-${S.form}, stand up": <span class="do">stand up</span></li>
+      <li>Lunch prices: ${act(a, "stay standing", "sit down")}</li><li>Screen time: ${act(b, "stand up", "stay seated")}</li><li>Satisfaction: ${act(c, "stand up", "stay seated")}</li></ol></div>
+    <p class="small">The four lines follow your own answers on the slip above.</p>`;
 }
 
 /* ---------- building blocks ---------- */
@@ -399,8 +407,8 @@ function truthReveal() { /* envelope 3: first the 38 answers, then one button th
       <h3 style="text-align:left;margin:18px 0 0">Who answered? The same 100 firms, sorted by AI use</h3>
       <div class="fgroups" style="margin-top:8px"><div><p class="rowlabel">The ${TRUE_MEAN} firms that use AI</p><div class="fgrid">${FIRMS.filter(USES).sort((x, y) => Number(ANSW(y)) - Number(ANSW(x))).map((i) => `<i class="ft ${ANSW(i) ? "ans" : "sil"}">${ANSW(i) ? "✉" : ""}</i>`).join("")}</div><p class="small"><b>${ANS_YES} of ${TRUE_MEAN} answered</b>: two of three</p></div>
         <div><p class="rowlabel">The ${100 - TRUE_MEAN} firms that do not use AI</p><div class="fgrid">${FIRMS.filter((i) => !USES(i)).sort((x, y) => Number(ANSW(y)) - Number(ANSW(x))).map((i) => `<i class="ft ${ANSW(i) ? "ans" : "sil"}">${ANSW(i) ? "✉" : ""}</i>`).join("")}</div><p class="small"><b>${N_ANS - ANS_YES} of ${100 - TRUE_MEAN} answered</b>: one of seven</p></div></div>
-      <p class="small" style="text-align:left">Yellow ✉ = answered the survey. White = stayed silent. <b>Two of three AI users answered. Only one of seven non-users did.</b> That is why the answers leaned towards "yes".</p>`
-      : `<p><button type="button" class="go" data-rev>Now hear the ${N_SIL} silent firms</button></p><p class="small">Maja and Arvid's supervisor made them phone every firm that had not answered.</p>`}</div>`;
+      <p class="small" style="text-align:left">Yellow ✉ = answered the survey. White = stayed silent. <b>Two of three AI users answered. Only one of seven non-users did.</b> That is why the answers were tilted towards "yes".</p>`
+      : `<p><button type="button" class="go" data-rev>Now hear the ${N_SIL} silent firms</button></p><p class="small">Maja and Arvid became curious. Their research team gave them funding to phone every firm that had not answered.</p>`}</div>`;
 }
 function numberLine(showTruth) { /* 0 to 100%: the 38 answers, the group's ten calls, its lotteries and, at the end, all 100 firms. Lines are labelled in the picture; the two marks have a legend with the same shape and colour. */
   const X = (v) => 22 + v * 2.96, BASE = 132, R = 6, seen = {};
@@ -429,12 +437,22 @@ function ownRead() { /* shown after envelope 3: reads the group's own numbers, w
     <p><b>2. Your five lotteries.</b> They gave ${ms.join(", ")} of 10. <b>${closer} of the five</b> came closer to ${TRUE_MEAN}% than the ${N_ANS} answers did. A lottery does not ask who answered: every firm has the same chance.</p>
     <p><b>3. Your estimate.</b> Before the calls you said <b>${esc(S.a.est)} of 100</b>. The ${N_ANS} answers said ${CLAIM}; all 100 firms say ${TRUE_MEAN}. A number that is given first tends to pull later guesses towards it.</p></div>`;
 }
+function lotteryChart() { /* 100 lotteries of ten firms from these 100: how many AI users each one finds (exact chances, rounded) */
+  const C = (n, k) => { let r = 1; for (let i = 1; i <= k; i++) r = (r * (n - k + i)) / i; return r; }, K = TRUE_MEAN;
+  const P = Array.from({ length: 11 }, (x, k) => (100 * C(K, k) * C(100 - K, 10 - k)) / C(100, 10)), X = (k) => 30 + k * 27, BASE = 150, H = 4.4;
+  const N = P.map(Math.floor); P.map((p, k) => [p - Math.floor(p), k]).sort((u, v) => v[0] - u[0] || u[1] - v[1]).slice(0, 100 - N.reduce((s, x) => s + x, 0)).forEach(([r, k]) => N[k]++); /* whole lotteries that add up to 100 */
+  const bars = P.map((p, k) => `<rect x="${X(k)}" y="${BASE - Math.max(1, p * H)}" width="22" height="${Math.max(1, p * H)}" fill="${k >= 8 ? "var(--hot)" : k >= 3 && k <= 6 ? "var(--accent)" : "var(--muted)"}"/><text x="${X(k) + 11}" y="${BASE - Math.max(1, p * H) - 4}" text-anchor="middle" font-weight="700">${N[k]}</text><text x="${X(k) + 11}" y="${BASE + 15}" text-anchor="middle">${k}</text>`).join("");
+  return `<figure class="nl"><svg viewBox="0 0 340 196" role="img" aria-label="Of 100 lotteries of ten firms, about 82 find 3 to 6 AI users and about 2 find 8 or more."><g font-size="11.5" fill="var(--ink)">${bars}
+    <line x1="24" y1="${BASE}" x2="330" y2="${BASE}" stroke="var(--muted)"/><text x="177" y="${BASE + 32}" text-anchor="middle" fill="var(--muted)">AI users among the ten firms of one lottery</text><text x="24" y="12" fill="var(--muted)">number of lotteries, out of 100</text></g></svg>
+    <figcaption class="small" style="display:flex;flex-wrap:wrap;gap:4px 18px"><span style="white-space:nowrap"><svg width="14" height="14" viewBox="0 0 14 14" style="vertical-align:-2px"><rect width="14" height="14" fill="var(--accent)"/></svg> blue = 3 to 6 users: about 82 lotteries</span><span style="white-space:nowrap"><svg width="14" height="14" viewBox="0 0 14 14" style="vertical-align:-2px"><rect width="14" height="14" fill="var(--hot)"/></svg> red = 8 or more: about 2 lotteries</span></figcaption></figure>`;
+}
 function lesson2() { /* last screen only, after both parts are locked */
   return `<div class="card stack"><h2>What Part 2 shows</h2>
     <p><b>The one idea:</b> a survey describes the ones who answered. Whether they resemble the ones who stayed silent is another question, and the number alone cannot answer it.</p>
     <p><b>1. Who answers is not chance.</b> Firms with something to show were glad to answer: two of three AI users did, and only one of seven non-users. So ${ANS_YES} of ${N_ANS} answers said yes, while ${TRUE_MEAN} of all 100 firms use AI.</p>
-    <p><b>2. More of the same does not help.</b> The same survey sent to 1,000 more firms would most likely give about ${CLAIM}% again: more answers, the same lean.</p>
-    <p><b>3. Ten firms chosen by lottery, and phoned until they answer, beat ${N_ANS} that volunteered.</b> About 8 of 10 such lotteries land between 3 and 6 of 10. Only about 2 in 100 land as high as 8 of 10.</p>
+    <p><b>2. More of the same does not help.</b> The same survey sent to 1,000 more firms would most likely give about ${CLAIM}% again: more answers, still tilted towards yes in the same way.</p>
+    <p><b>3. Ten firms chosen by lottery, and phoned until they answer, beat ${N_ANS} that volunteered.</b> Imagine 100 such lotteries of ten firms. The picture shows how many AI users they find.</p>${lotteryChart()}
+    <p>In about <b>82 of the 100 lotteries</b> you find 3, 4, 5 or 6 AI users among the ten, close to the true 4.5. In only about <b>2 of the 100</b> you find 8 or more, which is what the ${N_ANS} answers pointed to.</p>
     <div class="locked"><b>For Maja and Arvid</b>Write "${CLAIM}% of the ${N_ANS} firms that answered", say that ${N_SIL} did not answer, and phone a lottery sample of the silent firms before saying anything about all firms. Their case company is not behind: fewer than half of the firms use AI.</div>
     <p><b>The two parts together:</b> Part 1 was about <b>how you ask</b>. Part 2 is about <b>who answers</b>. Either one can change a result without anyone noticing.</p></div>`;
 }
@@ -450,31 +468,24 @@ function notesText() {
 const METHODS = ["Keep the sentence as it is", "Send the survey to 1,000 more firms", "Phone a lottery sample of the silent firms"];
 const CLOSE = ["Keep the sentence", "Change the sentence", "Not enough to decide"];
 const NOTICE = `<div class="research"><b>For research on teaching only</b>This page records your group's answers and some timings, such as how long a step took. They are used only to study and improve this teaching activity. They do <b>not</b> measure your performance, they are not graded, and there are no right or wrong speeds. Take the time your group needs.</div>`;
-function suggestName() { if (!S.sugg) { const L = "ABCDEFGHJKLMNPQRSTUVWXYZ"; S.sugg = L[Math.floor(Math.random() * L.length)] + String(10 + Math.floor(Math.random() * 90)); try { save(); } catch (e) {} } return S.sugg; }
 const view = {
   survey: () => ({ where: "Lunch survey", html: `
     <h1>Lunch survey</h1>
     <p>Two to three minutes, anonymous. Answer on your own. <b>You will need your answers later today.</b></p>
     <div class="card stack">${formView(S.form, true)}</div>
     <button class="go" data-hand disabled>Hand in my answers</button>
-    <p class="small" style="text-align:right">LS-${S.form}</p>
-    <details class="slip"><summary>For the lab, later today: I already answered on another device</summary><div class="stack" style="margin-top:10px">
-      <p>You do not answer again. Your survey slip stays on the device where you answered, for example your phone: keep it with you.</p>
-      <div><label for="labword">When the lab starts, type the lab word to open the lab on this device</label><input id="labword" type="text" maxlength="16" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="the lab word"></div>
-      <button class="go secondary" data-lab disabled>Open the lab</button><p class="small" id="labmsg" role="status"></p></div></details>` }),
+    <p class="small" style="text-align:right">LS-${S.form}</p>` }),
   receipt: () => ({ where: "Lunch survey", html: `
     <h1>Thank you</h1>
-    <p>Your answers are kept on this device. <b>Leave this page open, or take a screenshot of it now:</b> you will need your answers later today.</p>
-    <div class="card stack"><h2>My survey slip</h2>${slipView(false)}</div>
-    <div class="card stack"><h2>Later today: the lab</h2><div><label for="labword">Your teacher will give the class a word to open the lab</label><input id="labword" type="text" maxlength="16" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="the lab word"></div>
-      <button class="go secondary" data-lab disabled>Open the lab</button><p class="small" id="labmsg" role="status"></p></div>` }),
+    <p>Your answers are kept on this phone. <b>Keep this page open, or take a screenshot now:</b> you will look at your answers again in the lab, later today.</p>
+    <div class="card stack"><h2>My survey slip</h2>${slipView()}</div>
+    <details class="slip"><summary>In the lab: the class count. Open this when your teacher says so</summary><div class="stack" style="margin-top:10px">${standView()}</div></details>` }),
   intro: () => ({ where: "Start", html: `
     <h1>The Lunch Survey</h1>
-    <p>Work as a group of four or five. Everyone keeps their own phone at hand, because you each need your own survey slip. <b>One device writes and sends</b> the group's answers; it can be a laptop. Talk first, then write.</p>
+    <p>Work as a group of four or five. <b>One device writes and sends</b> the group's answers: a laptop is best. Everyone keeps their own phone next to them, open on the survey page with "My survey slip". Talk first, then write.</p>
     <div class="card stack">
       <h2>Is this the device that writes for your group?</h2>
-      <div><label for="group">Yes: your group's name, a letter and a number</label><input id="group" type="text" maxlength="40" value="${esc(S.group || suggestName())}" placeholder="For example: ${suggestName()}" autocomplete="off"></div>
-      <p class="hint" style="margin-top:-6px">We suggest <b>${suggestName()}</b>, so that no two groups share a name. You may change it.</p>
+      <div><label for="group">Yes: choose a name for your group</label><input id="group" type="text" maxlength="40" value="${esc(S.group)}" placeholder="Your own choice" autocomplete="off"></div>
       <button class="go" data-start="scribe" disabled>Start our group's case file</button>
       <p class="hint">There are sealed envelopes. Once your group has written its answer, it is locked, and one of you fetches the password for the next envelope from a teacher. One case file per group is accepted.</p>
     </div>
@@ -487,12 +498,12 @@ const view = {
 
   p1a: () => ({ where: "Part 1, step 1", html: `
     <h1>Part 1. You were the experiment</h1>
-    <p>The lunch survey you filled in at the start of today's lecture came in <b>two forms</b>: LS-1 and LS-2. Half of the class got each. Your own slip, under "My survey slip" below, shows which one you had.</p>
+    <p>The lunch survey you filled in at the start of today's lecture came in <b>two forms</b>: LS-1 and LS-2. Half of the class got each. Your own slip, on your phone, shows which one you had.</p>
     ${bothForms()}
     <p class="step">Step 1. Compare the two forms. Find every difference between them. There are three.</p>
     ${textQ("p1diff", "Which three differences did you find?")}
     <button class="go" data-next disabled>Continue</button>
-    <details><summary>Wrong group name or group code?</summary><p style="margin:10px 0">You can start again from the role screen. Your survey slip is kept.</p><button class="go secondary" data-rerole>Start again</button></details>`,
+    <details><summary>Wrong group name or group code?</summary><p style="margin:10px 0">You can start again from the role screen.</p><button class="go secondary" data-rerole>Start again</button></details>`,
     ready: () => filled("p1diff") }),
 
   p1b: () => ({ where: "Part 1, step 2", html: `
@@ -509,7 +520,7 @@ const view = {
   p1c: () => ({ where: "Part 1, steps 3 to 5", html: `
     <h2>Part 1. Envelope 1</h2>
     <div class="envelope stack"><div class="tag">Envelope 1: the class count</div>
-      <p>Your teacher now counts the class, one form at a time. Open "My survey slip" below: it tells you when to stand up.</p>
+      <p>Your teacher now counts the class, one form at a time. Take your phone: on the survey page, open "In the lab: the class count". It tells you when to stand up.</p>
       <p>When the count is done, your teacher shows the class result on the big screen and gives the whole class one word.</p></div>
     <p class="step">Step 3. When the count is done, look at the class result on the big screen.${follower() ? "" : " Type the class word here to continue."}</p>
     ${RO || follower() ? "" : S.cw ? `<div class="locked"><b>Class word accepted</b>The class result is on the big screen. Use it for steps 4 and 5.</div>` : `<div class="card stack"><label for="classcode">Class word from your teacher</label><input id="classcode" type="text" maxlength="20" autocomplete="off" autocapitalize="none" spellcheck="false">
@@ -574,8 +585,8 @@ const view = {
     <p>Your group's answers are locked on your scribe's device. One of you fetches the password from a teacher. Only your scribe's device can type it.</p>
     <div class="card stack"><label for="gate">When ${ENV[nxt]} is open, your scribe's screen shows a screen code. Type it here.</label><input id="gate" type="text" inputmode="numeric" maxlength="4" placeholder="4 digits" autocomplete="off">
       <button class="go" data-gate disabled>Open ${ENV[nxt]}</button><p class="small" id="gatemsg" role="status"></p></div>` };
-    const ours = nxt === "p1c" ? `<p>Our prediction for the survey question on lunch prices: <b>${esc(S.a.predA)}</b>, ${S.a.predSure}% sure.</p>` : nxt === "p2b" ? `<p>Our estimate: <b>${esc(S.a.est)} of the 100 firms</b> use AI.</p>` : `<p>Our first lottery: <b>${S.draws.length ? S.draws[0].mean / 10 : ""} of 10</b> use AI.</p>`;
-    const tell = nxt === "p1c" ? "tells the teacher your group's prediction for the survey question on lunch prices (which form gets more answers that the prices are too high), and how sure you are" : nxt === "p2b" ? "tells the teacher your group's estimate: how many of the 100 firms use AI" : "tells the teacher how many of the ten firms in your first lottery use AI";
+    const ours = nxt === "p1c" ? `<p>Our prediction for the opinion question about lunch prices: <b>${esc(S.a.predA)}</b>, ${S.a.predSure}% sure.</p>` : nxt === "p2b" ? `<p>Our estimate: <b>${esc(S.a.est)} of the 100 firms</b> use AI.</p>` : `<p>Our first lottery: <b>${S.draws.length ? S.draws[0].mean / 10 : ""} of 10</b> use AI.</p>`;
+    const tell = nxt === "p1c" ? "tells the teacher your group's prediction for the opinion question about lunch prices: which form gets more answers that the prices are too high, and how sure you are" : nxt === "p2b" ? "tells the teacher your group's estimate: how many of the 100 firms use AI" : "tells the teacher how many of the ten firms in your first lottery use AI";
     return { where: "Checkpoint", html: `
     <h1>Fetch ${ENV[nxt]}</h1>
     <p>Your answers so far are locked. The next envelope opens with a password that only a teacher has.</p>
@@ -609,7 +620,7 @@ const view = {
     <h1>Your case file</h1>
     <p>${esc(S.group)}: keep this screen open. Your teacher will ask what each group found.</p>
     <div class="card recap-wrap"><table class="recap"><thead><tr><th></th><th>Before the envelope</th><th>After the envelope</th></tr></thead><tbody>
-      <tr><td><b>Part 1: the survey question on lunch prices</b></td><td>We predicted: ${esc(S.a.predA)}<br><span class="small">${S.a.predSure}% sure about our three predictions</span></td><td>${S.a.p1see ? "We saw: " + esc(S.a.p1see) : ""}</td></tr>
+      <tr><td><b>Part 1: the opinion question about lunch prices</b></td><td>We predicted: ${esc(S.a.predA)}<br><span class="small">${S.a.predSure}% sure about our three predictions</span></td><td>${S.a.p1see ? "We saw: " + esc(S.a.p1see) : ""}</td></tr>
       <tr><td><b>Part 2: eight in ten</b></td><td>Our estimate: ${esc(S.a.est)} of 100 use AI<br><span class="small">Our advice on the sentence: ${esc(S.a.close)} (${S.a.closeSure}% sure)</span></td><td>All 100 firms: ${TRUE_MEAN} use AI<br><span class="small">Our ten calls: ${eyeMean() / 10} of 10. Our lotteries: ${S.draws.map((d) => d.mean / 10).join(", ")} of 10</span></td></tr></tbody></table></div>
     ${send}
     ${prompts}
@@ -676,48 +687,52 @@ const classOut = () => (CR.sum ? `<div class="envelope stack"><div class="tag">C
     <h3 class="tchead">Part 1: the predictions</h3>${classPart1(CR.sum)}<p><button class="go" data-cproj="p1">Show Part 1 on the big screen</button></p>
     <h3 class="tchead">Part 2: eight in ten</h3>${classPart2(CR.sum)}<p><button class="go" data-cproj="p2">Show Part 2 on the big screen</button></p>
     <p><button class="go secondary" data-cclear>Clear the class results</button></p></div>` : "");
-const runSheet = () => `<div class="card stack entrynote" style="border:2px solid var(--accent)"><h2>Your five jobs, in order</h2>
-  <ol class="tips">
-    <li><b>Start of the session: say "${ENTRY_CODE}".</b> Everyone answers the lunch survey on their own phone, 2 to 3 minutes. Do not say that there are two forms.</li>
-    <li><b>Start of the lab: say "${LAB_WORD}".</b> Check that each group has one scribe and that every participant has a survey slip. Draw the board: Group, Prices prediction, Sure, Estimate, First lottery.</li>
-    <li><b>At every walk: ask, write, then give the password.</b> The questions and the passwords are below. Never comment on an answer.</li>
-    <li><b>When every group has envelope 1: the class count.</b> Eight steps, then the big screen, then say "${CLASS_WORD}".</li>
-    <li><b>After the lab: paste the Excel rows</b> at the bottom of this page, for the class pictures in the reflection.</li>
-  </ol>
-  <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>Word</th><th>When you say it</th><th>What it opens</th></tr></thead><tbody>
-    <tr><td><b>${ENTRY_CODE}</b></td><td>Start of the session</td><td>The page, on every device</td></tr>
-    <tr><td><b>${LAB_WORD}</b></td><td>Start of the lab</td><td>The lab</td></tr>
-    <tr><td><b>${CLASS_WORD}</b></td><td>After the class count</td><td>Steps 4 and 5 of Part 1</td></tr></tbody></table></div>
-  <p><b>The rule to remember: ask, write, password. No comment.</b></p></div>`;
-const teacherKey = () => `${runSheet()}<div class="card stack"><h2>Teacher key</h2>
-  <p>A participant tells you the group code and the envelope. Ask your question first. Then find the row for the <b>last digit</b> of the group code and give the password for that envelope.</p>
-  <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>Code ends in</th><th>Envelope 1</th><th>Envelope 2</th><th>Envelope 3</th></tr></thead><tbody>${WORDS.map((w, k) => `<tr><td><b>${k}</b></td><td>${w[0]}</td><td>${w[1]}</td><td>${w[2]}</td></tr>`).join("")}</tbody></table></div>
-  <details open><summary>What to do at each walk</summary><div class="stack" style="margin-top:10px">
-    <div class="walk"><b>Part 1 · envelope 1</b><span>Comes when the three predictions are locked.</span><span><b>Ask:</b> "The survey question on lunch prices: which form did your group predict gets more answers that the prices are too high? How sure are you?"</span><span><b>Note on the board:</b> "LS-1 higher", "same" or "LS-2 higher", and the percentage.</span></div>
-    <div class="walk"><b>Part 1 · the class count</b><span>When every group has fetched the password for envelope 1.</span><span><b>Do:</b> the eight steps under "The class count", then show the result on the big screen and say the class word.</span><span><b>Note on the board:</b> nothing. The big screen shows the result.</span></div>
-    <div class="walk"><b>Part 2 · envelope 2</b><span>Comes when the group has locked its advice on the sentence, its estimate and its ten firms to phone.</span><span><b>Ask:</b> "How many of the 100 firms does your group think use AI?"</span><span><b>Note on the board:</b> the number, from 0 to 100.</span></div>
-    <div class="walk"><b>Part 2 · envelope 3</b><span>Comes when the group has made its five lottery draws.</span><span><b>Ask:</b> "In your first lottery, how many of the ten firms use AI?"</span><span><b>Note on the board:</b> that number times ten, next to the estimate. Example: 4 of 10 becomes 40.</span></div>
-    <p><b>The board:</b> one row for each group, with five columns: Group, Prices prediction, Sure, Estimate (of 100), First lottery (times ten).</p>
-    <ul class="tips"><li>Give the password only after the answer. A participant who cannot answer goes back to the group.</li><li>Do not comment and do not hint, whatever the answer is. If a participant asks whether it is right: "Open the envelope and see."</li><li>In the first 2 to 3 minutes, check that every group has one scribe and that everyone has the survey slip on their own phone.</li><li>A group still in Part 1 after 18 minutes: "Lock your answers and move on to Part 2."</li></ul></div></details>
-  <details open><summary>The class count: say, count, type</summary><div class="stack" style="margin-top:10px">
-    <p><b>When:</b> after every group has fetched the key word for envelope 1. From then on each participant's slip shows when to stand. It takes 3 to 5 minutes.</p>
-    <p><b>How:</b> eight steps, first form LS-1, then form LS-2. In each step: <b>say</b> the sentence, <b>count</b> the participants who are standing, <b>type</b> the number. Participants with the other form stay seated.</p>
-    ${[1, 2].map((f) => `<h3 class="tchead">Form LS-${f}</h3><div class="tcsteps">${[
-      ["n", `"Everyone with form LS-${f}, stand up."`, `all participants with form LS-${f}`],
-      ["a", f === 1 ? `"Lunch prices. Stay standing if you answered Yes. The others sit down."` : `"Lunch prices. Stay standing if you answered Too high. The others sit down."`, "those still standing"],
-      ["b", f === 1 ? `"Everyone sit down. Screen time. Stand up if you ticked the last box, more than 2½ hours."` : `"Everyone sit down. Screen time. Stand up if you ticked any box except the first."`, "those standing"],
-      ["c", `"Everyone sit down. Satisfaction. Stand up if you chose 4 or lower for the lunch options overall."`, "those standing, then say \"Thank you, sit down.\""],
-    ].map(([q, say, count], i) => `<div class="tcstep"><span class="tcnum">${(f - 1) * 4 + i + 1}</span><label for="tc-${q}${f}"><span class="tcsay"><b>Say:</b> ${say}</span><span class="tccount"><b>Count:</b> ${count}</span></label><input id="tc-${q}${f}" data-tc="${q}${f}" type="text" inputmode="numeric" maxlength="2" autocomplete="off" value="${esc(S.tc[q + f] == null ? "" : S.tc[q + f])}" aria-label="Step ${(f - 1) * 4 + i + 1}, form LS-${f}"></div>`).join("")}</div>`).join("")}
+const SURVEY_ADDR = "tek780.github.io/labs/session2-survey.html", LAB_ADDR = "tek780.github.io/labs/session2.html";
+const countSteps = () => `<div class="stack">
+    <p><b>How:</b> eight counts, four for form LS-1 and then the same four for form LS-2. You do not need to remember the forms: the table shows what differs, and each count repeats it in blue. For each count: <b>say</b> the sentence, <b>count</b> the participants who are standing, <b>type</b> the number. Participants with the other form stay seated. It takes 3 to 5 minutes.</p>
+    <p>Each participant's phone shows when to stand: on the survey page, under "In the lab: the class count".</p>
+    <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>What differs</th><th>Form LS-1</th><th>Form LS-2</th><th>Who stands, on both forms</th></tr></thead><tbody>
+      <tr><td><b>Lunch prices</b> (question 1)</td><td>Leading: "Most students say … far too high. Do you agree?" Yes / No</td><td>Neutral: "How do you find lunch prices?" Too high / Not too high</td><td>Those who find prices <b>too high</b></td></tr>
+      <tr><td><b>Screen time</b> (question 2)</td><td>Low scale: "More than 2½ hours" is the <b>last</b> box</td><td>High scale: "Up to 2½ hours" is the <b>first</b> box</td><td>Those with <b>more than 2½ hours</b></td></tr>
+      <tr><td><b>Satisfaction</b> with the lunch options, 1 to 7</td><td>Asked <b>after</b> "your worst lunch" (question 4)</td><td>Asked <b>before</b> "your worst lunch" (question 3)</td><td>Those who chose <b>4 or lower</b></td></tr></tbody></table></div>
+    ${[1, 2].map((f) => `<h3 class="tchead">Form LS-${f}: counts ${(f - 1) * 4 + 1} to ${f * 4}</h3><div class="tcsteps">${[
+      ["n", `"Everyone with form LS-${f}, stand up."`, `all participants with form LS-${f}`, f === 1 ? "the form number is at the bottom of each survey slip" : "the participants with form LS-1 stay seated"],
+      ["a", f === 1 ? `"Question 1 said: most students say lunch prices are far too high, do you agree? Stay standing if you answered Yes. The others sit down."` : `"Question 1 asked: how do you find lunch prices? Stay standing if you answered Too high. The others sit down."`, "those still standing", f === 1 ? "leading question · standing = Yes, prices are too high" : "neutral question · standing = prices are too high"],
+      ["b", f === 1 ? `"Everyone sit down. Question 2, time on social media and streaming. Stand up if you ticked the last box: more than 2½ hours."` : `"Everyone sit down. Question 2, time on social media and streaming. Stand up if you ticked any box except the first: more than 2½ hours."`, "those standing", f === 1 ? "low scale · last box = more than 2½ hours" : "high scale · every box except the first = more than 2½ hours"],
+      ["c", `"Everyone sit down. Question ${f === 1 ? 4 : 3}, your satisfaction with the lunch options overall, from 1 to 7. Stand up if you chose 4 or lower."`, "those standing, then say \"Thank you, sit down.\"", f === 1 ? "asked after \"your worst lunch\" · standing = 4 or lower" : "asked before \"your worst lunch\" · standing = 4 or lower"],
+    ].map(([q, say, count, key], i) => `<div class="tcstep"><span class="tcnum">${(f - 1) * 4 + i + 1}</span><label for="tc-${q}${f}"><span class="tckey">${["Everyone", "Lunch prices", "Screen time", "Satisfaction"][i]}: ${key}</span><span class="tcsay"><b>Say:</b> ${say}</span><span class="tccount"><b>Count:</b> ${count}</span></label><input id="tc-${q}${f}" data-tc="${q}${f}" type="text" inputmode="numeric" maxlength="2" autocomplete="off" value="${esc(S.tc[q + f] == null ? "" : S.tc[q + f])}" aria-label="Count ${(f - 1) * 4 + i + 1}, form LS-${f}"></div>`).join("")}</div>`).join("")}
     <div id="tcout">${tcOut()}</div>
-    <p><b>Then:</b> when all eight numbers are in, check that the total matches the room. Click "Show the class result on the big screen" and say the class word. Leave the result on the screen until every group has started Part 2: the groups need it for their answers.</p>
-    <p class="small">A participant who is unsure follows the slip: "My survey slip" on their screen says stand up or stay seated for each of the three questions.</p>
-    <p><button class="go secondary" data-tcclear>Clear the counts</button></p></div></details>
-  <details${CR.sum ? " open" : ""}><summary>After the lab: the class results from Excel</summary><div class="stack" style="margin-top:10px">
-    <p>This works out the class results for the reflection: the predictions of Part 1 and a picture of the groups' estimates and lotteries in Part 2. Nothing is sent anywhere: the numbers are worked out on this device.</p>
+    <p><b>Then:</b> when all eight numbers are in, check that the total matches the room. Click "Show the class result on the big screen" and say "${CLASS_WORD}". Leave the result on the screen until every group has started Part 2: the groups need it for their answers.</p>
+    <p><button class="go secondary" data-tcclear>Clear the counts</button></p></div>`;
+const teacherKey = () => `<div class="card stack entrynote" style="border:2px solid var(--accent)"><h2>Your five jobs, in order</h2>
+  <ol class="tips">
+    <li><b>Start of the session: the survey, on phones.</b> Show the survey address and say "${atob("c3VydmV5")}". Everyone answers alone, 2 to 3 minutes. Do not say that there are two forms.</li>
+    <li><b>Start of the lab: the lab page, on one laptop per group.</b> Show the lab address and say "${LAB_WORD}". Each participant keeps the phone open on the survey slip.</li>
+    <li><b>At every walk: ask, write, then give the password.</b> Never comment on an answer.</li>
+    <li><b>When every group has envelope 1: the class count.</b> Eight counts, then the big screen, then say "${CLASS_WORD}".</li>
+    <li><b>After the lab: paste the Excel rows</b> for the class pictures.</li>
+  </ol>
+  <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>When</th><th>Device</th><th>Address</th><th>Word you say</th></tr></thead><tbody>
+    <tr><td>Start of the session</td><td>Every participant's phone</td><td>${SURVEY_ADDR}</td><td><b>${atob("c3VydmV5")}</b></td></tr>
+    <tr><td>Start of the lab</td><td>One laptop per group (a phone also works)</td><td>${LAB_ADDR}</td><td><b>${LAB_WORD}</b></td></tr>
+    <tr><td>After the class count</td><td>The group's laptop</td><td>same page</td><td><b>${CLASS_WORD}</b></td></tr></tbody></table></div>
+  <p><b>The rule to remember: ask, write, password. No comment.</b></p></div>
+<div class="card stack"><h2>Job 3. At every walk</h2>
+  <p>A participant comes to you with the group code and the envelope number. <b>Ask</b> your question, <b>write</b> the answer on the board, then give the <b>password</b> from the row for the last digit of the group code.</p>
+  <p><b>The board:</b> one row for each group, with five columns: Group, Which form? (prices question), Sure, Estimate (of 100), First lottery (times ten).</p>
+  <div class="walk"><b>Envelope 1</b><span>Comes when the group has locked its three predictions.</span><span><b>Ask:</b> "The opinion question about lunch prices: which form did your group predict gets more answers that the prices are too high? How sure are you?"</span><span><b>Write:</b> "LS-1", "same" or "LS-2", and the percentage.</span></div>
+  <div class="walk"><b>Envelope 2</b><span>Comes when the group has locked its advice on the sentence, its estimate and its ten firms to phone.</span><span><b>Ask:</b> "How many of the 100 firms does your group think use AI?"</span><span><b>Write:</b> the number, from 0 to 100.</span></div>
+  <div class="walk"><b>Envelope 3</b><span>Comes when the group has made its five lotteries.</span><span><b>Ask:</b> "In your first lottery, how many of the ten firms use AI?"</span><span><b>Write:</b> that number times ten, next to the estimate. Example: 4 of 10 becomes 40.</span></div>
+  <div class="recap-wrap"><table class="recap keytable"><thead><tr><th>Group code ends in</th><th>Envelope 1</th><th>Envelope 2</th><th>Envelope 3</th></tr></thead><tbody>${WORDS.map((w, k) => `<tr><td><b>${k}</b></td><td>${w[0]}</td><td>${w[1]}</td><td>${w[2]}</td></tr>`).join("")}</tbody></table></div>
+  <ul class="tips"><li>A participant who cannot answer goes back to the group. If someone asks whether an answer is right: "Open the envelope and see."</li><li>A group still in Part 1 after 18 minutes: "Lock your answers and move on to Part 2."</li></ul></div>
+<div class="card stack"><h2>Job 4. The class count</h2>
+  <p><b>When:</b> every group has fetched the password for envelope 1.</p>${countSteps()}</div>
+<div class="card stack"><h2>Job 5. After the lab: the class results</h2>
+    <p>For the reflection: the predictions of Part 1, and a picture of the groups' estimates and lotteries in Part 2. Nothing is sent anywhere: the numbers are worked out on this device.</p>
     <ol class="tips"><li>In Forms, open <b>Responses</b> and click <b>Open in Excel</b>.</li><li>Click any cell, select everything (Cmd+A, or Ctrl+A on Windows) and copy (Cmd+C or Ctrl+C).</li><li>Click in the box below and paste (Cmd+V or Ctrl+V).</li></ol>
     <label for="cpaste">Paste the Excel rows here</label><textarea id="cpaste" rows="3" placeholder="Click here, then paste" autocomplete="off" spellcheck="false"></textarea>
-    <p class="small" id="cmsg" role="status"></p><div id="cout">${classOut()}</div></div></details>
-  <details><summary>The two survey forms</summary>${bothForms()}</details></div>`;
+    <p class="small" id="cmsg" role="status"></p><div id="cout">${classOut()}</div></div>
+<details class="card"><summary>For reference: the two survey forms</summary>${bothForms()}</details>`;
 function tcOut() {
   const c = S.tc, val = (k) => String(c[k] == null ? "" : c[k]).trim(), msgs = [];
   for (const k of CC) if (val(k) !== "" && !/^\d{1,2}$/.test(val(k))) msgs.push("Use whole numbers only.");
@@ -735,7 +750,7 @@ function tcOut() {
     <p><button class="go secondary" data-copycount>Copy the class count</button> <span class="small" id="cccopied" role="status"></span></p></div>${barsFor(c, false)}`;
 }
 const lookMax = () => (S.pick ? S.at : S.at - 1);
-function current() { return !S.handed && !S.lab ? "survey" : !S.lab ? "receipt" : S.look != null ? SCREENS[S.look] : S.pick ? "pickup" : SCREENS[S.at]; }
+function current() { S.lab = MODE === "lab"; return MODE === "survey" ? (S.handed ? "receipt" : "survey") : S.look != null ? SCREENS[S.look] : S.pick ? "pickup" : SCREENS[S.at]; }
 function render(scroll) {
   const looking = S.lab && S.look != null, id = current();
   if (!looking && S.lab) { stamp(S.pick ? "fetch-" + S.pick : id); save(); }
@@ -745,12 +760,12 @@ function render(scroll) {
   const who = S.role === "scribe" ? ` · ${esc(S.group)} · group code <b>${S.salt}</b>` : S.role === "follow" ? ` · following group ${esc(S.salt)}` : "";
   const bar = looking ? `<div class="lookbar"><b>Looking back: read only</b><span>${S.look > 1 ? '<button class="go secondary" data-look="prev">Earlier screen</button>' : ""}${S.look < lookMax() ? '<button class="go secondary" data-look="next">Later screen</button>' : ""}<button class="go" data-look="close">Return to where we were</button></span></div>` : "";
   const back = !looking && S.lab && S.role && id !== "end" && lookMax() >= 1 ? '<p><button class="go secondary" data-look="open">Look back at earlier screens</button></p>' : "";
-  const slip = S.lab && S.role && id !== "intro" ? `<details class="slip"${id === "p1c" && !looking ? " open" : ""}><summary>My survey slip</summary><div class="stack" style="margin-top:10px">${slipView(S.at >= 3 || id === "p1c")}</div></details>` : "";
+  const slip = "";
   app.innerHTML = "";
-  document.body.classList.toggle("wide", !!(preview && CR.proj && CR.sum));
+  document.body.classList.toggle("wide", !!(preview && CR.proj && CR.sum)); document.body.classList.toggle("teacher", !!preview);
   if (preview && CR.proj && CR.sum) { app.appendChild($(`<section class="proj stack"><h1>${CR.proj === "p1" ? "Our class: what the groups predicted" : "Our class: eight in ten?"}</h1><p>${CR.sum.n} groups</p>${CR.proj === "p1" ? classPart1(CR.sum) : classPart2(CR.sum)}<p class="ask">${CR.proj === "p1" ? "If the class count differs from what you predicted: what in the two forms could explain it?" : "Where are the estimates, and where are the lotteries? What do you think pulled each of them there?"}</p><p><button class="go secondary" data-cproj="">Back to teacher's page</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
   if (preview && S.proj && validCounts(S.tc)) { app.appendChild($(`<section class="proj stack"><h1>Our class: how the two forms answered</h1>${barsFor(S.tc, false)}<p class="projword">Class word: <b>${CLASS_WORD}</b></p><p><button class="go secondary" data-proj>Back to teacher's page</button></p></section>`)); if (scroll) window.scrollTo(0, 0); return; }
-  app.appendChild($(`<header class="top"><div class="brand">${S.lab ? "The Lunch Survey" : "Lunch survey"}</div><div class="where">Session 2 · ${v.where}${who}${preview ? " · facilitator preview" : ""}</div></header>${S.lab ? `<div class="track" aria-hidden="true">${track}</div>` : ""}${preview ? teacherKey() : ""}${bar}<section class="stack" id="screen">${v.html}</section>${bar}${slip}${back}${preview && S.lab && id !== "intro" && !looking ? '<p class="small">Facilitator preview: <button class="go secondary" data-skip>Skip to the next screen</button></p>' : ""}${preview && !S.lab ? '<p class="small">Facilitator preview: <button class="go secondary" data-lab-skip>Go to the lab without the survey</button></p>' : ""}`));
+  app.appendChild($(`<header class="top"><div class="brand">${MODE === "lab" ? "The Lunch Survey: the lab" : "Lunch survey"}</div><div class="where">Session 2 · ${v.where}${who}${preview ? " · facilitator preview" : ""}</div></header>${S.lab ? `<div class="track" aria-hidden="true">${track}</div>` : ""}${preview ? teacherKey() + '<details class="card"><summary>For the projector: the screens that participants see</summary>' : ""}${bar}<section class="stack" id="screen">${v.html}</section>${bar}${slip}${back}${preview && id !== "intro" && !looking ? '<p class="small"><button class="go secondary" data-skip>Skip to the next screen</button></p>' : ""}${preview ? "</details>" : ""}`));
   if (looking) { app.querySelectorAll("#screen .go, #screen .hint, #screen details").forEach((el) => el.remove()); app.querySelectorAll("#screen input, #screen textarea, #screen button").forEach((el) => { el.disabled = true; }); }
   if (follower() && !S.pick && !looking) { const b = app.querySelector("[data-next]"); if (b) b.textContent = GATED.includes(SCREENS[S.at + 1]) ? "Continue to the checkpoint" : "Continue"; }
   refresh();
@@ -855,7 +870,7 @@ app.addEventListener("click", (e) => {
 });
 /* Entry lock: the address can be shared before class; the page opens with a code the teacher gives when it is time to start.
    To change the code: put the new word (letters only) through btoa() and paste the result here. */
-const ENTRY_CODE = atob("c3VydmV5");
+const ENTRY_CODE = MODE === "survey" ? atob("c3VydmV5") : LAB_WORD; /* survey page: survey. lab page: lunch. */
 const LKEY = KEY + "-open";
 let OPENED = false; try { OPENED = localStorage.getItem(LKEY) === "1"; } catch (e) {}
 const lockOn = () => !OPENED && !preview;
@@ -868,7 +883,7 @@ render = function () {
     return;
   }
   document.body.classList.remove("wide");
-  app.innerHTML = `<section class="stack"><h1>Lunch survey</h1><div class="card stack"><h2>This page opens in class</h2>
+  app.innerHTML = `<section class="stack"><h1>${MODE === "survey" ? "Lunch survey" : "The Lunch Survey: the lab"}</h1><div class="card stack"><h2>This page opens in class</h2>
     <p>Your teacher gives the entry code when it is time to start.</p>
     <div><label for="entrycode">Entry code</label><input id="entrycode" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="One word"></div>
     <button class="go" data-entry>Open the page</button><p class="small" id="entrymsg" role="status"></p></div></section>`;
@@ -884,7 +899,7 @@ render(false);
 
 /* ---------- rewards: stars and a short "good job" for each step that is closed. Additive: nothing is sent to the form. ---------- */
 (function () {
-  const st = document.createElement("style"); st.textContent = ".hist { margin: 8px 0 0; } .hist svg { width: 100%; max-width: 560px; height: auto; display: block; }\n.starrow { display: flex; justify-content: flex-end; margin: 6px 0 2px; }\n.starbadge { display: inline-block; background: #fff7e0; border: 1.5px solid #e2b93b; color: #7a5a00; font-weight: 700; border-radius: 999px; padding: .2rem .7rem; font-size: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,.12); }\n.startoast { position: fixed; left: 50%; top: 3.2rem; transform: translateX(-50%); z-index: 50; background: #1f4e79; color: #fff; border-radius: 12px; padding: .7rem 1.1rem; font-weight: 700; box-shadow: 0 6px 18px rgba(0,0,0,.25); max-width: 90vw; text-align: center; animation: toastin .35s ease-out, toastout .5s ease-in 3.2s forwards; }\n.startoast small { display: block; font-weight: 400; opacity: .9; margin-top: .15rem; }\n.startoast .st { color: #ffd54a; font-size: 1.3rem; letter-spacing: .1em; }\n@keyframes toastin { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }\n@keyframes toastout { to { opacity: 0; visibility: hidden; } }\n@media (prefers-reduced-motion: reduce) { .startoast { animation: toastout .01s linear 3.5s forwards; } }\n.feedback { background: #fff7e0; border: 1.5px solid #e2b93b; border-radius: 12px; padding: .9rem 1rem; }\n.feedback h2 { margin: 0 0 .4rem; font-size: 1.15rem; color: #7a5a00; } .feedback p { margin: .35rem 0; }\n.feedback .st { color: #e0a800; font-size: 1.6rem; letter-spacing: .12em; } .feedback .st i { color: #d9d3bd; font-style: normal; }\n.fbline { display: flex; gap: .5rem; align-items: baseline; } .fbline b.ok { color: #1e7b34; } .fbline b.no { color: #b24a1a; }\n.rank { text-align: center; background: #fff7e0; border: 1.5px solid #e2b93b; border-radius: 14px; padding: 1rem; } .rank .st { color: #e0a800; font-size: 1.8rem; letter-spacing: .1em; } .rank .st i { color: #d9d3bd; font-style: normal; } .rank b { font-size: 1.3rem; display: block; margin-top: .3rem; }\n"; document.head.appendChild(st);
+  const st = document.createElement("style"); st.textContent = ".hist { margin: 8px 0 0; } .hist svg { width: 100%; max-width: 560px; height: auto; display: block; }\n.starrow { display: flex; justify-content: flex-end; margin: 6px 0 2px; }\n.starbadge { display: inline-block; background: #fff7e0; border: 1.5px solid #e2b93b; color: #7a5a00; font-weight: 700; border-radius: 999px; padding: .2rem .7rem; font-size: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,.12); }\n.startoast { position: fixed; left: 50%; top: 3.2rem; transform: translateX(-50%); z-index: 50; background: #1f4e79; color: #fff; border-radius: 12px; padding: .7rem 1.1rem; font-weight: 700; box-shadow: 0 6px 18px rgba(0,0,0,.25); max-width: 90vw; text-align: center; animation: toastin .35s ease-out, toastout .6s ease-in 8s forwards; font-size: 1.1rem; cursor: pointer; }\n.startoast small { display: block; font-weight: 400; opacity: .9; margin-top: .15rem; }\n.startoast .st { color: #ffd54a; font-size: 1.3rem; letter-spacing: .1em; }\n@keyframes toastin { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }\n@keyframes toastout { to { opacity: 0; visibility: hidden; } }\n@media (prefers-reduced-motion: reduce) { .startoast { animation: toastout .01s linear 8.5s forwards; } }\n.feedback { background: #fff7e0; border: 1.5px solid #e2b93b; border-radius: 12px; padding: .9rem 1rem; }\n.feedback h2 { margin: 0 0 .4rem; font-size: 1.15rem; color: #7a5a00; } .feedback p { margin: .35rem 0; }\n.feedback .st { color: #e0a800; font-size: 1.6rem; letter-spacing: .12em; } .feedback .st i { color: #d9d3bd; font-style: normal; }\n.fbline { display: flex; gap: .5rem; align-items: baseline; } .fbline b.ok { color: #1e7b34; } .fbline b.no { color: #b24a1a; }\n.rank { text-align: center; background: #fff7e0; border: 1.5px solid #e2b93b; border-radius: 14px; padding: 1rem; } .rank .st { color: #e0a800; font-size: 1.8rem; letter-spacing: .1em; } .rank .st i { color: #d9d3bd; font-style: normal; } .rank b { font-size: 1.3rem; display: block; margin-top: .3rem; }\n"; document.head.appendChild(st);
   const PRAISE = ["Good job!", "Well done!", "Nice work!", "Great teamwork!", "Keep going!"];
   const near = () => S.rev && S.draws && S.draws.some((d) => Math.abs(d.mean - TRUE_MEAN) <= 5);
   const LIST = [
@@ -893,7 +908,7 @@ render(false);
     [() => S.at >= 4, "Part 1 is closed", "You saw what the question did to the answers."],
     [() => S.at >= 5, "Ten firms chosen to phone", "Your own sample is on the table."],
     [() => S.draws && S.draws.length >= 5, "Five lotteries drawn", "Chance has had its say five times."],
-    [() => S.at >= 6 && near(), "Close call", "One of your lotteries landed within 5 points of all 100 firms."],
+    [() => S.at >= 6 && near(), "One of your lotteries landed within 5 points of all 100 firms", ""],
     [() => S.at >= 6 && !!S.rev, "The silent firms heard", "You have seen who answered and who did not."],
     [() => S.at >= 7, "Both parts are closed", "Your advice to Maja and Arvid is ready."],
   ];
@@ -902,13 +917,13 @@ render(false);
   render = function (scroll) {
     base(scroll);
     document.querySelectorAll(".starrow").forEach((n) => n.remove());
-    if (!S.lab || follower() || preview) return;
+    if (!S.lab || !OPENED || follower() || preview) return;
     const got = earned(), n = got.length, seen = S.starsSeen || 0;
     const b = document.createElement("div"); b.className = "starbadge"; b.setAttribute("aria-label", n + " stars of " + LIST.length); b.textContent = "★ " + n + " / " + LIST.length; const row = document.createElement("div"); row.className = "starrow"; row.appendChild(b); const hd = app.querySelector("header.top"); if (hd) hd.after(row); else app.prepend(row);
     if (n > seen) {
       const last = got[got.length - 1]; document.querySelectorAll(".startoast").forEach((x) => x.remove());
       const t = document.createElement("div"); t.className = "startoast"; t.setAttribute("role", "status");
-      t.innerHTML = '<span class="st">' + "★".repeat(Math.min(3, n - seen)) + "</span> " + PRAISE[n % PRAISE.length] + " " + last[1] + "<small>" + last[2] + "</small>"; document.body.appendChild(t);
+      t.innerHTML = '<span class="st">★</span> ' + PRAISE[n % PRAISE.length].replace("!", "") + ": " + last[1].charAt(0).toLowerCase() + last[1].slice(1) + "."; document.body.appendChild(t); t.addEventListener("click", () => t.remove());
       S.starsSeen = n; save();
     }
   };

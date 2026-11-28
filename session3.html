@@ -133,12 +133,13 @@ select { width: 100%; font: inherit; padding: .6rem .7rem; border: 1.5px solid #
 .dots { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; margin: .3rem 0; } .dots i { aspect-ratio: 1; border-radius: 50%; background: #c3c8d0; } .dots i.yes { background: #1e7b34; }
 .starrow { display: flex; justify-content: flex-end; margin: 6px 0 2px; }
 .starbadge { display: inline-block; background: #fff7e0; border: 1.5px solid #e2b93b; color: #7a5a00; font-weight: 700; border-radius: 999px; padding: .2rem .7rem; font-size: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
-.startoast { position: fixed; left: 50%; top: 3.2rem; transform: translateX(-50%); z-index: 50; background: #1f4e79; color: #fff; border-radius: 12px; padding: .7rem 1.1rem; font-weight: 700; box-shadow: 0 6px 18px rgba(0,0,0,.25); max-width: 90vw; text-align: center; animation: toastin .35s ease-out, toastout .5s ease-in 3.2s forwards; }
+.startoast { position: fixed; left: 50%; top: 3.2rem; transform: translateX(-50%); z-index: 50; background: #1f4e79; color: #fff; border-radius: 12px; padding: .7rem 1.1rem; font-weight: 700; box-shadow: 0 6px 18px rgba(0,0,0,.25); max-width: 90vw; text-align: center; animation: toastin .35s ease-out, toastout .5s ease-in 8s forwards; font-size: 1.1rem; cursor: pointer; }
 .startoast small { display: block; font-weight: 400; opacity: .9; margin-top: .15rem; }
 .startoast .st { color: #ffd54a; font-size: 1.3rem; letter-spacing: .1em; }
 @keyframes toastin { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+body.teacher #app { zoom: 1.18; } body.teacher .walk span { font-size: 19px; }
 @keyframes toastout { to { opacity: 0; visibility: hidden; } }
-@media (prefers-reduced-motion: reduce) { .startoast { animation: toastout .01s linear 3.5s forwards; } }
+@media (prefers-reduced-motion: reduce) { .startoast { animation: toastout .01s linear 8.5s forwards; } }
 .feedback { background: #fff7e0; border: 1.5px solid #e2b93b; border-radius: 12px; padding: .9rem 1rem; }
 .feedback h2 { margin: 0 0 .4rem; font-size: 1.15rem; color: #7a5a00; } .feedback p { margin: .35rem 0; }
 .feedback .st { color: #e0a800; font-size: 1.6rem; letter-spacing: .12em; } .feedback .st i { color: #d9d3bd; font-style: normal; }
@@ -236,13 +237,12 @@ function guestsView() {
   return h + [["own", "Standard orders (50)"], ["party", "Rush orders (50)"]].map(([k, l]) => `<p class="rowlabel hot">${l}</p><div class="gpair">${["Counter", "Table"].map((s) => block(SVC[s], ...G3[k][s])).join("")}</div>`).join("");
 }
 
-function suggestName() { if (!S.sugg) { const L = "ABCDEFGHJKLMNPQRSTUVWXYZ"; S.sugg = L[Math.floor(Math.random() * L.length)] + String(10 + Math.floor(Math.random() * 90)); if (!S.group) S.group = S.sugg; try { save(); } catch (e) {} } return S.sugg; }
 /* ---------- the steps ---------- */
 const STEP = {
   intro: { html: () => `<h1>The Inbox</h1><p>You are the analysts of a company. Three managers send you tickets. Each has a number, and a plan. They need advice they can act on.</p>
       <div class="card stack"><p><b>How it works</b></p><p>Work in pairs or groups of three, with one laptop that has JASP. One of you writes on this page; change who writes at each ticket.</p><p>Each step is locked before the next one opens. Nothing is graded: your answers are used for research on teaching only.</p></div>
-      ${RO ? `<div class="locked"><b>Group name</b>${esc(S.group)}</div>` : `<div><label for="group">Your group's name: a letter and a number</label><input type="text" id="group" data-group maxlength="12" autocomplete="off" value="${esc(S.group || suggestName())}" style="max-width:10rem"><p class="hint">We suggest <b>${suggestName()}</b>, so that no two groups share a name. You may change it.</p></div>`}`,
-    ok: () => (S.group || "").trim().length >= 2, go: "Open the first ticket" },
+      ${RO ? `<div class="locked"><b>Group name</b>${esc(S.group)}</div>` : `<div><label for="group">Choose a name for your group</label><input type="text" id="group" data-group maxlength="40" autocomplete="off" value="${esc(S.group)}" placeholder="Your own choice" style="max-width:22rem"></div>`}`,
+    ok: () => (S.group || "").trim().length >= 1, go: "Open the first ticket" },
   t1a: { mins: "about 3 minutes", html: () => `<h1>Ticket 1: the new returns process</h1><p>The company tests a <b>new process</b> for handling product returns. Ten customers went through the new process and ten through the <b>old process</b>. Each customer answered “How satisfied are you with how your return was handled?” on a scale from <b>1 = very dissatisfied</b> to <b>7 = very satisfied</b>.</p>${SCALE}
       ${owner("“The average rating of the new process is 4.6. The average rating of the old process is 4.0. We roll out the new process to all customers. Agreed?”", QM)}${advice("t1first", "What do you advise, from what the manager has told you?", ["Roll out the new process", "Keep the old process", "Not enough to decide"])}`,
     ok: () => adviceDone("t1first"), go: "Lock our advice and see the data" },
@@ -306,7 +306,7 @@ const starTotal = () => Object.keys(FB).reduce((n, id) => n + (S.fbd[id] ? FB[id
 const STAR_MAX = 16;
 function toast(n, text) {
   document.querySelectorAll(".startoast").forEach((x) => x.remove()); const t = document.createElement("div"); t.className = "startoast"; t.setAttribute("role", "status");
-  t.innerHTML = `<span class="st">${"★".repeat(Math.max(1, Math.min(3, n)))}</span> ${PRAISE[starTotal() % PRAISE.length]}<small>${text}</small>`; document.body.appendChild(t);
+  const one = String(text).replace(/[.!?]+$/, ""); t.innerHTML = `<span class="st">${"★".repeat(Math.max(1, Math.min(3, n)))}</span> ${PRAISE[starTotal() % PRAISE.length].replace("!", "")}: ${one.charAt(0).toLowerCase() + one.slice(1)}.`; document.body.appendChild(t); t.addEventListener("click", () => t.remove());
 }
 function fbCard(id) { const f = fbOf(id); if (!f || f.quick) return ""; return `<div class="feedback" role="status"><h2>${stars(f.n, f.max)} ${f.title}</h2>${f.html}</div>`; }
 const FIELDS = () => {
@@ -339,35 +339,33 @@ function endView() {
       : `<p><b>Last step: keep your case file.</b></p><p><button type="button" class="go" data-copy>Copy our case file</button></p><p class="hint" id="copied"></p>`}</div>`;
 }
 function teacher() {
-  return `<h1>The Inbox: teacher view</h1><p class="hint">Remove #facilitator from the address to see the page as participants do.</p>
+  return `<h1>The Inbox: teacher view</h1>
   <div class="card stack entrynote" style="border:2px solid var(--accent)"><h2>Your five jobs, in order</h2>
     <ol style="margin:0;padding-left:22px;display:grid;gap:6px">
-      <li><b>Before the lab.</b> A pile of playing cards for each group, with as many red as black. On the board: the numbers 0 to 10 in a row.</li>
-      <li><b>Start of the lab: say "${ENTRY_CODE}".</b> Pairs or groups of three, one laptop with JASP if they have one.</li>
+      <li><b>Before the lab: cards and board.</b> Each group gets a pile of playing cards, as many red as black (a full deck, or 13 red and 13 black). Write the numbers 0 to 10 in a row on the board, with room for crosses above.</li>
+      <li><b>Start of the lab: say "${ENTRY_CODE}".</b> Pairs or groups of three, one laptop per group, with JASP if they have it. The lab takes 30 to 40 minutes.</li>
       <li><b>Ticket 1: walk around.</b> Ask one question only: "How many customers gave a rating near 4.6?"</li>
       <li><b>Ticket 2: the cards and the board.</b> When the board is full, circle 7 to 10, count those crosses aloud, then say "${CLASS_WORD}".</li>
       <li><b>Tickets 3 and 4, and the memo: no help.</b> If a group is stuck on ticket 3: "Who gets the rush orders?"</li>
     </ol>
-    <div class="recap-wrap"><table class="recap"><tr><th>Word</th><th>When you say it</th><th>What it opens</th></tr><tr><td><b>${ENTRY_CODE}</b></td><td>Start of the lab</td><td>The page, on every device</td></tr><tr><td><b>${CLASS_WORD}</b></td><td>When the board is full</td><td>Ticket 3</td></tr></table></div>
-    <p><b>The rule to remember: ask, do not tell.</b> The page gives the feedback after each lock.</p></div>
-  <div class="card stack"><h2>Before the lab</h2><p><b>Per pair or group of three:</b> one laptop with JASP if possible, and a pile of playing cards with as many red as black cards. A full deck per group is best; half a deck (13 red, 13 black) also works.</p><p><b>On the board:</b> the numbers 0 to 10 in a row, with room for crosses above each.</p><p><b>Class word</b> for opening ticket 3: <b>${CLASS_WORD}</b>. Give it when most groups have put their three crosses on the board.</p><p><b>Time:</b> 30–40 minutes for the four tickets and the memo.</p><p><b>Feedback and stars:</b> after each ticket is locked, the page shows what the data said, with up to three stars, 16 in all. Nothing is shown before the group has committed. The stars are for motivation and are not a grade.</p></div>
-  <div class="card stack"><h2>What to do at each ticket</h2>
-    <p><b>Ticket 1 (8–10 minutes).</b> Walk around. Ask one question only: “How many customers gave a rating near 4.6?” Do not say more.</p>
-    <p><b>Ticket 2 (10–12 minutes).</b> Hand out the cards. Say once: “Ten cards are ten users with no preference. Red picks the new design. Count the red ones.” Watch the board fill: it grows into a hill around 5. Circle columns 7 to 10 and count the crosses there aloud: “so many of so many shuffles”. Then give the class word.</p>
-    <p><b>Ticket 3 (9–11 minutes).</b> Groups press “Split the orders” themselves. If a group is puzzled by the result, ask: “Who gets the rush orders?”</p>
-    <p><b>Ticket 4 and the memo (8–11 minutes).</b> No help. The answers come in round 4.</p></div>
-  <div class="card stack"><h2>Answer key</h2><table class="keytable"><tr><th>Ticket</th><th>What groups find</th><th>What it means</th></tr>
-    <tr><td>1. The returns process</td><td>The middle customer: new process 3 (somewhat dissatisfied), old process 4 (neither). New process: six customers at 3 and four at 7 (very satisfied), nobody near 4.6.</td><td>The average describes a customer who does not exist. Look at the distribution before quoting an average.</td></tr>
-    <tr><td>2. Luck or real?</td><td>With ten users who have no preference, luck alone gives the new design 7 or more in about 17 of 100 rounds (the third option of the guess).</td><td>This is what a p-value answers: how often would luck alone give a result like this one? With 27 crosses on the board, expect four or five at 7 or more; with half decks, slightly fewer.</td></tr>
-    <tr><td>3. Supplier A or B?</td><td>Standard orders: A 32 of 40 on time (80%), B 9 of 10 (90%). Rush orders: A 3 of 10 (30%), B 16 of 40 (40%). Supplier B gets most of the rush orders.</td><td>Supplier B wins on both types of order and loses overall (50% against 70%), because rush orders are harder to deliver on time and four of five of them go to B. A third variable can reverse a comparison.</td></tr>
-    <tr><td>4. Which tool?</td><td colspan="2">${ASKS.map((q, i) => (i + 1) + ". " + TOOLS[KEYS4[i]]).join(" · ")}</td></tr></table></div>
-  <div class="card stack"><h2>What it means for the managers</h2><p><b>Ticket 1 (quality):</b> do not roll out yet; six of ten customers were less satisfied with the new process. Find out what split them into two camps.</p><p><b>Ticket 2 (innovation):</b> seven of ten is not yet evidence; luck does it about one time in six. Test with more users: 70 of 100 would be convincing.</p><p><b>Ticket 3 (supply chain):</b> keep supplier B; it is on time more often on both types of order. If B is dropped, the rush orders go to the supplier that delivers 30% of them on time.</p></div>`;
+    <div class="recap-wrap"><table class="recap"><tr><th>Word you say</th><th>When</th><th>What it opens</th></tr><tr><td><b>${ENTRY_CODE}</b></td><td>Start of the lab</td><td>The page, on every device</td></tr><tr><td><b>${CLASS_WORD}</b></td><td>When the board is full</td><td>Ticket 3</td></tr></table></div>
+    <p><b>The rule to remember: ask, do not tell.</b> The page gives the feedback and the stars after each lock.</p></div>
+  <div class="card stack"><h2>Job 4. Ticket 2: the cards and the board</h2>
+    <div class="walk"><b>1. Hand out the cards</b><span><b>Say:</b> "Ten cards are ten users with no preference. Red picks the new design. Deal ten cards and count the red ones."</span></div>
+    <div class="walk"><b>2. Fill the board</b><span>Each group deals three times and puts three crosses on the board, above its three counts. The crosses grow into a hill around 5.</span></div>
+    <div class="walk"><b>3. Count the luck</b><span>Circle the columns 7 to 10 and count the crosses there aloud.</span><span><b>Say:</b> "So many of so many deals gave 7 or more, by luck alone."</span></div>
+    <div class="walk"><b>4. Open ticket 3</b><span><b>Say:</b> "${CLASS_WORD}".</span></div></div>
+  <div class="card stack"><h2>Answer key, for the reflection</h2><table class="keytable"><tr><th>Ticket</th><th>What groups find</th><th>What it means</th><th>For the manager</th></tr>
+    <tr><td>1. The returns process (8 to 10 minutes)</td><td>New process: six customers at 3 and four at 7, nobody near 4.6. The middle customer: new process 3, old process 4.</td><td>The average describes a customer who does not exist. Look at the distribution before quoting an average.</td><td>Do not roll out yet. Find out what split the customers into two camps.</td></tr>
+    <tr><td>2. Luck or real? (10 to 12 minutes)</td><td>Luck alone gives the new design 7 or more of ten in about 17 of 100 rounds.</td><td>This is what a p-value answers: how often would luck alone give a result like this one? With 27 crosses on the board, expect four or five at 7 or more.</td><td>Seven of ten is not yet evidence. Test with more users: 70 of 100 would be convincing.</td></tr>
+    <tr><td>3. Supplier A or B? (9 to 11 minutes)</td><td>Standard orders: A 80% on time, B 90%. Rush orders: A 30%, B 40%. Overall: A 70%, B 50%.</td><td>B wins on both types of order and loses overall, because four of five rush orders go to B. A third variable can reverse a comparison.</td><td>Keep supplier B. If B is dropped, the rush orders go to the supplier that delivers 30% of them on time.</td></tr>
+    <tr><td>4. Which tool? (8 to 11 minutes, with the memo)</td><td colspan="3">${ASKS.map((q, i) => (i + 1) + ". " + TOOLS[KEYS4[i]]).join(" · ")}. The answers come in round 4.</td></tr></table></div>`;
 }
 
 /* ---------- drawing and events ---------- */
 function render() {
   document.querySelectorAll(".starrow").forEach((n) => n.remove());
-  if (preview) { document.body.classList.add("wide"); app.innerHTML = `<div class="stack">${teacher()}</div>`; return; }
+  if (preview) { document.body.classList.add("wide"); document.body.classList.add("teacher"); app.innerHTML = `<div class="stack">${teacher()}</div>`; return; }
   document.body.classList.remove("wide");
   const id = SCREENS[S.at], furthest = S.max || 0, locked = !!S.fbd[id]; RO = S.at < furthest || locked; stamp(id);
   const track = `<div class="track" aria-hidden="true">${SCREENS.map((s, i) => `<span class="${i < S.at ? "done" : i === S.at ? "now" : ""}"></span>`).join("")}</div>`;
@@ -400,7 +398,7 @@ app.addEventListener("click", (e) => {
 app.addEventListener("input", (e) => {
   const t = e.target;
   if (t.dataset.sure) { S.a[t.dataset.sure + "Sure"] = Number(t.value); document.getElementById(t.dataset.sure + "-out").textContent = t.value + "%"; }
-  else if (t.hasAttribute("data-group")) { t.value = t.value.replace(/[^A-Za-z0-9 ]/g, "").slice(0, 12); S.group = t.value.trim(); }
+  else if (t.hasAttribute("data-group")) { t.value = t.value.replace(/[\t\n"<>]/g, "").slice(0, 40); S.group = t.value.trim(); }
   else if (t.dataset.num) { const v = t.value.replace(/[^\d]/g, ""); t.value = v; const n = Number(v); S.a[t.dataset.num] = v === "" || n < Number(t.dataset.min) || n > Number(t.dataset.max) ? "" : n; if ((t.dataset.num.startsWith("t2s") && !S.sim && ["t2s1", "t2s2", "t2s3"].every(numOK)) || (t.dataset.num.startsWith("t1m") && numOK("t1mnew") && numOK("t1mold") && S.a.t1jasp && !app.querySelector('[data-choice="t1later"]'))) { save(); const pos = t.id; render(); const el = document.getElementById(pos); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } return; } }
   else if (t.dataset.text) { S.a[t.dataset.text] = t.value; }
   else if (t.dataset.sel) { S.a[t.dataset.sel] = t.value; }
